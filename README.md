@@ -5,6 +5,8 @@
 The performance of deep neural networks (DNN) is very sensitive to the particular choice of hyperparameters. To make it worse, the shape of the learning curve can be significantly affected when a technique like batchnorm is used. As a result, hyperparameter optimization of deep networks can be much more challenging than traditional machine learning models. In this work, we start from well known Bayesian Optimization solutions and provide enhancement strategies specifically designed for hyperparameter optimization of deep networks. 
 The resulting algorithm is named as DEEP-BO (Diversified, Early-termination-Enabled, and Parallel Bayesian Optimization). When evaluated over six DNN benchmarks, DEEP-BO easily outperforms or shows comparable performance as some of the well-known solutions including GP-Hedge, Hyperband, BOHB, Median Stopping Rule, and Learning Curve Extrapolation.
 
+
+## DEEP-BO Overview
 **Key Features**
   * Expandable structure which can easily add new HPO algorithm
   * Noble diversification strategy for effective and robust HPO
@@ -57,7 +59,6 @@ If you are working on Linux, install these packages as follows:
 (hpo)device:path$ pip install hyperopt validators flask-restful requests
 ```
 
-
 (Optional) Speeding up the gradient calculation in GP, install below package:
 ```bash
 (hpo)device:path$ conda install -c conda-forge weave
@@ -68,39 +69,12 @@ If you want to evalute samples, more packages for deep learning are required:
 * tensorflow(-gpu)
 * karas(-gpu)
 
+-------------------
 
+## Runner Interface
 
-## Run Experiment with Surrogate Benchmark Datasets 
-
-### Download surrogate benchmark datasets
-
-Unzip the benchmark_dataset.zip file which provided
-```bash
-$ unzip benchmark_dataset.zip
-```
-After extraction, there will be two directories such as /hp_conf and /lookup.
-Copy (or move) them into the working folder. (e.g. the path which this README.md existed)  
-You can change the directories by setting options of hpo_runner.py. See the details in this file.
-
-
-### Run with console mode
-```bash
-(hpo)$ python hpo_runner.py MNIST-LeNet1 10 -m=GP -s=EI -e=GOAL -eg=0.99
-```
-
-* This command executes the hyperparameter optimization with the surrogates named data2 10 times by a specific optimizer(*GP modeling and EI acquisition function*).
-  * It forces to be terminated when the target goal accuracy (0.99) achieved.
-
-
-```bash
-(hpo)$ python hpo_runner.py MNIST-LeNet2 10 -e=TIME -et=36000
-```
-
-* This command optimizes the hyperparameters of surrogates benchmark MNIST-LeNet2 10 times with diverification with given time bin.
-  * It will not be terminated before the given time (36000 secs == 10 min.) expired.
-
-
-See help for more options.
+You can run hyperparameter optimization through hpo_runner.py.
+See help for more options as below:
 
 ```bash
 (hpo)$ python hpo_runner.py --help
@@ -166,7 +140,7 @@ optional arguments:
 
 ```
 
-## Run Practical Experiment using Realtime Evaluation
+## Run Hyperparameter Optimization through Web API
 
 For both easy of evaluation and scalability, we adapt Web-Oriented Architecture (WOA).
 Firstly, we create a train node which will be served as a daemon like a sample code which described as train_node.py.
@@ -180,10 +154,15 @@ If the URL is http://localhost:6000, run script as follows:
 ```bash
 (hpo)$ python hpo_runner.py -e=TIME -et=36000 -w http://localhost:6000 MNIST-LeNet1 1 
 ```
-CAUTIONS: configuration files (e.g. /hp_conf/*.json, /run_conf/*.json) are properly set.
-(Details will be added later) 
 
+**CAUTIONS**: configuration files (e.g. /hp_conf/*.json, /run_conf/*.json) are properly set.
+(Details will be updated soon) 
+
+
+## Prallel BO with diversification 
 For scalable parallel HPO, the hyperparameter optimization algorithm itself also can be a node like hpo_node.py.
 We also introduce the name node which manages the shared history and associated parallel workers.
 In this manner, we can scaling Bayesian Optimization as described in the paper.
-The detailed description will be added when this project is opened.
+(Details will be updated soon) 
+
+
