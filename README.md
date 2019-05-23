@@ -71,68 +71,9 @@ If you want to evalute samples, more packages for deep learning are required:
 
 -------------------
 
-## Runner Interface
+For more information, See [Wiki](https://github.com/snu-adsl/DEEP-BO/wiki)
 
-You can run hyperparameter optimization through hpo_runner.py.
-See help for more options as below:
 
-```bash
-(hpo)$ python hpo_runner.py --help
-usage: hpo_runner.py [-h] [-m MODE] [-s SPEC] [-e EXP_CRT] [-eg EXP_GOAL]
-                     [-et EXP_TIME] [-etr EARLY_TERM_RULE] [-rd RCONF_DIR]
-                     [-hd HCONF_DIR] [-rc RCONF] [-w WORKER_URL]
-                     [-l LOG_LEVEL] [-r RERUN] [-p PKL]
-                     hp_config num_trials
-
-positional arguments:
-  hp_config             hyperparameter configuration name.
-  num_trials            The total repeats of the experiment.
-
-optional arguments:
-  -h, --help            show this help message and exit
-  -m MODE, --mode MODE  The optimization mode. Set a model name to use a
-                        specific model only. Set DIV to sequential
-                        diverification mode. Set BATCH to parallel mode.
-                        ['SOBOL', 'GP', 'RF', 'TPE', 'GP-NM', 'GP-HLE',
-                        'RF-HLE', 'TPE-HLE', 'DIV', 'ADA', 'BATCH'] are available.
-                        default is DIV.
-  -s SPEC, --spec SPEC  The detailed specification of the given mode. (e.g.
-                        acquisition function) ['RANDOM', 'EI', 'PI',
-                        'UCB', 'SEQ', 'RANDOM', 'HEDGE', 'BO-HEDGE', 'BO-
-                        HEDGE-T', 'BO-HEDGE-LE', 'BO-HEDGE-LET', 'EG', 'EG-
-                        LE', 'GT', 'GT-LE', 'SKO', 'SYNC', 'ASYNC'] are
-                        available. default is SEQ.
-  -e EXP_CRT, --exp_crt EXP_CRT
-                        Expiry criteria of the trial. Set "TIME" to run each
-                        trial until given exp_time expired.Or Set "GOAL" to
-                        run until each trial achieves exp_goal.Default setting
-                        is TIME.
-  -eg EXP_GOAL, --exp_goal EXP_GOAL
-                        The expected target goal accuracy. When it is
-                        achieved, the trial will be terminated automatically.
-                        Default setting is 0.9999.
-  -et EXP_TIME, --exp_time EXP_TIME
-                        The time each trial expires. When the time is up, it
-                        is automatically terminated. Default setting is 86400.
-  -etr EARLY_TERM_RULE, --early_term_rule EARLY_TERM_RULE
-                        Early termination rule. Default setting is None.
-  -rd RCONF_DIR, --rconf_dir RCONF_DIR
-                        Run configuration directory. Default setting is
-                        ./run_conf/
-  -hd HCONF_DIR, --hconf_dir HCONF_DIR
-                        Hyperparameter configuration directory. Default
-                        setting is ./hp_conf/
-  -rc RCONF, --rconf RCONF
-                        Run configuration file in ./run_conf/. Default setting
-                        is arms.json
-  -w WORKER_URL, --worker_url WORKER_URL
-                        Remote training worker node URL. Set the valid URL if
-                        remote training required.
-  -l LOG_LEVEL, --log_level LOG_LEVEL
-                        Print out log level. ['debug', 'warn', 'error', 'log']
-                        are available. default is warn
-
-```
 
 ## Run Hyperparameter Optimization through Web API
 
