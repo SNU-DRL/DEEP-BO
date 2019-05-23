@@ -1,0 +1,11 @@
+{
+   "exp_crt": "TIME",
+    "exp_time": 86400,
+    "exp_goal": 0.999,
+    "num_trials": 1,    
+    "mode": "DIV",
+    "spec": "SEQ",
+
+    "surrogate": "data1",
+    "worker_url": "none"    
+}

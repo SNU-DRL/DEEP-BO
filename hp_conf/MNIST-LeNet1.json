@@ -1,0 +1,59 @@
+{
+    "dataset": "MNIST",
+    "model": "LeNet-5",
+    "config": { 
+        "max_epoch": 15, 
+        "surrogate": "MNIST-LeNet1"
+    },    
+    "hyperparams": {
+        "c1_depth": {
+            "type": "int",
+            "value_type": "discrete",
+            "range": [1, 350]
+        },
+        "p1_size": {
+            "type": "int",
+            "value_type": "discrete",
+            "range": [2, 3]
+        },
+        "c2_depth": {
+            "type": "int",
+            "value_type": "discrete",
+            "range": [1, 350]
+        },
+        "p2_size": {
+            "type": "int",
+            "value_type": "discrete",
+            "range": [2, 3]
+        },                
+        "window_size": {
+            "type": "int",
+            "value_type": "discrete",
+            "range": [2, 10]
+        },
+        "f1_width": {
+            "type": "int",
+            "value_type": "discrete",
+            "range": [1, 1024]
+        },
+        "learning_rate": {
+            "type": "float",
+            "value_type": "continuous",
+            "range": [-4, -0.5],
+            "power_of": 10
+        },
+        "reg_param": {
+            "type": "float",
+            "value_type": "continuous",
+            "range": [0.0, 1.0]
+        },
+        "keep_prop_rate": {
+            "type": "float",
+            "value_type": "continuous",
+            "range": [0.1, 1.0]
+        }
+    },
+    "param_order" : ["c1_depth", "p1_size", "c2_depth", 
+        "p2_size", "f1_width", "window_size",
+        "learning_rate", "reg_param", "keep_prop_rate"]
+}

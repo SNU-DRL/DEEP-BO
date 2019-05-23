@@ -1,0 +1,40 @@
+{    
+    "credential" : "",
+    "title": "p6div-etr-inprogress",
+    "early_term_rule" : "DecaTercet",
+    "failover": "premature",
+    "arms": [
+        {
+            "model": "GP-HLE",
+            "acq_func": "EI"
+        },
+        {
+            "model": "GP-HLE",
+            "acq_func": "PI"
+        },
+        {
+            "model": "GP-HLE",
+            "acq_func": "UCB"
+        },        
+        {
+            "model": "RF-HLE",
+            "acq_func": "EI"
+        },
+        {
+            "model": "RF-HLE",
+            "acq_func": "PI"
+        },
+        {
+            "model": "RF-HLE",
+            "acq_func": "UCB"
+        }
+    ],
+    "bandits" : [
+        { "mode": "GP-HLE", "spec": "EI" },
+        { "mode": "GP-HLE", "spec": "PI" },
+        { "mode": "GP-HLE", "spec": "UCB" },
+        { "mode": "RF-HLE", "spec": "EI" },
+        { "mode": "RF-HLE", "spec": "PI" },
+        { "mode": "RF-HLE", "spec": "UCB" }
+    ]
+}
