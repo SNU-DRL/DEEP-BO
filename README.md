@@ -131,12 +131,6 @@ optional arguments:
   -l LOG_LEVEL, --log_level LOG_LEVEL
                         Print out log level. ['debug', 'warn', 'error', 'log']
                         are available. default is warn
-  -r RERUN, --rerun RERUN
-                        [Experimental] Use to expand the number of trials for
-                        the experiment. zero means no rerun. default is 0.
-  -p PKL, --pkl PKL     [Experimental] Whether to save internal values into a
-                        pickle file. CAUTION:this operation requires very
-                        large storage space! Default value is False.
 
 ```
 
