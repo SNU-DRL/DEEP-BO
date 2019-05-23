@@ -75,11 +75,3 @@ For more information, See [Wiki](https://github.com/snu-adsl/DEEP-BO/wiki)
 
 
 
-
-## Prallel BO with diversification 
-For scalable parallel HPO, the hyperparameter optimization algorithm itself also can be a node like hpo_node.py.
-We also introduce the name node which manages the shared history and associated parallel workers.
-In this manner, we can scaling Bayesian Optimization as described in the paper.
-(Details will be updated soon) 
-
-
