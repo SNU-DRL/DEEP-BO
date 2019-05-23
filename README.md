@@ -75,24 +75,6 @@ For more information, See [Wiki](https://github.com/snu-adsl/DEEP-BO/wiki)
 
 
 
-## Run Hyperparameter Optimization through Web API
-
-For both easy of evaluation and scalability, we adapt Web-Oriented Architecture (WOA).
-Firstly, we create a train node which will be served as a daemon like a sample code which described as train_node.py.
-HPO runner can communicate with the train node through pre-defined Web API.
-
-For run with a single processor, you first run a train node. (The practical samples are existed in /samples directory)
-If the training node is ready to serve, you will get the URL(including port number if required).
-Pass this URL through -w option of hpo_runner.
-
-If the URL is http://localhost:6000, run script as follows: 
-```bash
-(hpo)$ python hpo_runner.py -e=TIME -et=36000 -w http://localhost:6000 MNIST-LeNet1 1 
-```
-
-**CAUTIONS**: configuration files (e.g. /hp_conf/*.json, /run_conf/*.json) are properly set.
-(Details will be updated soon) 
-
 
 ## Prallel BO with diversification 
 For scalable parallel HPO, the hyperparameter optimization algorithm itself also can be a node like hpo_node.py.
