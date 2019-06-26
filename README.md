@@ -8,26 +8,25 @@ The resulting algorithm is named as DEEP-BO (Diversified, Early-termination-Enab
 
 ## DEEP-BO Overview
 **Key Features**
-  * Expandable structure which can easily add new HPO algorithm
-  * Noble diversification strategy for effective and robust HPO
-  * Compound early termination rule.  
-  * Scalable and asynchronous HPO jobs on a microservices architecture
+  * Simple diversification strategy over BO modeling algorithms and acquisition functions
+  * Scalable BO executing HPO jobs asynchronously based on a microservices architecture
     * Thanks to Web Oriented Architecture via RESTful Web API
+  * Compound early termination rule to stop unuseful evaluation(s) without harmful side-effect.  
 
-We unified three practical hyperparameter optimization frameworks of machine learning:
+We have unified three practical hyperparameter optimization frameworks of machine learning:
 
 * [Spearmint](https://github.com/JasperSnoek/spearmint) 
 * [SMAC](http://www.cs.ubc.ca/labs/beta/Projects/SMAC/)
 * [Hyperopt](https://github.com/hyperopt/hyperopt)
 
-Our solution diversify BO algorithms to minimize a catastrophic failure which happens to be on any DNN problem by rotating combinations of their modeling algorithms and acquisition functions.
 
 ## Installation
 
 ### Prerequisites
 
-I strongly suggest to make new virtual environment by using [Anaconda](https://www.anaconda.com/download/).
-This project only tested on Python 2.7.x.
+Firstly, creating new virtual environment by using [Anaconda](https://www.anaconda.com/download/) is strongly suggested.
+Even though the maintenance period for python 2.7.x is almost over, we still recommend creating this environment based on python 2.7.x.
+Running in Python 3.x may be supported soon, but so far this project has only been tested in Python 2.7.x.
 
 ```bash
     conda create -n hpo python=2.7
@@ -39,7 +38,7 @@ After creating the environment, activate your environment as follows:
     source activate hpo
 ```
 
-The following additional packages are required to install:
+The following additional packages are required to install properly:
 
 * pandas
 * scikit-learn
@@ -59,12 +58,12 @@ If you are working on Linux, install these packages as follows:
 (hpo)device:path$ pip install hyperopt validators flask-restful requests
 ```
 
-(Optional) Speeding up the gradient calculation in GP, install below package:
+(Optional) Speeding up the gradient calculation in GP, install weave package as follows:
 ```bash
 (hpo)device:path$ conda install -c conda-forge weave
 ```
 
-If you want to evalute samples, more packages for deep learning are required:
+If you want to run samples, more packages for deep learning are required:
 
 * tensorflow(-gpu)
 * karas(-gpu)

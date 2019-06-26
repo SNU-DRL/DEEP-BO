@@ -10,12 +10,6 @@ from collections import namedtuple
 from ws.shared.logger import *
 
 
-def read_config(cfg_file):
-    hcr = HyperparameterConfigurationReader(cfg_file)
-    
-    return hcr.get_config()
-
-
 class HyperparameterConfigurationReader(object):
     def __init__(self, cfg_file_name, config_path=""):
         self._dict = {}

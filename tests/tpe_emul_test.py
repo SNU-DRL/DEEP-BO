@@ -6,14 +6,14 @@ sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 
 import ws.hpo.bandit as bandit
 import ws.hpo.space_mgr as space
-import ws.hpo.bandit_config as run_config
+from ws.shared.read_cfg import *
 
 from ws.shared.logger import *
 
 def test_emul_main():
 
-    conf = run_config.read('pairing/2fools.json')
-    samples = space.create_surrogate_space('data3')
+    conf = read_run_config('7div-etr.json')
+    samples = space.create_surrogate_space('MNIST-LeNet1')
     lookup = samples.lookup
     emul = bandit.create_emulator(samples, lookup, 
                 'TIME', 0.999, '6h', 

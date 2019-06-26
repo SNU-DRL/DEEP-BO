@@ -59,7 +59,7 @@ class VizMedianETRTrainer(EarlyTerminateTrainer): #
                     break
 
         self.add_train_history(acc_curve, exec_time, 
-                        train_epoch, early_terminated)
+                               train_epoch, early_terminated)
         return {
                 "test_error":  test_error, 
                 "train_epoch": train_epoch,

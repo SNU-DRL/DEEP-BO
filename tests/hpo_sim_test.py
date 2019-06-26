@@ -6,20 +6,19 @@ sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 
 from ws.apis import *
 from ws.shared.logger import *
-import ws.hpo.bandit_config as bconf
-import ws.shared.hp_cfg as hconf
+from ws.shared.read_cfg import *
 
 import ws.hpo.bandit as bandit
 import ws.hpo.space_mgr as space
 
 
 def mnist_lenet2_test(etr):
-    hp_cfg = hconf.read_config("hp_conf/MNIST-LeNet2.json")
+    hp_cfg = read_hyperparam_config("hp_conf/MNIST-LeNet2.json")
     samples = space.create_surrogate_space('MNIST-LeNet2')
     
     set_log_level('debug')
     
-    run_cfg = bconf.read("arms.json", path="run_conf/")
+    run_cfg = read_run_config("arms.json", path="run_conf/")
     run_cfg["early_term_rule"] = etr
     m = bandit.create_emulator(samples, 
                 'TIME', 0.9999, '1d',

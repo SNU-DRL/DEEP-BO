@@ -60,7 +60,7 @@ class RemoteTrainer(TrainerPrototype):
 
     def wait_until_done(self, job_id, model_index, estimates, space):
 
-        acc_curve = None
+        acc_curve = []
         prev_interim_err = None
         time_out_count = 0
         early_terminated = False
@@ -69,7 +69,8 @@ class RemoteTrainer(TrainerPrototype):
                 j = self.controller.get_job("active")
                 if j != None:
                     if "lr" in j and len(j["lr"]) > 0:
-                        acc_curve = [ acc for acc in j["lr"] ]
+                        if "cur_acc" in j and j['cur_acc'] != None:
+                            acc_curve = [ 1.0 - loss for loss in j["lr"] ]
                         
                         # Interim error update
                         interim_err = j["lr"][-1]
@@ -78,7 +79,7 @@ class RemoteTrainer(TrainerPrototype):
                             if space != None:
                                 space.update_error(model_index, interim_err, True)
                         
-                        prev_interim_err = interim_err
+                        
                         if prev_interim_err != interim_err:
                             # XXX:reset time out count
                             time_out_count = 0 
@@ -88,6 +89,7 @@ class RemoteTrainer(TrainerPrototype):
                                 log("Force to stop {} due to no update for {} sec".format(job_id, self.polling_interval * self.max_timeout))
                                 self.controller.stop(job_id)
                                 break
+                        prev_interim_err = interim_err
                         
                         # Early termination check
                         if self.min_train_epoch < len(acc_curve) and \
@@ -106,9 +108,9 @@ class RemoteTrainer(TrainerPrototype):
                     # cross check 
                     r = self.controller.get_job(job_id)
                     if "lr" in r:
-                        num_accs = len(r["lr"])
-                        if num_accs > 0:
-                            debug("Current working job finished with accuracy {:.4f}.".format(max(r["lr"])))
+                        num_losses = len(r["lr"])
+                        if num_losses > 0:
+                            debug("Current working job finished with loss {:.4f}.".format(min(r["lr"])))
                             break
                         else:
                             debug("Result of finished job: {}".format(r)) 
@@ -176,23 +178,24 @@ class RemoteTrainer(TrainerPrototype):
                     self.jobs[job_id]["result"] = result
                     self.jobs[job_id]["status"] = "done"
                     
-                    acc_curve = result["lr"]
+                    loss_curve = result["lr"]
                     test_err = result['cur_loss']
-                    best_epoch = len(acc_curve) + 1
-                    train_epoch = len(acc_curve)
+                    best_epoch = len(loss_curve) + 1
+                    train_epoch = len(loss_curve)
                     
                     # XXX: exceptional case handling - when timeout occurs, acc_curve increased largely.
                     if self.max_train_epoch != None and train_epoch > self.max_train_epoch:
                         train_epoch = self.max_train_epoch
                     
-                    if acc_curve != None and len(acc_curve) > 0:
-                        max_i = np.argmax(acc_curve)
-                        test_err = 1.0 - acc_curve[max_i]
+                    if loss_curve != None and len(loss_curve) > 0:
+                        max_i = np.argmin(loss_curve)
+                        test_err = loss_curve[max_i]
                         best_epoch = max_i + 1
 
-                        self.add_train_history(acc_curve, 
+                        self.add_train_history(loss_curve, 
                                                result['run_time'], 
-                                               train_epoch)
+                                               train_epoch,
+                                               measure='loss')
                                             
                     return {
                             "test_error": test_err,

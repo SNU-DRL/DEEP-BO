@@ -8,9 +8,9 @@ import argparse
 import validators as valid
 
 from ws.shared.logger import *
-import ws.shared.hp_cfg as hconf
+from ws.shared.read_cfg import *
 
-import ws.hpo.bandit_config as rconf
+import ws.hpo.bandit_config as bconf
 import ws.hpo.bandit as bandit
 import ws.hpo.batch_sim as batch
 import ws.hpo.space_mgr as space
@@ -47,12 +47,12 @@ def validate_args(args):
             surrogate = args.hp_config
             hp_cfg_path += (args.hp_config + ".json")
     
-    hp_cfg = hconf.read_config(hp_cfg_path)
+    hp_cfg = read_hyperparam_config(hp_cfg_path)
     if hp_cfg is None:
         raise ValueError('Invaild hyperparam config : {}'.format(hp_cfg_path))
               
-    run_cfg = rconf.read(args.rconf, path=args.rconf_dir)
-    if not rconf.validate(run_cfg):
+    run_cfg = read_run_config(args.rconf, path=args.rconf_dir)
+    if not bconf.validate(run_cfg):
         error("Invalid run configuration. see {}".format(args.rconf))
         raise ValueError('invaild run configuration.')    
     

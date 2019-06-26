@@ -45,9 +45,10 @@ class TrainerPrototype(object):
     def reset(self):
         self.history = []
 
-    def add_train_history(self, curve, train_time, cur_epoch):
+    def add_train_history(self, curve, train_time, cur_epoch, measure='accuracy'):
         self.history.append({
             "curve": curve, 
+            "measure" : measure, 
             "train_time": train_time, 
             "train_epoch": cur_epoch
         })

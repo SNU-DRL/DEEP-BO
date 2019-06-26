@@ -7,8 +7,7 @@ import os
 import argparse
 
 import ws.hpo.bandit_config as bconf
-
-import ws.shared.hp_cfg as hconf
+from ws.shared.read_cfg import *
 from ws.shared.logger import * 
 
 from ws.apis import wait_hpo_request
@@ -56,14 +55,14 @@ def main():
         if args.log_level == 'debug':
             enable_debug = True
 
-        run_cfg = bconf.read(args.rconf, path=args.rconf_dir)
+        run_cfg = read_run_config(args.rconf, path=args.rconf_dir)
         if not bconf.validate(run_cfg):
             error("Invalid run configuration. see {}".format(args.rconf))
             raise ValueError('invaild run configuration.')    
 
         # Check hyperparameter configuration file
         hp_cfg_path = args.hconf_dir + args.hp_config
-        hp_cfg = hconf.read_config(hp_cfg_path)
+        hp_cfg = read_hyperparam_config(hp_cfg_path)
         if hp_cfg is None:
             raise ValueError('Invaild hyperparam config : {}'.format(hp_cfg_path))
 

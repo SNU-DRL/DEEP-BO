@@ -109,8 +109,8 @@ class EarlyStopTerminateBoilerplate(EarlyTerminateTrainer):
         acc_curve = self.acc_curves.loc[cand_index].values
 
         # You can also access a previous accuracy curve as follows:
-        for acc_curve in self.history:
-            print(acc_curve) 
+        for h in self.history:
+            print(h) 
 
         # TODO: Your algorithm here
         early_termination = True # if your algorithm fires, append the result as below:
