@@ -53,10 +53,16 @@ def main(run_config):
             os.environ['CUDA_DEVICE_ORDER'] = "PCI_BUS_ID"
             os.environ['CUDA_VISIBLE_DEVICES'] = str(GPU_ID)
 
-        set_log_level('debug')
-        print_trace()
+        hp_config_path = "./hp_conf/"
+        if "hp_config_path" in run_config:
+            hp_config_path = run_config["hp_config_path"]         
+        
+        if "debug_mode" in run_config:
+            if run_config["debug_mode"]:
+                set_log_level('debug')
+                print_trace()
 
-        hp_cfg_path = './hp_conf/{}.json'.format(hp_cfg)
+        hp_cfg_path = '{}{}.json'.format(hp_config_path, hp_cfg)
         hp_cfg = read_hyperparam_config(hp_cfg_path)
         wait_train_request(surrogate_func, hp_cfg, True,
                         device_type="gpu",
