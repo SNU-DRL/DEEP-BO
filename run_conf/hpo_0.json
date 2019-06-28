@@ -1,7 +1,13 @@
 {
-    "eta" : 0.01,
-    "history_url" : "http://127.0.0.1:5000/spaces/active",
-    "credential" : "",
+    "title": "HPO node configuration",        
+    "credential" : "test_mode",
+    "master_node": "None",
+
+    "hp_config": "kin8nm-MLP",
+    "hp_config_path": "./hp_conf/",    
+
+    "debug_mode": true,    
+    
     "arms": [
         {
             "model": "GP-HLE",
@@ -28,8 +34,5 @@
             "acq_func": "UCB"
         }
     ],
-    "bandits" : [
-        { "mode": "DIV", "spec": "RANDOM", "port":5000 },
-        { "mode": "DIV", "spec": "RANDOM", "port":5001 }    
-    ]
+    "port" : 6000
 }

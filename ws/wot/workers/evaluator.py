@@ -166,4 +166,4 @@ class IterativeFunctionEvaluator(Trainer):
             self.results.append(result)
         else:
             warn("Invalid result format: {}".format(result))
-            raise ValueError("Invalid result")        
+            #raise ValueError("Invalid result")        

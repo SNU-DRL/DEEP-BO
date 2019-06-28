@@ -6,6 +6,7 @@
     "mode": "DIV",
     "spec": "SEQ",
 
-    "surrogate": "data1",
-    "worker_url": "none"    
+    "surrogate": "MNIST-LeNet1",
+    "history_url" : "http://127.0.0.1:5000/spaces/active",
+    "train_node": "None"    
 }

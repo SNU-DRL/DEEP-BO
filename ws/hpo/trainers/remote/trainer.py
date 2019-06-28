@@ -22,7 +22,7 @@ class RemoteTrainer(TrainerPrototype):
         self.jobs = {}
         self.history = []
 
-        debug("Run configuration: {}".format(kwargs))
+        #debug("Run configuration: {}".format(kwargs))
         
         if "base_error" in kwargs:
             self.base_error = float(kwargs["base_error"])

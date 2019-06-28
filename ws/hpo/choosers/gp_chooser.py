@@ -21,15 +21,16 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from __future__ import print_function
+from __future__ import absolute_import
 
 import math
 import numpy as np
 import scipy.linalg as spla
 import random
 
-import gp_util
-from acq_func import *
-from util import *
+import ws.hpo.choosers.gp_util as gp_util
+from ws.hpo.choosers.acq_func import *
+from ws.hpo.choosers.util import *
 
 from ws.shared.logger import *
 from ws.shared.resp_shape import *

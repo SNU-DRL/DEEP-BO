@@ -5,6 +5,7 @@ from __future__ import print_function
 import sys
 import os
 import argparse
+import traceback
 import validators as valid
 
 from ws.shared.logger import *
@@ -19,53 +20,51 @@ ALL_OPT_MODELS = ['SOBOL', 'GP', 'RF', 'TPE', 'GP-NM', 'GP-HLE', 'RF-HLE', 'TPE-
 ACQ_FUNCS = ['RANDOM', 'EI', 'PI', 'UCB']
 DIV_SPECS = ['SEQ', 'RANDOM']
 ALL_MIXING_SPECS = ['HEDGE', 'BO-HEDGE', 'BO-HEDGE-T', 'BO-HEDGE-LE', 'BO-HEDGE-LET', 
-                    'EG', 'EG-LE', 'GT', 'GT-LE',
-                    'SKO']
-
+                    'EG', 'EG-LE', 'GT', 'GT-LE', 'SKO']
 BATCH_SPECS = ['SYNC', 'ASYNC']
-ALL_LOG_LEVELS = ['debug', 'warn', 'error', 'log']
     
 LOOKUP_PATH = './lookup/'
 RUN_CONF_PATH = './run_conf/'
-HP_CONF_PATH = './hp_conf/'
 
 
 def validate_args(args):
 
     surrogate = None
     valid = {}
-    
-    hp_cfg_path = args.hconf_dir
-    if args.hp_config.endswith('.json'):
-        # hp_config is a json file
-        hp_cfg_path += args.hp_config
-    else:
-        # hp_config is surrogate name, check whether same csv file exists in lookup folder.
-        if not check_lookup_existed(args.hp_config):
-            debug('Invaild arguments: No {} in {}'.format(args.hp_config, LOOKUP_PATH))            
-        else:
-            surrogate = args.hp_config
-            hp_cfg_path += (args.hp_config + ".json")
-    
-    hp_cfg = read_hyperparam_config(hp_cfg_path)
-    if hp_cfg is None:
-        raise ValueError('Invaild hyperparam config : {}'.format(hp_cfg_path))
-              
-    run_cfg = read_run_config(args.rconf, path=args.rconf_dir)
+
+    run_cfg = read_run_config(args.run_config, path=args.rconf_dir)
     if not bconf.validate(run_cfg):
         error("Invalid run configuration. see {}".format(args.rconf))
         raise ValueError('invaild run configuration.')    
     
-    valid['surrogate'] = surrogate
-    valid['hp_cfg'] = hp_cfg
-    #valid['run_cfg'] = run_cfg
+    if run_cfg['debug_mode']:          
+        set_log_level('debug')
+
+    hp_cfg_path = run_cfg['hp_config_path']
     
-    valid['exp_time'] = args.exp_time
+    if run_cfg['hp_config'].endswith('.json'):
+        # hp_config is a json file
+        hp_cfg_path += run_cfg['hp_config']
+    else:
+        hp_cfg_path += (run_cfg['hp_config'] + ".json")
+   
+    hp_cfg = read_hyperparam_config(hp_cfg_path)
+    if hp_cfg is None:
+        raise ValueError('Invaild hyperparam config : {}'.format(hp_cfg_path))
+
+    #debug("run configuration: {}".format(run_cfg))
+
 
     for attr, value in vars(args).items():
-        valid[str(attr)] = value        
+        valid[str(attr)] = value  
+
+    valid['hp_config'] = hp_cfg
+    valid['run_config'] = run_cfg
+    valid['preevaluated'] = False
+    if 'preevaluated' in run_cfg:
+        valid['preevaluated'] = run_cfg['preevaluated']
            
-    return run_cfg, valid
+    return valid
 
 
 def check_lookup_existed(name):
@@ -75,14 +74,8 @@ def check_lookup_existed(name):
     return False
 
 
-def execute(run_cfg, args, save_results=False):
+def execute(args, save_results=False):
     try:
-        if run_cfg is None:
-            if "run_cfg" in args:
-                run_cfg = args['run_cfg']
-            else:
-                raise ValueError("No run configuration found.")
-        
         num_resume = 0
         save_internal = False
         if 'rerun' in args:
@@ -91,8 +84,10 @@ def execute(run_cfg, args, save_results=False):
             save_internal = args['save_internal']
         
         result = []
-        
+        run_cfg = args['run_config']
+
         if args['mode'].upper() != 'BATCH':
+            
             m = None
             hp_cfg = None 
             use_surrogate = None
@@ -115,33 +110,29 @@ def execute(run_cfg, args, save_results=False):
                     grid_seed = run_cfg['grid']['grid_seed']                       
             
             
-            if 'surrogate' in args and args['surrogate'] != None:
+            if args['preevaluated'] == True:
+                if not check_lookup_existed(run_cfg['hp_config']):
+                    raise ValueError('Pre-evaluated configuration not found: {}'.format(run_cfg['hp_config']))
                 debug("Create surrogate space: order-{}, one hot-{}, seed-{}".format(grid_order, one_hot, grid_seed))
-                use_surrogate = args['surrogate']
-                path = "{}{}.json".format(args['hconf_dir'], use_surrogate)
                 
-                hp_cfg = hconf.read_config(path)
-                samples = space.create_surrogate_space(use_surrogate, 
+                samples = space.create_surrogate_space(args['hp_config'], 
                             grid_order=grid_order, 
                             one_hot=one_hot)
-                
-            elif 'hp_cfg' in args and args['hp_cfg'] != None:
-                hp_cfg = args['hp_cfg']
+            else:
+                hp_cfg = args['hp_config']
                 debug("Create grid space: seed-{}, one hot-{}, # of samples - {}".format(grid_seed, one_hot, num_samples))
 
                 samples = space.create_grid_space(hp_cfg.get_dict(),
-                            num_samples=num_samples,
-                            grid_seed=grid_seed,
-                            one_hot=one_hot)
-            else:
-                raise ValueError("Invalid arguments: {}".format(args))
+                                                  num_samples=num_samples,
+                                                  grid_seed=grid_seed,
+                                                  one_hot=one_hot)
 
             if args["early_term_rule"] != "None":
                 run_cfg["early_term_rule"] = args["early_term_rule"]
 
-            if valid.url(args['worker_url']):
-                trainer = args['worker_url']
-                    
+            
+            if valid.url(run_cfg['train_node']):
+                trainer = run_cfg['train_node']
                 m = bandit.create_runner(trainer, samples,
                             args['exp_crt'], args['exp_goal'], args['exp_time'],
                             num_resume=num_resume,
@@ -157,37 +148,48 @@ def execute(run_cfg, args, save_results=False):
                             run_config=run_cfg)
 
             if args['mode'] == 'DIV' or args['mode'] == 'ADA':
-                result = m.mix(args['spec'], args['num_trials'], save_results=save_results)
+                result = m.mix(args['spec'], args['num_trials'], 
+                               save_results=save_results)
             elif args['mode'] in ALL_OPT_MODELS:
-                result = m.all_in(args['mode'], args['spec'], args['num_trials'], save_results=save_results)
+                result = m.all_in(args['mode'], args['spec'], args['num_trials'], 
+                                  save_results=save_results)
             else:
                 raise ValueError('unsupported mode: {}'.format(args['mode']))
+        elif args['mode'] == 'BATCH':            
+            c = batch.get_simulator(args['spec'].upper(), 
+                                    args['surrogate'],
+                                    args['exp_crt'], 
+                                    args['exp_goal'], 
+                                    args['exp_time'], 
+                                    args['run_cfg'])
+            result = c.run(args['num_trials'], save_results=True)
         else:
-            raise ValueError("BATCH mode is not upsupported here.")
-    except:
-        warn('Exception occurs on executing SMBO:\n{}'.format(sys.exc_info()))     
+            raise ValueError("upsupported run mode: {}".format(args['mode']))
+    except Exception as ex:
+        warn('Exception occurs on executing SMBO: {}'.format(ex))     
     
     return result
 
 
-def main():
+def main(args):
+    try:
+        valid_args = validate_args(args)
+        results = execute(valid_args, save_results=True)    
+    except Exception as ex:
+        error(ex)
+        traceback.print_exc()        
+   
 
+if __name__ == "__main__":
     available_models = ALL_OPT_MODELS + ['DIV', 'ADA', 'BATCH']
-    default_model = 'DIV'
-    
     all_specs = ACQ_FUNCS + DIV_SPECS + ALL_MIXING_SPECS + BATCH_SPECS
+    default_model = 'DIV'
     default_spec = 'SEQ'
-
     default_target_goal = 0.9999
-    default_expired_time = '10d'
+    default_expired_time = '1d'
     default_early_term_rule = "None"
-    
-    exp_criteria = ['TIME', 'GOAL']
+        
     default_exp_criteria = 'TIME'
-    
-
-    default_run_config = 'arms.json'
-    default_log_level = 'warn'
 
     parser = argparse.ArgumentParser()
 
@@ -218,51 +220,19 @@ def main():
     parser.add_argument('-rd', '--rconf_dir', default=RUN_CONF_PATH, type=str,
                         help='Run configuration directory.\n'+\
                         'Default setting is {}'.format(RUN_CONF_PATH))                        
-    parser.add_argument('-hd', '--hconf_dir', default=HP_CONF_PATH, type=str,
-                        help='Hyperparameter configuration directory.\n'+\
-                        'Default setting is {}'.format(HP_CONF_PATH))
-    parser.add_argument('-rc', '--rconf', default=default_run_config, type=str,
-                        help='Run configuration file in {}.\n'.format(RUN_CONF_PATH)+\
-                        'Default setting is {}'.format(default_run_config))
-    parser.add_argument('-w', '--worker_url', default='none', type=str,
-                        help='Remote training worker node URL.\n'+\
-                        'Set the valid URL if remote training required.') 
-
-    # Debugging option
-    parser.add_argument('-l', '--log_level', default=default_log_level, type=str,
-                        help='Print out log level.\n'+\
-                        '{} are available. default is {}'.format(ALL_LOG_LEVELS, default_log_level))
     
     # XXX:below options are for experimental use.  
-    parser.add_argument('-r', '--rerun', default=0, type=int,
+    parser.add_argument('-rr', '--rerun', default=0, type=int,
                         help='[Experimental] Use to expand the number of trials for the experiment. zero means no rerun. default is {}.'.format(0))
-    parser.add_argument('-p', '--save_internal', default=False, type=bool,
+    parser.add_argument('-pkl', '--save_internal', default=False, type=bool,
                         help='[Experimental] Whether to save internal values into a pickle file.\n' + 
                         'CAUTION:this operation requires very large storage space! Default value is {}.'.format(False))                        
 #    parser.add_argument('-tp', '--time_penalty', default=default_time_penalty, type=str,
 #                        help='[Experimental] Time penalty strategies for acquistion function.\n'+\
 #                        '{} are available. Default setting is {}'.format(time_penalties_modes, default_time_penalty))
  
-    parser.add_argument('hp_config', type=str, help='hyperparameter configuration name.')
+    parser.add_argument('run_config', type=str, help='Run configuration name.')
     parser.add_argument('num_trials', type=int, help='The total repeats of the experiment.')
 
-    args = parser.parse_args()
-
-    set_log_level(args.log_level)
-
-    run_cfg, args = validate_args(args)
-
-    if args['mode'] == 'BATCH':
-        if args['worker_url'] is 'none':
-            c = batch.get_simulator(args['spec'].upper(), args['surrogate'],
-                                args['exp_crt'], args['exp_goal'], 
-                                args['exp_time'], run_cfg)
-            result = c.run(args['num_trials'], save_results=True)
-        else:
-            raise NotImplementedError("This version only supports simulation of parallelization via surrogates.")
-    else:
-        results = execute(run_cfg, args, save_results=True)        
-   
-
-if __name__ == "__main__":
-    main()
+    args = parser.parse_args()    
+    main(args)

@@ -6,9 +6,8 @@ import scipy.stats  as sps
 import sklearn.ensemble
 import sklearn.ensemble.forest
 
-from util import *
-from acq_func import *
-
+from ws.hpo.choosers.util import *
+from ws.hpo.choosers.acq_func import *
 from ws.shared.logger import *
 from ws.shared.resp_shape import *
 

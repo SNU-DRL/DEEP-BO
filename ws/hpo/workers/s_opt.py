@@ -14,6 +14,7 @@ import ws.hpo.connectors.remote_space as remote
 import ws.hpo.space_mgr as space
 
 import ws.hpo.bandit as bandit
+from hpo_runner import ALL_OPT_MODELS
 
 class SequentialOptimizer(Worker):
     
@@ -109,47 +110,41 @@ class SequentialOptimizer(Worker):
         s_name = None
         self.samples = None
         
-        if 'surrogate' in args:
+        if 'surrogate' in args and args['surrogate'] != 'None':
             s_name = args['surrogate']
             hp_path = "{}{}.json".format(self.hp_dir, s_name)            
             hp_cfg = hconf.read_config(hp_path) # FIXME:rewrite here
             if hp_cfg == None:
                 ValueError("Surrogate {} configuration not found.".format(s_name))
         
-        if 'shared_space_url' in run_cfg and valid.url(run_cfg['shared_space_url']):            
-            space_url = run_cfg['shared_space_url']
+        if 'history_url' in args and valid.url(args['history_url']):            
+            space_url = args['history_url']
             if not space_url.endswith('/'):
                 space_url = space_url + "/"
 
-            self.samples = remote.connect_remote_space(run_cfg['shared_space_url'], 
+            self.samples = remote.connect_remote_space(args['history_url'], 
                                                         run_cfg["credential"])
-            if self.samples == None:
-                if "127.0.0.1" in space_url or "0.0.0.0" in space_url or "localhost" in space_url:
-                    debug("Create new grid space")
-                    self.samples = space.create_grid_space(hp_cfg.get_dict())
-                else:
-                    error("Unable connect to space URL: {}".format(space_url))
         else:
-            warn("Invalid space URL: {}".format(run_cfg['shared_space_url']))
+            warn("No valid history: {}".format(run_cfg['history_url']))
             self.samples = space.create_surrogate_space(args['surrogate'])
 
         if self.samples == None:
-            raise ValueError("Invalid sampling space! Not initialized properly")
+            raise ValueError("Invalid sampling space. Space is not initialized properly")
 
-        if 'worker_url' in args:
-            if valid.url(args['worker_url']):
+        if 'train_node' in args:
+            if valid.url(args['train_node']):
 
-                self.machine = bandit.create_runner(
-                    args['worker_url'], self.samples,
-                    args['exp_crt'], args['exp_goal'], args['exp_time'],
-                    run_cfg, hp_cfg,                            
-                    num_resume=num_resume,
-                    save_internal=save_internal,
-                    use_surrogate=s_name,
-                    id=self.id)
+                self.machine = bandit.create_runner(args['train_node'], self.samples,
+                                                    args['exp_crt'], 
+                                                    args['exp_goal'], args['exp_time'],
+                                                    run_cfg, hp_cfg,                            
+                                                    num_resume=num_resume,
+                                                    save_internal=save_internal,
+                                                    use_surrogate=s_name,
+                                                    id=self.id)
                 
             else:
-                raise ValueError("Invalid worker URL: {}".format(args["worker_url"]))
+                raise ValueError("Invalid node URL: {}".format(args["train_node"]))
         else:
 
             self.machine = bandit.create_emulator(self.samples,
@@ -167,6 +162,5 @@ class SequentialOptimizer(Worker):
                 save_results=save_results)
         else:
             raise ValueError('unsupported mode: {}'.format(args['mode']))
-  
         
         return results

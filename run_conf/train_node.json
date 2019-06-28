@@ -1,14 +1,15 @@
 {
+    "credential" : "test_mode",
     "master_node": "None",
 
     "hp_config_path": "./hp_conf/",
-    "hp_config": "MNIST-LeNet1",
+    "hp_config": "kin8nm-MLP",
 
     
-    "eval_func": "optimize_mnist_lenet1",
+    "eval_func": "optimize_kin8nm_mlp",
        
     "port" : 6100,
-    "resource_type" : "gpu",
+    "resource_type" : "cpu",
     "resource_id" : 0,
 
     "debug_mode": true    

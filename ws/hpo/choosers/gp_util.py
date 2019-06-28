@@ -199,7 +199,7 @@ class GaussianProcess:
                     passed = True
                 except ValueError:
                     jitter = jitter*1.1
-                    print "Covariance matrix not PSD, adding jitter:", jitter
+                    print("Covariance matrix not PSD, adding jitter:{}".format(jitter)) 
                     passed = False
             return val
         
@@ -316,14 +316,14 @@ def main():
         except:
             pass
 
-    print 'Loglikelihood before optimizing: ', mygp.logprob(x,y)
+    print('Loglikelihood before optimizing: {}'.format(mygp.logprob(x,y))) 
     mygp.optimize_hypers(x,y)
-    print 'Loglikelihood after optimizing: ', mygp.logprob(x,y)
+    print('Loglikelihood after optimizing: {}'.format(mygp.logprob(x,y)))  
         
     try:
         plt.show()
     except:
-        print 'Install matplotlib to get figures'        
+        print('Install matplotlib to get figures')        
 
 if __name__ == '__main__':
     main()

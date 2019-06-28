@@ -20,12 +20,6 @@ try:
 except:
     raise ImportError("For this example you need to install pytorch-vision.")
 
-
-import ConfigSpace as CS
-import ConfigSpace.hyperparameters as CSH
-
-#from hpbandster.core.worker import Worker
-
 import logging
 logging.basicConfig(level=logging.DEBUG)
 
@@ -151,6 +145,9 @@ class KerasWorker(object):
 
     @staticmethod
     def get_configspace():
+        import ConfigSpace as CS
+        import ConfigSpace.hyperparameters as CSH
+
         """
         It builds the configuration space with the needed hyperparameters.
         It is easily possible to implement different types of hyperparameters.

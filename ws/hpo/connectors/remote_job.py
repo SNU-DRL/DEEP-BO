@@ -1,8 +1,12 @@
+import sys
 import json
 import time
 import datetime as dt
 
-from ws.rest_client.restful_lib import Connection
+if sys.version_info[0] < 3:
+    from ws.rest_client.restful_lib import Connection
+else:
+    from ws.rest_client.request_lib import Connection
 from ws.shared.logger import *
 from ws.shared.proto import RemoteConnectorPrototype
 
@@ -16,7 +20,7 @@ class RemoteJobConnector(RemoteConnectorPrototype):
 
     def get_profile(self):
         try:
-            resp = self.conn.request_get("/", args={}, headers=self.headers)
+            resp = self.conn.request_get("/", args={}, headers=self.headers)            
             status = resp['headers']['status']
 
             if status == '200':

@@ -19,10 +19,6 @@ try:
 except:
 	raise ImportError("For this example you need to install pytorch-vision.")
 
-
-import ConfigSpace as CS
-import ConfigSpace.hyperparameters as CSH
-
 import os
 import logging
 logging.basicConfig(level=logging.DEBUG)
@@ -83,22 +79,6 @@ def config_to_params(input_config):
 	except:
 		print()
 	return(params)
-
-class RMSELossCallback(keras.callbacks.Callback):
-    
-	def on_train_begin(self, logs={}):
-		self.start_time = time.time()
-		self.losses = []
-
-	def on_epoch_end(self, i, logs={}):
-    		#print(self.validation_data[0])
-		p = self.model.predict(self.validation_data[0], batch_size=self.params['batch_size'])
-		mse = MSE(self.validation_data[1], p)
-		rmse = sqrt(mse)        
-		self.losses.append(rmse)
-		elapsed_time = time.time() - self.start_time
-		print("Training {} epoches takes {:.1f} secs.\n validation losses: {}".format(
-			i+1, elapsed_time, self.losses))
 
 
 class KerasWorker(object):
@@ -183,6 +163,10 @@ class KerasWorker(object):
 
 	@staticmethod
 	def get_configspace():
+
+		import ConfigSpace as CS
+		import ConfigSpace.hyperparameters as CSH    		
+
 		"""
 		It builds the configuration space with the needed hyperparameters.
 		It is easily possible to implement different types of hyperparameters.
@@ -252,6 +236,7 @@ class KerasWorker(object):
 
 
 if __name__ == "__main__":
+    from samples.keras_cb import RMSELossCallback
     start_time = time.time()
     gpu_id = 0
     os.environ['CUDA_DEVICE_ORDER'] = "PCI_BUS_ID"

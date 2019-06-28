@@ -5,25 +5,19 @@ from __future__ import print_function
 import sys
 import os
 import argparse
-import validators as valid
 
-import ws.hpo.bandit_config as bconf
-from ws.shared.read_cfg import *
-from ws.shared.logger import * 
+import ws.shared.hp_cfg as hconf
+from ws.shared.logger import *
+from ws.shared.read_cfg import * 
 
-from ws.apis import wait_hpo_request
+from ws.apis import create_master_server
 
+
+HP_CONF_PATH = './hp_conf/'
+ALL_LOG_LEVELS = ['debug', 'warn', 'error', 'log']
 
 def main(run_config):
     try:
-        if not bconf.validate(run_config):
-            raise ValueError('Invaild HPO configuration.')    
-
-        register_url = None
-        if "master_node" in run_config:
-            if valid.url(run_config['master_node']):
-                register_url = run_config['master_node']
-        debug_mode = False
         if "debug_mode" in run_config:
             if run_config["debug_mode"]:
                 debug_mode = True
@@ -42,11 +36,10 @@ def main(run_config):
         if "port" in run_config:
             port = run_config["port"]
 
-        debug("HPO node will be ready to serve...")
-        wait_hpo_request(run_cfg, hp_cfg, 
-                         debug_mode=debug_mode, 
-                         port=port, 
-                         register_url=register_url)
+        debug("Master node will be ready to serve...")
+        create_master_server(hp_cfg, 
+                             debug_mode=debug_mode, 
+                             port=port)
     
     except KeyboardInterrupt as ki:
         warn("Terminated by Ctrl-C.")

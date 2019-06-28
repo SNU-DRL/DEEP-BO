@@ -28,7 +28,7 @@ We have unified three practical hyperparameter optimization frameworks of machin
 
 Firstly, creating new virtual environment by using [Anaconda](https://www.anaconda.com/download/) is strongly suggested.
 Even though the maintenance period for python 2.7.x is almost over, we still recommend creating this environment based on python 2.7.x.
-Running in Python 3.x may be supported soon, but so far this project has only been tested in Python 2.7.x.
+Running in python 3.x may be supported soon, but so far this project has only been tested in Python 2.7.x.
 
 ```bash
     conda create -n hpo python=2.7
@@ -50,7 +50,7 @@ The following additional packages are required to install properly:
 * weave
 * flask-restful
 * requests
-
+* httplib2
 
 If you are working on Linux, install these packages as follows:
 
@@ -69,6 +69,8 @@ If you want to run samples, more packages for deep learning are required:
 
 * tensorflow(-gpu)
 * karas(-gpu)
+* [pytorch](https://pytorch.org/get-started/locally/)
+* configspace
 
 -------------------
 

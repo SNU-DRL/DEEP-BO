@@ -1,13 +1,14 @@
+import sys
 import json
 import socket
 import time
 
-try:
-    from ws.rest_client.restful_lib import Connection
-except ImportError:
-    from ws.rest_client.request_lib import Connection
 from ws.shared.logger import *
 from ws.shared.proto import RemoteConnectorPrototype
+if sys.version_info[0] < 3:
+    from ws.rest_client.restful_lib import Connection
+else:
+    from ws.rest_client.request_lib import Connection
 
 class NameServerConnector(RemoteConnectorPrototype):
 

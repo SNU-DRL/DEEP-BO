@@ -19,6 +19,8 @@
 # 
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
+from __future__ import print_function
+
 import re
 import math
 import numpy        as np
@@ -59,7 +61,7 @@ def slice_sample(init_x, logprob,
             new_z     = (upper - lower)*npr.rand() + lower
             new_llh   = dir_logprob(new_z)
             if np.isnan(new_llh):
-                print new_z, direction*new_z + init_x, new_llh, llh_s, init_x, logprob(init_x)
+                print("{}, {}, {}, {}, {}, {}".format(new_z, direction*new_z + init_x, new_llh, llh_s, init_x, logprob(init_x)))  
                 raise Exception("Slice sampler got a NaN")
             if new_llh > llh_s:
                 break
@@ -71,7 +73,7 @@ def slice_sample(init_x, logprob,
                 raise Exception("Slice sampler shrank to zero!")
 
         if verbose:
-            print "Steps Out:", l_steps_out, u_steps_out, " Steps In:", steps_in
+            print("Steps Out: {}, {}".format(l_steps_out, u_steps_out) + " Steps In: {}".format(steps_in)) 
 
         return new_z*direction + init_x
     

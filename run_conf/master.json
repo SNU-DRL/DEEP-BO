@@ -1,0 +1,12 @@
+{
+    "title": "master node configuration",        
+    "credential" : "test_mode",
+    "master_node": "None",
+
+    "hp_config": "kin8nm-MLP",
+    "hp_config_path": "./hp_conf/",    
+
+    "debug_mode": true,    
+
+    "port" : 5000
+}

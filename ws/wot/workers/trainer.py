@@ -21,7 +21,7 @@ class Trainer(Worker):
         super(Trainer, self).__init__(id)
         self.reset()
 
-    def set_device_id(self, device_type, device_index):
+    def set_resource(self, device_type, device_index):
         self.device_id = "{}{}".format(device_type, device_index)
 		
     def get_device_id(self):

@@ -16,7 +16,7 @@ API_SERVER = None
 
 ####################################################################
 # Job request awaiting APIs
-def create_name_server(hp_cfg,
+def create_master_server(hp_cfg,
                     debug_mode=DEFAULT_DEBUG_MODE,
                     port=5000,
                     threaded=False):
@@ -32,7 +32,7 @@ def create_name_server(hp_cfg,
 
 def wait_hpo_request(run_cfg, hp_cfg,
                     debug_mode=DEFAULT_DEBUG_MODE,
-                    port=5001, 
+                    port=6000, 
                     enable_surrogate=False,
                     register_url=None,
                     threaded=False):
@@ -58,9 +58,9 @@ def wait_hpo_request(run_cfg, hp_cfg,
         return
 
 
-def wait_train_request(eval_job, hp_cfg,
+def wait_train_request(train_task, hp_cfg,
                     debug_mode=DEFAULT_DEBUG_MODE,
-                    port=6000,
+                    port=6100,
                     device_type="cpu",
                     device_index=0,
                     retrieve_func=None, 
@@ -75,9 +75,9 @@ def wait_train_request(eval_job, hp_cfg,
     global API_SERVER
 
     if JOB_MANAGER == None:
-        ej = eval_job()
-        ej.set_device_id(device_type, device_index)        
-        JOB_MANAGER = TrainingJobManager(ej, 
+        task = train_task()
+        task.set_resource(device_type, device_index)        
+        JOB_MANAGER = TrainingJobManager(task, 
                                         use_surrogate=enable_surrogate, 
                                         retrieve_func=retrieve_func)
         if register_url != None and valid.url(register_url):

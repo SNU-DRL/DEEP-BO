@@ -6,7 +6,7 @@ import math
 
 import pandas as pd
 import numpy as np
-from util import *
+
 
 from hyperopt import hp, fmin, tpe, base, rand, Trials, STATUS_OK, JOB_STATE_DONE
 
@@ -14,6 +14,7 @@ import ws.shared.hp_cfg as hp_cfg
 from ws.shared.logger import *
 from ws.shared.resp_shape import *
 from ws.hpo.utils.converter import VectorGridConverter
+from ws.hpo.choosers.util import *
 
 def init(samples, arg_string):
     args = unpack_args(arg_string)
@@ -117,7 +118,7 @@ class HyperOptSearchSpaceConfig(object):
                 options = []
                 str_index = 0
                 for c in setting.range:
-                    if isinstance(c, (str, unicode)):
+                    if isinstance(c, str):
                         # XXX: To avoid binning error
                         c = str_index #str(c)
                         str_index += 1
