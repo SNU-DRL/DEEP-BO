@@ -22,6 +22,11 @@
 """
 gp_util.py contains utility functions related to computation in Gaussian processes.
 """
+try:
+    xrange
+except NameError:
+    xrange = range
+
 import numpy as np
 import scipy.linalg as spla
 import scipy.optimize as spo

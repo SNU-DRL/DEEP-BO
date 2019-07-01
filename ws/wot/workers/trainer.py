@@ -14,6 +14,7 @@ class Trainer(Worker):
         self.fork = fork
         self.config = {}
         self.device_id = 'cpu0'
+        self.last_sync_time = None
 
         if id == None:
             id = 'trainer_proto'
@@ -49,6 +50,11 @@ class Trainer(Worker):
             warn("Invalid result: {}".format(result))
 
         self.dump_results()
+
+    def set_sync_time(self, sync_time):
+        debug("synched at {}".format(time.asctime(time.gmtime(sync_time))))
+        self.last_sync_time = sync_time
+
     def set_job_description(self, params, index=None, job_id=None):
         if job_id != None:
             self.job_id = job_id
@@ -78,7 +84,7 @@ class Trainer(Worker):
         except Exception as ex:
             debug("Read error: {}".format(ex))
             self.results = []
-			        
+
     def get_cur_result(self, device_id):
         if self.is_forked() == True:
             self.load_results(device_id)

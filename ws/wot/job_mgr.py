@@ -51,6 +51,7 @@ class TrainingJobManager(ManagerPrototype):
         self.retrieve_func = retrieve_func
         
         self.shelf = None
+        
         self.timeout_count = 0
         self.max_timeout = 100 # XXX: For avoiding the shared file not found error
 
@@ -156,6 +157,9 @@ class TrainingJobManager(ManagerPrototype):
 
     def sync_result(self):
         t = self.shelf
+        if t == None:
+            return
+
         #debug("Work item: {}".format(t['job_id']))
         j = self.get(t['job_id'])
         cur_status = t['worker'].get_cur_status()
@@ -165,11 +169,13 @@ class TrainingJobManager(ManagerPrototype):
 
             cur_result = t['worker'].get_cur_result(t['worker'].get_device_id())
             if cur_result != None:
-                debug("Intermidiate result synchronized: {}".format(t['job_id']))
+                sync_time = time.time()
+                debug("[{}] Intermidiate result synchronized at {}.".format(t['job_id'], time.asctime(time.gmtime(sync_time))))
                 self.timeout_count = 0 # reset timeout count               
                 self.update(t['job_id'], **cur_result)
+                t['worker'].set_sync_time(sync_time)
             else:                                 
-                debug("Result of {} not updated.".format(t['job_id']))
+                debug("[{}] Result is not updated.".format(t['job_id']))
                 self.timeout_count += 1
                 if self.timeout_count > self.max_timeout:
                     self.remove(t['job_id'])
@@ -182,7 +188,7 @@ class TrainingJobManager(ManagerPrototype):
         if t['worker'].get_cur_status() == 'processing':
             job_id = t['job_id']
             t['worker'].add_result(cur_iter, cur_loss, run_time, iter_unit)
-            debug("The result of {} at {} {} is updated".format(job_id, cur_iter+1, iter_unit))
+            debug("The result is updated at {} {} ".format(cur_iter, iter_unit))
         else:
             warn("Invalid state - update request for inactive task.")
 

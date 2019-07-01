@@ -23,6 +23,11 @@
 from __future__ import print_function
 from __future__ import absolute_import
 
+try:
+    xrange
+except NameError:
+    xrange = range
+
 import math
 import numpy as np
 import scipy.linalg as spla

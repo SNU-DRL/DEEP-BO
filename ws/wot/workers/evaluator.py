@@ -92,14 +92,26 @@ class IterativeFunctionEvaluator(Trainer):
 
                 if self.is_forked() == True:
                     self.eval_process = mp.Process(target=self.eval_func, 
-                        args=(self.params,), kwargs={"max_epoch": max_iters})
+                                                   args=(self.params,), 
+                                                   kwargs={"max_epoch": max_iters})
                     
                     self.eval_process.start()
-                    
                     self.eval_process.join()
-                    self.stop_flag = True
+                    end_time = time.time()
+
+                    et = time.asctime(time.gmtime(end_time))
+                    ls = time.asctime(time.gmtime(self.last_sync_time))
+                    debug("Task ended at {}. However, result synched at {}".format(et, ls))
+
+                    # waits until the final result is synchronized
+                    while self.last_sync_time == None or end_time > self.last_sync_time:
+                        now = time.asctime()
+                        debug("Waiting synchronization at {}.".format(now))
+                        time.sleep(1)
 
                     result = self.get_cur_result(self.get_device_id())
+                    self.stop_flag = True
+                      
                 else:
                     result = self.eval_func(self.params, 
                         cur_iter=i, max_iters=max_iters, iter_unit=self.iter_unit,
@@ -110,7 +122,7 @@ class IterativeFunctionEvaluator(Trainer):
                         debug("Waiting stop signal")
                         while self.stop_flag == False:
                             time.sleep(1)
-                
+
                 self.update_result(result, i+1, base_time)
                 
 

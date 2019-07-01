@@ -82,7 +82,7 @@ def slice_sample(init_x, logprob,
 
     dims = init_x.shape[0]
     if compwise:
-        ordering = range(dims)
+        ordering = list(range(dims)) # XXX:add list coversion for python3 support
         npr.shuffle(ordering)
         cur_x = init_x.copy()
         for d in ordering:
