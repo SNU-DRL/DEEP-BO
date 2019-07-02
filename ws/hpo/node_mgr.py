@@ -307,6 +307,8 @@ class ParallelHPOManager(ManagerPrototype):
         }
         cur_result = {"result" : summary }
         self.update(id, **cur_result)
+
+        # TODO:check whether all HPO nodes terminated and update status  
         
     def get_all_jobs(self, n=10):        
         if len(self.jobs) <= n: 

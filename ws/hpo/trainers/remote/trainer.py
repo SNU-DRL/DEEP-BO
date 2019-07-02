@@ -152,7 +152,7 @@ class RemoteTrainer(TrainerPrototype):
             param_values = values_only
         
         early_terminated = False
-        log("Training using hyperparameters: {}".format(param_values))
+        log("Training model using hyperparameters: {}".format(param_values))
         
         if type(param_values) == dict:
             for param in param_names:
