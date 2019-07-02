@@ -127,7 +127,7 @@ class IterativeFunctionEvaluator(Trainer):
                 
 
         except Exception as ex:
-            warn("Exception occurs: {}".format(sys.exc_info()[0]))
+            warn("{} occurs".format(sys.exc_info()[0]))
 
         finally:
             with self.thread_cond:

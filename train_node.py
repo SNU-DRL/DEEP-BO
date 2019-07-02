@@ -64,13 +64,16 @@ def main(run_config):
     global RESOURCE_ID
 
     try:
-        register_url = None
+        master_node = None
         if "master_node" in run_config:
             if valid.url(run_config['master_node']):
-                register_url = run_config['master_node']
-
+                master_node = run_config['master_node']
+                if master_node.endswith('/'):
+                    master_node += master_node[:-1]
+        debug_mode = False
         if "debug_mode" in run_config:
             if run_config["debug_mode"]:
+                debug_mode = True
                 set_log_level('debug')
                 print_trace()
 
@@ -97,10 +100,10 @@ def main(run_config):
 
         eval_func = eval(run_config["eval_func"])
 
-        wait_train_request(eval_func, hp_cfg, True,
+        wait_train_request(eval_func, hp_cfg, debug_mode,
                         device_type=resource_type,
                         device_index=run_config["resource_id"],
-                        register_url=register_url, 
+                        master_node=master_node, 
                         port=port)
     except Exception as ex:
         print(ex)

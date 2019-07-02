@@ -1,3 +1,4 @@
+import base64
 try:
     from ws.rest_client.restful_lib import Connection
 except ImportError:
@@ -6,6 +7,7 @@ from ws.shared.db_mgr import get_database_manager
 
 from ws.shared.logger import * 
 from ws.shared.resp_shape import *
+
 
 class RemoteConnectorPrototype(object):
     def __init__(self, target_url, credential, **kwargs):
@@ -25,7 +27,10 @@ class RemoteConnectorPrototype(object):
         self.conn = Connection(target_url, timeout=self.timeout)
         
         self.headers = {'Content-Type':'application/json', 'Accept':'application/json'}
-        self.headers['Authorization'] = "Basic {}".format(self.credential)
+        auth_key = base64.b64encode(self.credential.encode('utf-8'))
+        auth_key = "Basic {}".format(auth_key.decode("utf-8"))
+        #debug("Auth key to request: {}".format(auth_key))
+        self.headers['Authorization'] = auth_key
 
 
 class TrainerPrototype(object):
@@ -80,24 +85,25 @@ class ManagerPrototype(object):
             warn("database can not be updated because it does not loaded yet.")
 
     def authorize(self, auth_key):
-        debug("Auth: {}".format(auth_key))
-        # FIXME: remove dev auth key before it release
-        if auth_key == "Basic {}".format(self.database['credential']):
-            return True
-        else:
-            try:
-                key = auth_key.replace("Basic ", "")
-                u_pw = key.decode('base64')
-                #debug("User:Password = {}".format(u_pw))
-                if ":" in u_pw:
-                    tokens = u_pw.split(":")
-                    #debug("Tokens: {}".format(tokens))
-                    for u in self.database['users']:
-                        if tokens[0] in u and u[tokens[0]] == tokens[1]:
-                            return True
-                
+        # XXX:Use of basic auth as default
+        #debug(auth_key)
+        key = auth_key.replace("Basic ", "")
+        try:
+            u_pw = base64.b64decode(key).decode('utf-8')
+            #debug("User:Password = {}".format(u_pw))
+            if ":" in u_pw:
+                tokens = u_pw.split(":")
+                #debug("Tokens: {}".format(tokens))
+                for u in self.database['users']:
+                    if tokens[0] in u and u[tokens[0]] == tokens[1]:
+                        return True
+            elif u_pw == self.database['credential']:
+                #debug("Use of global auth key: {}".format(u_pw))
+                # FIXME:global password for debug mode 
+                return True
+            else:
                 return False
 
-            except Exception as ex:
-                debug("Auth key decoding error: {}".format(ex))
-            return False
+        except Exception as ex:
+            debug("Auth key {} decoding error: {}".format(key, ex))
+        return False

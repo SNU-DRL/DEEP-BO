@@ -16,6 +16,7 @@ class Grid(Resource):
         
         parser = reqparse.RequestParser()
         parser.add_argument("Authorization", location="headers") # for security reason
+        parser.add_argument("use_interim", type=bool, default=False)
         args = parser.parse_args()
         
         if not self.sm.authorize(args['Authorization']):
@@ -28,33 +29,41 @@ class Grid(Resource):
         if id == 'all':
             all_items =[]
             for c_id in range(samples.num_samples):
-                grid = {"id": c_id}
-                grid["values"] = samples.get_grid(int(c_id)).tolist()
+                grid = {"id": int(c_id)}
+                grid["values"] = []
+                for v in samples.get_grid(int(c_id)).tolist():
+                    grid["values"].append(float(v))
                 all_items.append(grid)
             
             return all_items, 200                
         
         elif sample_id == 'candidates':
             candidates = []
-            for c_id in samples.get_candidates():
-                grid = {"id": c_id}
-                grid["values"] = samples.get_grid(int(c_id)).tolist()
+            for c_id in samples.get_candidates(args['use_interim']):
+                grid = {"id": int(c_id)}
+                grid["values"] = []
+                for v in samples.get_grid(int(c_id)).tolist():
+                    grid["values"].append(float(v))
                 candidates.append(grid)
             
             return candidates, 200
 
         elif sample_id == 'completes':
             completes = []
-            for c_id in samples.get_completes():
-                grid = {"id": c_id}
-                grid["values"] = samples.get_grid(int(c_id)).tolist()
+            for c_id in samples.get_completes(args['use_interim']):
+                grid = {"id": int(c_id)}
+                grid["values"] = []
+                for v in samples.get_grid(int(c_id)).tolist():
+                    grid["values"].append(float(v))
                 completes.append(grid)
             
             return completes, 200
         else:
             try:
-                grid = {"id": sample_id}
-                grid["values"] = samples.get_grid(int(sample_id)).tolist()
+                grid = {"id": int(sample_id)}
+                grid["values"] = []
+                for v in samples.get_grid(int(c_id)).tolist():
+                    grid["values"].append(float(v))
                 return grid, 200
 
             except Exception as ex:

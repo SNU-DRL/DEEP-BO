@@ -24,8 +24,10 @@ class ParallelOptimizer(Worker):
         return super(ParallelOptimizer, self).__init__(id=id)
 
     def create_job_request(self, mode="DIV", spec="RANDOM", 
-                    exp_crt="TIME", exp_time="24h", exp_goal=0.9999, num_trials=1,
-                    surrogate=None):
+                           exp_crt="TIME", exp_time="24h", exp_goal=0.9999, 
+                           num_trials=1,
+                           space_id="None", 
+                           surrogate=None):
         job_desc = {}
         job_desc['exp_crt'] = exp_crt
         job_desc['exp_time'] = exp_time
@@ -36,7 +38,8 @@ class ParallelOptimizer(Worker):
 
         trainer_url = "http://{}:{}".format(self.train_node["ip_address"], self.train_node["port_num"])
         job_desc['train_node'] = trainer_url
-
+        job_desc['space_id'] = space_id
+        
         if surrogate != None:
             job_desc['surrogate'] = surrogate
         else:

@@ -245,7 +245,10 @@ class HPOBanditMachine(object):
             train_result['early_terminated'] = True
         
         if not 'test_acc' in train_result:
-            train_result['test_acc'] = 1.0 - train_result['test_error']
+            if train_result['test_error'] == None:
+                train_result['test_acc'] = float("inf")
+            else:
+                train_result['test_acc'] = 1.0 - train_result['test_error']
 
         self.eval_end_time = time.time()
         if not 'exec_time' in train_result:
@@ -295,11 +298,11 @@ class HPOBanditMachine(object):
             eval_result['best_epoch']
 
         result_repo.append(next_index, test_error,
-                    total_opt_time, exec_time, 
-                    metrics=metrics, 
-                    train_epoch=train_epoch,
-                    best_epoch=best_epoch,
-                    test_acc=test_acc)
+                           total_opt_time, exec_time, 
+                           metrics=metrics, 
+                           train_epoch=train_epoch,
+                           best_epoch=best_epoch,
+                           test_acc=test_acc)
         self.cur_runtime += (total_opt_time + exec_time)
         self.samples.update_error(next_index, test_error, early_terminated)
         
@@ -323,7 +326,6 @@ class HPOBanditMachine(object):
         else:
             self.total_results, start_idx = self.temp_saver.restore()
 
-        
         est_records = {}
         for i in range(start_idx, num_trials):
             trial_start_time = time.time()

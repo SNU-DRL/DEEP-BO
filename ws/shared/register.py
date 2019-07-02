@@ -10,11 +10,11 @@ if sys.version_info[0] < 3:
 else:
     from ws.rest_client.request_lib import Connection
 
-class NameServerConnector(RemoteConnectorPrototype):
+class MasterServerConnector(RemoteConnectorPrototype):
 
     def __init__(self, target_url, credential, **kwargs):
         self.outcome_domain = "gmail.com"
-        return super(NameServerConnector, self).__init__(target_url, credential, **kwargs)
+        return super(MasterServerConnector, self).__init__(target_url, credential, **kwargs)
 
     def register(self, port, job_type):
         if job_type != "HPO_runner" and job_type != "ML_trainer":

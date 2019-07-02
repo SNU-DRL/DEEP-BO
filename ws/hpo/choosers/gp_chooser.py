@@ -159,7 +159,7 @@ class GPChooser:
 
         # Perform the real initialization.
         if self.D == -1:
-            num_dims = samples.get_grid_dim()[1] # # of grid dimension
+            num_dims = samples.get_grid_dim() # # of grid dimension
             self._real_init(num_dims, errs)
         
         if self.response_shaping is True:

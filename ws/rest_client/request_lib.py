@@ -17,7 +17,8 @@ class Connection:
         if args == None:
             args = {}
         res = req.request('GET', url, params=args, headers=headers, 
-                            auth=self.auth, timeout=self.timeout)
+                            #auth=self.auth, 
+                            timeout=self.timeout)
         
         res.headers['status'] = str(res.status_code)
         resp = {'headers' : res.headers, 'body': res.content }
@@ -34,7 +35,8 @@ class Connection:
             body = {}
 
         res = req.request('POST', url, params=args, headers=headers, json=body,
-                            auth=self.auth, timeout=self.timeout)
+                            #auth=self.auth, 
+                            timeout=self.timeout)
         res.headers['status'] = str(res.status_code)
         resp = {'headers' : res.headers, 'body': res.content }
         return resp
@@ -50,7 +52,8 @@ class Connection:
             body = {}
 
         res = req.request('PUT', url, params=args, headers=headers, json=body,
-                            auth=self.auth, timeout=self.timeout)
+                            #auth=self.auth, 
+                            timeout=self.timeout)
         res.headers['status'] = str(res.status_code)
         resp = {'headers' : res.headers, 'body': res.content }
         return resp

@@ -19,10 +19,13 @@ def main(run_config):
         if not bconf.validate(run_config):
             raise ValueError('Invaild HPO configuration.')    
 
-        register_url = None
+        master_node = None
         if "master_node" in run_config:
             if valid.url(run_config['master_node']):
-                register_url = run_config['master_node']
+                master_node = run_config['master_node']
+                if master_node.endswith('/'):
+                    master_node += master_node[:-1]
+
         debug_mode = False
         if "debug_mode" in run_config:
             if run_config["debug_mode"]:
@@ -46,7 +49,7 @@ def main(run_config):
         wait_hpo_request(run_cfg, hp_cfg, 
                          debug_mode=debug_mode, 
                          port=port, 
-                         register_url=register_url)
+                         master_node=master_node)
     
     except KeyboardInterrupt as ki:
         warn("Terminated by Ctrl-C.")

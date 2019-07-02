@@ -6,7 +6,7 @@ import validators as valid
 
 from ws.shared.logger import *
 from ws.ws_mgr import WebServiceManager
-from ws.shared.register import NameServerConnector
+from ws.shared.register import MasterServerConnector
 
 
 DEFAULT_DEBUG_MODE = False
@@ -34,7 +34,7 @@ def wait_hpo_request(run_cfg, hp_cfg,
                     debug_mode=DEFAULT_DEBUG_MODE,
                     port=6000, 
                     enable_surrogate=False,
-                    register_url=None,
+                    master_node=None,
                     threaded=False):
     
     from ws.hpo.job_mgr import HPOJobManager
@@ -44,12 +44,12 @@ def wait_hpo_request(run_cfg, hp_cfg,
 
     if JOB_MANAGER == None:
         JOB_MANAGER = HPOJobManager(run_cfg, hp_cfg, port, use_surrogate=enable_surrogate)
-        if register_url != None and valid.url(register_url):
+        if master_node != None and valid.url(master_node):
             try:
-                ns = NameServerConnector(register_url, JOB_MANAGER.get_credential())
+                ns = MasterServerConnector(master_node, JOB_MANAGER.get_credential())
                 ns.register(port, "HPO_runner")
             except Exception as ex:
-                warn("Registering myself to name server failed: {}".format(ex))
+                warn("Registering to master server failed: {}".format(ex))
 
         API_SERVER = WebServiceManager(JOB_MANAGER, hp_cfg)
         API_SERVER.run_service(port, debug_mode, threaded)
@@ -65,7 +65,7 @@ def wait_train_request(train_task, hp_cfg,
                     device_index=0,
                     retrieve_func=None, 
                     enable_surrogate=False,
-                    register_url=None,
+                    master_node=None,
                     processed=True
                     ):
     
@@ -80,9 +80,9 @@ def wait_train_request(train_task, hp_cfg,
         JOB_MANAGER = TrainingJobManager(task, 
                                         use_surrogate=enable_surrogate, 
                                         retrieve_func=retrieve_func)
-        if register_url != None and valid.url(register_url):
+        if master_node != None and valid.url(master_node):
             try:
-                ns = NameServerConnector(register_url, JOB_MANAGER.get_credential())
+                ns = MasterServerConnector(master_node, JOB_MANAGER.get_credential())
                 ns.register(port, "ML_trainer")
             except Exception as ex:
                 warn("Registering myself to name server failed: {}".format(ex))

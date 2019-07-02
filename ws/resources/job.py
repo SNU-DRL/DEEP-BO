@@ -23,12 +23,12 @@ class Job(Resource):
         if job_id == 'active':
             aj = self.jm.get_active_job_id()
             if aj is not None:
-                return self.jm.get(aj), 200
+                return self.jm.get_job(aj), 200
             else:
                 return {}, 204
 
         else:
-            job = self.jm.get(job_id)
+            job = self.jm.get_job(job_id)
             if job is None:
                 return "Job {} not found".format(job_id), 404
             else:
@@ -43,7 +43,7 @@ class Job(Resource):
         if not self.jm.authorize(args['Authorization']):
             return "Unauthorized", 401
 
-        job = self.jm.get(job_id)
+        job = self.jm.get_job(job_id)
         if job is None:
             return "Job {} not found".format(job_id), 404
         else:           

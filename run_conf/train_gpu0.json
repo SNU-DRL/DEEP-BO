@@ -1,5 +1,5 @@
 {
-    "master_node": "None",
+    "master_node": "http://127.0.0.1:5000",
 
     "hp_config_path": "./hp_conf/",
     "hp_config": "MNIST-LeNet1",

@@ -26,18 +26,10 @@ class ObservedError(Resource):
         if samples == None:
             return "Sampling space {} is not available".format(space_id), 404
 
-        if sample_id == 'completes':
-            errors = []
-            for c_id in samples.get_completes():
-                err = {"id" : c_id}
-                err["error"] = samples.get_errors(int(c_id))
-                errors.append(err)
-            return errors, 200
-        else:
-            error = {"id": sample_id}
-            error["error"] = samples.get_errors(int(sample_id))
+        error = {"id": int(sample_id)}
+        error["error"] = samples.get_errors(int(sample_id))
 
-            return error, 200 
+        return error, 200 
     
     def put(self, space_id, sample_id):
         parser = reqparse.RequestParser()        

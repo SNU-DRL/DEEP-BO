@@ -1,7 +1,7 @@
 {
     "title": "HPO node configuration",        
-    "credential" : "test_mode",
-    "master_node": "None",
+    "credential" : "debug_mode",
+    "master_node": "http://127.0.0.1:5000",
 
     "hp_config": "kin8nm-MLP",
     "hp_config_path": "./hp_conf/",    

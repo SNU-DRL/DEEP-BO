@@ -49,6 +49,7 @@ class WebServiceManager(ManagerPrototype):
             from ws.resources.completes import Completes
             from ws.resources.grid import Grid
             from ws.resources.hparams import HyperparamVector
+            from ws.resources.errors import ObservedErrors
             from ws.resources.error import ObservedError
             from ws.resources.spaces import Spaces
             from ws.resources.space import Space 
@@ -74,6 +75,8 @@ class WebServiceManager(ManagerPrototype):
                             resource_class_kwargs={'space_manager': space_mgr})
             self.api.add_resource(Candidates, "/spaces/<string:space_id>/candidates/", 
                             resource_class_kwargs={'space_manager': space_mgr})                                         
+            self.api.add_resource(ObservedErrors, "/spaces/<string:space_id>/errors/", 
+                            resource_class_kwargs={'space_manager': space_mgr})   
             self.api.add_resource(ObservedError, "/spaces/<string:space_id>/errors/<string:sample_id>/", 
                             resource_class_kwargs={'space_manager': space_mgr})                    
 

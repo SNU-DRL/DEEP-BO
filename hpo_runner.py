@@ -166,7 +166,7 @@ def execute(args, save_results=False):
         else:
             raise ValueError("upsupported run mode: {}".format(args['mode']))
     except Exception as ex:
-        warn('Exception occurs on executing SMBO: {}'.format(ex))     
+        warn('{} occurs on executing SMBO'.format(ex))     
     
     return result
 

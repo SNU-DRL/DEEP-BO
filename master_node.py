@@ -18,6 +18,7 @@ ALL_LOG_LEVELS = ['debug', 'warn', 'error', 'log']
 
 def main(run_config):
     try:
+        debug_mode = False
         if "debug_mode" in run_config:
             if run_config["debug_mode"]:
                 debug_mode = True

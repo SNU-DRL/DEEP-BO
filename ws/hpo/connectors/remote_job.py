@@ -20,6 +20,7 @@ class RemoteJobConnector(RemoteConnectorPrototype):
 
     def get_profile(self):
         try:
+            #debug("Getting profile {}\n{}\n".format(self.url, self.headers))
             resp = self.conn.request_get("/", args={}, headers=self.headers)            
             status = resp['headers']['status']
 
@@ -27,7 +28,7 @@ class RemoteJobConnector(RemoteConnectorPrototype):
                 profile = json.loads(resp['body'])
                 return profile
             else:
-                raise ValueError("Connection failed: {}".format(status))
+                raise ValueError("Connection failed with {}".format(resp['headers']))
 
         except Exception as ex:
             debug("Getting profile failed: {}".format(ex))
@@ -119,10 +120,10 @@ class RemoteJobConnector(RemoteConnectorPrototype):
                     
                     if status == '202':
                         js = json.loads(resp['body'])
-                        if 'hyperparams' in js:
-                            debug("Current training item: {}".format(js['hyperparams']))
-                        else:
-                            debug("Current HPO item: {}".format(js))
+                        #if 'hyperparams' in js:
+                        #    debug("Current training item: {}".format(js['hyperparams']))
+                        #else:
+                        #    debug("Current HPO item: {}".format(js))
                         return True
                     elif status == '500':
                         retry_count += 1

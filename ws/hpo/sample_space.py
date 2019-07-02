@@ -34,14 +34,14 @@ class SearchHistory(object):
             completes = np.where(self.terminal_record == 1)[0]
             return completes
 
-    def update_error(self, model_index, test_error, interim=False):
+    def update_error(self, model_index, test_error, use_interim=False):
         if not model_index in self.complete:
             self.candidates = np.setdiff1d(self.candidates, model_index)
             self.complete = np.append(self.complete, model_index)
             
         self.observed_errors[model_index] = test_error
 
-        if interim == False:
+        if use_interim == False:
             self.terminal_record[model_index] = 1
         else:
             self.terminal_record[model_index] = 0
@@ -98,7 +98,7 @@ class GridSamplingSpace(SearchHistory):
         return self.hp_config.param_order
 
     def get_grid_dim(self):
-        return self.grid.shape
+        return self.grid.shape[1]
 
     def get_grid(self, type_or_index='all', use_interim=False):
         if type_or_index == "completes":
@@ -164,10 +164,10 @@ class SurrogateSamplingSpace(GridSamplingSpace):
         self.lookup = lookup
 
     # For search history 
-    def update_error(self, model_index, test_error=None, interim=False):
+    def update_error(self, model_index, test_error=None, use_interim=False):
         if test_error is None:
             test_error = self.test_errors[model_index]
-        super(GridSamplingSpace, self).update_error(model_index, test_error, interim)
+        super(GridSamplingSpace, self).update_error(model_index, test_error, use_interim)
 
     def get_errors(self, type_or_id, use_interim=False):
         if type_or_id == "completes":
@@ -204,6 +204,9 @@ class RemoteSamplingSpace(SearchHistory):
 
     def get_name(self):
         return self.name
+
+    def get_grid_dim(self):
+        return len(self.get_params())
 
     def get_hp_config(self):
         return self.space.hp_config

@@ -137,7 +137,7 @@ class TrainingJobManager(ManagerPrototype):
                 return j['job_id']
         return None
 
-    def get(self, job_id):
+    def get_job(self, job_id):
         for j in self.jobs:
             if j['job_id'] == job_id:
                 return j
@@ -161,7 +161,7 @@ class TrainingJobManager(ManagerPrototype):
             return
 
         #debug("Work item: {}".format(t['job_id']))
-        j = self.get(t['job_id'])
+        j = self.get_job(t['job_id'])
         cur_status = t['worker'].get_cur_status()
         if cur_status == 'processing':
             if self.retrieve_func != None:
@@ -199,7 +199,7 @@ class TrainingJobManager(ManagerPrototype):
                 debug("{} is processing now.".format(aj))
                 return False
             w = self.shelf
-            j = self.get(w['job_id'])
+            j = self.get_job(w['job_id'])
             if job_id == w['job_id'] and j != None:
                 if j['status'] != 'processing':
                     while w['worker'].start() == False:

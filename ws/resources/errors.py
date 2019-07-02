@@ -1,34 +1,37 @@
 import os
 import time
 import json
-
-from ws.shared.logger import * 
+import operator
 
 from flask import jsonify, request
 from flask_restful import Resource, reqparse
 
-class Candidates(Resource):
+from ws.shared.logger import * 
+
+
+class ObservedErrors(Resource):
     def __init__(self, **kwargs):
         self.sm = kwargs['space_manager']
 
-        super(Candidates, self).__init__()
+        super(ObservedErrors, self).__init__()
 
     def get(self, space_id):
         parser = reqparse.RequestParser()
         parser.add_argument("Authorization", location="headers") # for security reason
-        parser.add_argument("use_interim", type=bool, default=False)
+        
         args = parser.parse_args()
         if not self.sm.authorize(args['Authorization']):
             return "Unauthorized", 401
-
+        
         samples = self.sm.get_samples(space_id)
         if samples == None:
-            return "Sampling space {} is not available".format(space_id), 500
+            return "Sampling space {} is not available".format(space_id), 404
 
-        result = {}
-
-        result["candidates"] = samples.get_candidates(args['use_interim']).tolist()
-        #space["completes"] = samples.get_completes().tolist()
+        errors = []
+        for c_id in samples.get_completes():
+            err = {"id" : int(c_id)}
+            err["error"] = samples.get_errors(int(c_id))
+            errors.append(err)
+        errors.sort(key=operator.itemgetter('error'))        
         
-
-        return result, 200 
+        return errors, 200

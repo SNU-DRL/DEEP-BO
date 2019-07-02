@@ -10,7 +10,6 @@ import ws.shared.lookup as lookup
 
 from ws.hpo.utils.grid_gen import *
 
-import ws.hpo.connectors.remote_space as remote
 import ws.hpo.space_mgr as space
 
 import ws.hpo.bandit as bandit
@@ -82,7 +81,7 @@ class SequentialOptimizer(Worker):
             self.results = self.run(self.rconf, self.hconf, self.params)
 
         except Exception as ex:
-            warn("Exception occurs: {}".format(sys.exc_info()[0]))            
+            warn("{} occurs".format(sys.exc_info()[0]))            
             self.stop_flag = True
 
         finally:
@@ -117,15 +116,15 @@ class SequentialOptimizer(Worker):
             if hp_cfg == None:
                 ValueError("Surrogate {} configuration not found.".format(s_name))
         
-        if 'history_url' in args and valid.url(args['history_url']):            
-            space_url = args['history_url']
-            if not space_url.endswith('/'):
-                space_url = space_url + "/"
-
-            self.samples = remote.connect_remote_space(args['history_url'], 
-                                                        run_cfg["credential"])
+        if 'space_id' in args:            
+            space_id = args['space_id']
+            history_url = "{}/spaces/{}/".format(run_cfg["master_node"], space_id)
+            debug("Global history: {}".format(history_url))
+            if valid.url(history_url):
+                self.samples = space.connect_remote_space(history_url, 
+                                                          run_cfg["credential"])
         else:
-            warn("No valid history: {}".format(run_cfg['history_url']))
+            warn("No valid space ID: {}".format(space_id))
             self.samples = space.create_surrogate_space(args['surrogate'])
 
         if self.samples == None:

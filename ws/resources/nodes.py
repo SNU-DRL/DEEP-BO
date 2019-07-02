@@ -41,41 +41,41 @@ class Nodes(Resource):
     
         return self.nm.get_node("all"), 200
 
-    def put(self):
-        parser = reqparse.RequestParser()        
-        parser.add_argument("Authorization", location="headers") # for security reason
-        parser.add_argument("control", location='args')
-        parser.add_argument("exp_time", location='args')
-        parser.add_argument("space_id", location='args')
-        args = parser.parse_args()
-        space_id = None
-        if not self.nm.authorize(args['Authorization']):
-            return "Unauthorized", 401
+    # def put(self):
+    #     parser = reqparse.RequestParser()        
+    #     parser.add_argument("Authorization", location="headers") # for security reason
+    #     parser.add_argument("control", location='args')
+    #     parser.add_argument("exp_time", location='args')
+    #     parser.add_argument("space_id", location='args')
+    #     args = parser.parse_args()
+    #     space_id = None
+    #     if not self.nm.authorize(args['Authorization']):
+    #         return "Unauthorized", 401
 
-        if "control" in args:
-            if args["control"] == "start":
-                if "space_id" in args and self.nm.validate_space(args["space_id"]):
-                    space_id = args["space_id"]
-                else:
-                    space_id = self.nm.create_new_space()
+    #     if "control" in args:
+    #         if args["control"] == "start":
+    #             if "space_id" in args and self.nm.validate_space(args["space_id"]):
+    #                 space_id = args["space_id"]
+    #             else:
+    #                 space_id = self.nm.create_new_space()
 
-            result = self.nm.control(args["control"], space_id, args["exp_time"])            
-            if result is True:
-                return self.nm.get_pairs(), 202
-            else:
-                return "Failed to control:{}".format(args["control"]), 400   
+    #         result = self.nm.control(args["control"], space_id, args["exp_time"])            
+    #         if result is True:
+    #             return self.nm.get_pairs(), 202
+    #         else:
+    #             return "Failed to control:{}".format(args["control"]), 400   
 
-    def delete(self):
-        parser = reqparse.RequestParser()        
-        parser.add_argument("Authorization", location="headers") # for security reason
-        args = parser.parse_args()
+    # def delete(self):
+    #     parser = reqparse.RequestParser()        
+    #     parser.add_argument("Authorization", location="headers") # for security reason
+    #     args = parser.parse_args()
 
-        if not self.nm.authorize(args['Authorization']):
-            return "Unauthorized", 401
+    #     if not self.nm.authorize(args['Authorization']):
+    #         return "Unauthorized", 401
            
-        result = self.nm.control("stop")            
-        if result is True:
-            return job, 202
-        else:
-                return "Fail to stop all nodes", 400   
+    #     result = self.nm.control("stop")            
+    #     if result is True:
+    #         return job, 202
+    #     else:
+    #             return "Fail to stop all nodes", 400   
 

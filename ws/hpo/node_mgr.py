@@ -3,16 +3,38 @@ import time
 import json
 import copy
 
+from future.utils import iteritems
+
 from ws.shared.logger import * 
 from ws.shared.proto import ManagerPrototype 
 
 from ws.hpo.space_mgr import SamplingSpaceManager
 from ws.hpo.workers.p_opt import ParallelOptimizer
 
+class HPOJobFactory(object):
+    def __init__(self, workers, n_jobs):
+        self.n_jobs = n_jobs
+        self.workers = workers
+
+    def create(self, jr):
+        job = {}
+        job['job_id'] = "batch-{}p-{}{}".format(len(self.workers), 
+                                        time.strftime('%Y%m%d',time.gmtime()),
+                                        self.n_jobs)
+        job['created'] = time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime())
+        job['status'] = "not assigned"
+        job['result'] = None
+        for key in jr.keys():
+            job[key] = jr[key]
+        
+        return job  
+
+
 class ParallelHPOManager(ManagerPrototype):
 
     def __init__(self, hp_config, **kwargs):
         self.hp_config = hp_config
+        self.jobs = []
         self.nodes = {}
         self.pairs = []
         self.workers = []
@@ -37,6 +59,19 @@ class ParallelHPOManager(ManagerPrototype):
 
     def get_space_manager(self):
         return self.space_mgr
+
+    def get_job(self, job_id):               
+        for j in self.jobs:
+            if j['job_id'] == job_id:
+                return j
+        debug("no such {} job is existed".format(job_id))
+        return None 
+
+    def get_active_job_id(self):        
+        for j in self.jobs:
+            if j['status'] == 'processing':
+                return j['job_id']
+        return None
 
     def register(self, node_spec):
         ip = None
@@ -148,7 +183,21 @@ class ParallelHPOManager(ManagerPrototype):
         else:
             return False
 
-    def prepare(self, exp_time):
+    def prepare(self, args):
+        # Create new result history
+        num_samples = 20000
+        if "num_samples" in args:
+            num_samples = args['num_samples']                
+        grid_seed = 1
+        if 'grid_seed' in args:
+            grid_seed = args['grid_seed']
+        surrogate = None
+        if 'surrogate' in args:
+            surrogate = args['surrogate']
+        space_id = self.create_new_space(num_samples, grid_seed, surrogate)
+        args['space_id'] = space_id
+        
+        self.workers = []
         if len(self.pairs) == 0:
             self.match_nodes()
         
@@ -156,37 +205,61 @@ class ParallelHPOManager(ManagerPrototype):
             hpo = p["optimizer"]
             train = p["trainer"]
             w = ParallelOptimizer(hpo, train, self.hp_config, self.get_credential())
-            if exp_time != None:
-                jr = w.create_job_request(exp_time=exp_time)
-                w.set_job_request(jr)
+            jr = w.create_job_request(**args)
+            debug("worker job description: {}".format(jr))
+            w.set_job_request(jr)
             self.workers.append(w)
-
-    def control(self, cmd, space_id, exp_time=None, node_id="all"):
-        if node_id == "all":
-            if len(self.nodes.keys()) < 2:
-                debug("Not enough the registered nodes")
-                return False
-            else:
-                self.prepare(exp_time)
-
-        elif node_id in self.nodes:
-            # TODO: control single node
-            raise NotImplementedError("Controlling each node is not supported yet.")
+        if len(self.workers) < 1:
             return False
         else:
-            debug("No such node ID existed: {}".format(node_id))
+            return True
+
+    def add(self, args):
+        # TODO: validate parameters
+        try:            
+            if not self.prepare(args):
+                raise ValueError("invalid job description")
+
+            f = HPOJobFactory(self.workers, len(self.jobs))
+            job = f.create(args)            
+            self.jobs.append(job)
+            debug("Job added properly: {}".format(job))
+        except:
+            warn("invalid job description: {}".format(args))
+            raise ValueError("invalid job description")
+        
+        return job['job_id']
+
+    def control(self, job_id, cmd):
+
+        if job_id == self.get_active_job_id():
+            debug("{} is processing now.".format(aj))
+            return False            
+
+        j = self.get_job(job_id)
+
+        if not 'space_id' in j:
             return False
 
+        space_id = j['space_id']
         if cmd == 'start':
             if len(self.workers) == 0:
                 debug("No worker is prepared.")
                 return False
+            
+            if j['status'] == 'processing':
+                debug("{} job is already {}.".format(job_id, j['status']))
+                return False
+            self.update(job_id, status='processing')
             self.space_mgr.set_space_status(space_id, "active")
             for w in self.workers:
                 w.start()
             return True
 
         elif cmd == 'stop':
+            if j['status'] != 'processing':
+                debug("{} job is not working.".format(job_id))
+                return False                
             self.space_mgr.set_space_status(space_id, "inactive")
             self.stop_working_job()
             return True
@@ -195,6 +268,50 @@ class ParallelHPOManager(ManagerPrototype):
             debug("Unsupported command: {}".format(cmd))
             return False
 
+    def update(self, job_id, **kwargs):
+        for j in self.jobs:
+            if j['job_id'] == job_id:
+                for (k, v) in iteritems(kwargs):
+                    if k in j:
+                        j[k] = v
+                        #debug("{} of {} is updated: {}".format(k, job_id, v))
+                    else:
+                        debug("{} is invalid in {}".format(k, job_id))
+
     def stop_working_job(self):
         for w in self.workers:
-            w.stop()        
+            w.stop()
+
+    def sync_result(self):
+        id = self.get_active_job_id()
+        j = self.get_job(id)
+        space_id = self.space_mgr.get_active_space_id()
+        samples = self.space_mgr.get_samples(space_id)
+        cur_errs = samples.get_errors("completes")
+        # find index of current min error
+        min_err_i = None
+        cur_best_err = None
+        cur_best_hpv = None
+        i = 0
+        for c in cur_errs:
+            if cur_best_err == None or c < cur_best_err:
+                cur_best_err = c
+                min_err_i = i
+            i += 1
+        min_err_id = samples.get_completes()[min_err_i]
+        cur_best_hpv = samples.get_hpv(min_err_id)
+
+        summary = {             
+            "best_err" : cur_best_err,
+            "best_hpv" : cur_best_hpv
+        }
+        cur_result = {"result" : summary }
+        self.update(id, **cur_result)
+        
+    def get_all_jobs(self, n=10):        
+        if len(self.jobs) <= n: 
+            return self.jobs
+        else:
+            selected_jobs = self.jobs[-n:]
+            debug("number of jobs: {}".format(len(selected_jobs)))
+            return selected_jobs

@@ -15,6 +15,7 @@ from ws.shared.logger import *
 from ws.shared.resp_shape import *
 from ws.hpo.utils.converter import VectorGridConverter
 from ws.hpo.choosers.util import *
+from ws.shared.hp_cfg import HyperparameterConfiguration
 
 def init(samples, arg_string):
     args = unpack_args(arg_string)
@@ -87,6 +88,9 @@ class HyperOptChooser(object):
 class HyperOptSearchSpaceConfig(object):
     
     def __init__(self, config):
+        if type(config) == dict:
+            config = HyperparameterConfiguration(config)
+        
         self.config = config
 
     def get_hyperopt_space(self):

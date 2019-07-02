@@ -8,17 +8,6 @@ from ws.shared.logger import *
 from ws.shared.proto import RemoteConnectorPrototype
 from ws.hpo.sample_space import RemoteSamplingSpace
 
-def connect_remote_space(space_url, cred):
-    try:
-        debug("Connecting remote space: {}".format(space_url))
-        
-        connector = RemoteSampleSpaceConnector(space_url, credential=cred)
-        name = connector.get_space_id()
-        return RemoteSamplingSpace(name, connector)
-    except Exception as ex:
-        warn("Fail to get remote samples: {}".format(ex))
-        return None  
-
 
 class RemoteSampleSpaceConnector(RemoteConnectorPrototype):
     
@@ -37,7 +26,7 @@ class RemoteSampleSpaceConnector(RemoteConnectorPrototype):
 
     def get_status(self):
         try:
-            resp = self.conn.request_get("", args={}, headers=self.headers)
+            resp = self.conn.request_get("/", args={}, headers=self.headers)
             status = resp['headers']['status']
 
             if status == '200':
@@ -70,7 +59,7 @@ class RemoteSampleSpaceConnector(RemoteConnectorPrototype):
         return self.num_samples
 
     def get_candidates(self, use_interim=True):
-        resp = self.conn.request_get("/candidates", args={'use_interim': use_interim}, headers=self.headers)
+        resp = self.conn.request_get("/candidates/", args={'use_interim': use_interim}, headers=self.headers)
         status = resp['headers']['status']
 
         if status == '200':
@@ -81,7 +70,7 @@ class RemoteSampleSpaceConnector(RemoteConnectorPrototype):
             raise ValueError("Connection failed: {}".format(status))
 
     def get_completes(self, use_interim=True):
-        resp = self.conn.request_get("/completes", args={"use_interim": use_interim}, headers=self.headers)
+        resp = self.conn.request_get("/completes/", args={"use_interim": use_interim}, headers=self.headers)
         status = resp['headers']['status']
 
         if status == '200':
@@ -110,7 +99,7 @@ class RemoteSampleSpaceConnector(RemoteConnectorPrototype):
         if self.validate(id) == False:
             raise ValueError("Invalid id: {}".format(id))
 
-        resp = self.conn.request_get("/grids/{}".format(id), args={}, headers=self.headers)
+        resp = self.conn.request_get("/grids/{}/".format(id), args={"use_interim": use_interim}, headers=self.headers)
         status = resp['headers']['status']
 
         if status == '200':
@@ -131,7 +120,7 @@ class RemoteSampleSpaceConnector(RemoteConnectorPrototype):
         if self.validate(id) == False:
             raise ValueError("Invalid id: {}".format(id))
 
-        resp = self.conn.request_get("/vectors/{}".format(id), args={}, headers=self.headers)
+        resp = self.conn.request_get("/vectors/{}/".format(id), args={}, headers=self.headers)
         status = resp['headers']['status']
 
         if status == '200':
@@ -142,18 +131,21 @@ class RemoteSampleSpaceConnector(RemoteConnectorPrototype):
                 for v in vec:
                     returns.append(v['hparams'])
             else:
-                returns.append(vec['hparams'])
+                returns = vec['hparams']
             #debug("vector of {}: {}".format(id, returns))
             return returns
         else:
             raise ValueError("Connection failed: {}".format(status))
 
-    def get_error(self, id):
+    def get_error(self, id, use_iterim=False):
+        resource = "/errors/"
         if id != 'completes': 
             if not id in self.get_completes():
                 raise ValueError("Invalid id: {}".format(id))
+            else:
+                resource = "/errors/{}/".format(id)
 
-        resp = self.conn.request_get("/errors/{}/".format(id), args={}, headers=self.headers)
+        resp = self.conn.request_get(resource, args={}, headers=self.headers)
         status = resp['headers']['status']
 
         if status == '200':
@@ -169,7 +161,7 @@ class RemoteSampleSpaceConnector(RemoteConnectorPrototype):
         else:
             raise ValueError("Connection failed: {}".format(status))
 
-    def update_error(self, id, error):
+    def update_error(self, id, error, use_iterim=False):
 
         if self.validate(id) == False:
             raise ValueError("Invalid id: {}".format(id))

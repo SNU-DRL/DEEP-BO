@@ -93,7 +93,7 @@ class HPOJobManager(ManagerPrototype):
                 return j['job_id']
         return None
 
-    def get(self, job_id):               
+    def get_job(self, job_id):               
         for j in self.jobs:
             if j['job_id'] == job_id:
                 return j
@@ -118,7 +118,7 @@ class HPOJobManager(ManagerPrototype):
     def sync_result(self):
         for w in self.to_dos:
             id = w['job_id']
-            j = self.get(id)
+            j = self.get_job(id)
             if j['status'] == 'processing' or j['status'] == 'terminated':
                 cur_result = w['worker'].get_cur_result()
                 if cur_result is not None:
@@ -136,7 +136,7 @@ class HPOJobManager(ManagerPrototype):
                 debug("{} is processing now.".format(aj))
                 return False
             w = self.get_to_do(job_id)
-            j = self.get(job_id)
+            j = self.get_job(job_id)
             if w is not None:
                 if w['job_id'] == job_id and j['status'] != 'processing':
                     self.update(job_id, status='processing')
@@ -164,7 +164,7 @@ class HPOJobManager(ManagerPrototype):
                     return False
         elif cmd == 'resume':
             w = self.get_to_do(job_id)
-            j = self.get(job_id)
+            j = self.get_job(job_id)
             if w is not None and j['status'] == 'pending':
                 w['worker'].resume()
                 while w['worker'].paused == True:

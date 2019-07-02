@@ -59,7 +59,6 @@ class RemoteTrainer(TrainerPrototype):
         return False
 
     def wait_until_done(self, job_id, model_index, estimates, space):
-
         acc_curve = []
         prev_interim_err = None
         time_out_count = 0
@@ -70,7 +69,13 @@ class RemoteTrainer(TrainerPrototype):
                 if j != None:
                     if "lr" in j and len(j["lr"]) > 0:
                         if "cur_acc" in j and j['cur_acc'] != None:
-                            acc_curve = [ 1.0 - loss for loss in j["lr"] ]
+                            acc_curve = []
+                            for loss in j["lr"]:
+                                if loss != None:
+                                    acc = 1.0 - loss
+                                else:
+                                    acc = 0.0
+                                acc_curve.append(acc) 
                         
                         # Interim error update
                         interim_err = j["lr"][-1]
@@ -110,7 +115,7 @@ class RemoteTrainer(TrainerPrototype):
                     if "lr" in r:
                         num_losses = len(r["lr"])
                         if num_losses > 0:
-                            debug("Current working job finished with loss {:.4f}.".format(min(r["lr"])))
+                            debug("Current job finished with min losses: {}.".format(min(r["lr"])))
                             break
                         else:
                             debug("Result of finished job: {}".format(r)) 
@@ -137,10 +142,17 @@ class RemoteTrainer(TrainerPrototype):
         param_names = self.hp_config.get_hyperparams()
         param_values = self.space.get_hpv(cand_index)
         if type(param_values) == np.ndarray:
-             param_values = param_values.tolist()
+            param_values = param_values.tolist()
+        elif type(param_values) == dict:
+            values_only = []
+            for i in range(len(param_names)):
+                p = param_names[i]
+                v = param_values[p]
+                values_only.append(v)
+            param_values = values_only
         
         early_terminated = False
-        #debug("Training using hyperparameters: {}".format(param_values))
+        log("Training using hyperparameters: {}".format(param_values))
         
         if type(param_values) == dict:
             for param in param_names:

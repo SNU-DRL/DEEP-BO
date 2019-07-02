@@ -14,9 +14,9 @@ class HyperparamVector(Resource):
         super(HyperparamVector, self).__init__()
 
     def get(self, space_id, sample_id):
-        
         parser = reqparse.RequestParser()
         parser.add_argument("Authorization", location="headers") # for security reason
+        parser.add_argument("use_interim", type=bool, default=False)
         args = parser.parse_args()
         
         if not self.sm.authorize(args['Authorization']):
@@ -37,7 +37,7 @@ class HyperparamVector(Resource):
         
         elif sample_id == 'candidates':
             candidates = []
-            for c_id in samples.get_candidates():
+            for c_id in samples.get_candidates(args['use_interim']):
                 hpv = {"id": c_id}
                 hpv["hparams"] = samples.get_hpv(int(c_id))
                 candidates.append(hpv)
@@ -46,7 +46,7 @@ class HyperparamVector(Resource):
 
         elif sample_id == 'completes':
             completes = []
-            for c_id in samples.get_completes():
+            for c_id in samples.get_completes(args['use_interim']):
                 hpv = {"id": c_id}
                 hpv["hparams"] = samples.get_hpv(int(c_id))
                 completes.append(hpv)
