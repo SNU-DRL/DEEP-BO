@@ -5,7 +5,7 @@
     "hp_config": "kin8nm-MLP",
     "hp_config_path": "./hp_conf/",    
 
-    "debug_mode": false,    
+    "debug_mode": true,    
 
     "port" : 5000
 }

@@ -1,5 +1,5 @@
 {    
-    "credential" : "",
+    "credential" : "debug_mode",
     "title": "HPO remote trainer running configuration",
     "hp_config": "kin8nm-MLP",
     "hp_config_path": "./hp_conf/",

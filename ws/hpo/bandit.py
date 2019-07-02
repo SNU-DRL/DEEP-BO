@@ -285,7 +285,10 @@ class HPOBanditMachine(object):
         # evaluate the candidate
         eval_result = self.evaluate(next_index, model)
         test_error = eval_result['test_error']
-        test_acc = 1.0 - test_error
+        if test_error != None:
+            test_acc = 1.0 - test_error
+        else:
+            test_acc = float("inf")
         if 'test_acc' in eval_result:
             test_acc = eval_result['test_acc']            
         exec_time = eval_result['exec_time']

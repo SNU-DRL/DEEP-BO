@@ -206,7 +206,7 @@ class ParallelHPOManager(ManagerPrototype):
             train = p["trainer"]
             w = ParallelOptimizer(hpo, train, self.hp_config, self.get_credential())
             jr = w.create_job_request(**args)
-            debug("worker job description: {}".format(jr))
+            #debug("worker job description: {}".format(jr))
             w.set_job_request(jr)
             self.workers.append(w)
         if len(self.workers) < 1:

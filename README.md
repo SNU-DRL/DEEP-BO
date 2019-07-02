@@ -65,16 +65,19 @@ If you are working on Linux, install these packages as follows:
 (hpo)device:path$ conda install -c conda-forge weave
 ```
 
-If you want to run samples, more packages for deep learning are required:
+If you want to run a sample, following deep learning packages may be required additionally:
 
 * tensorflow(-gpu)
 * karas(-gpu)
 * [pytorch](https://pytorch.org/get-started/locally/)
-* configspace
+
+In case of no GPU available, you can install above packages as follows:
+```bash
+(hpo)device:path$ conda install tensorflow karas 
+(hpo)device:path$ conda install pytorch-cpu torchvision-cpu -c pytorch
+```
 
 -------------------
 
-For more information, See [Wiki](https://github.com/snu-adsl/DEEP-BO/wiki)
-
-
+For more information, Refer to [Wiki](https://github.com/snu-adsl/DEEP-BO/wiki).
 
