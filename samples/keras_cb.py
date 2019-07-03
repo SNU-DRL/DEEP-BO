@@ -1,5 +1,6 @@
 import keras
 import time
+import numpy as np
 from math import log, sqrt
 from sklearn.metrics import mean_squared_error as MSE, mean_absolute_error as MAE
 from ws.apis import update_result_per_epoch
