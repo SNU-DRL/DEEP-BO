@@ -20,8 +20,8 @@ try:
 except:
     raise ImportError("For this example you need to install pytorch-vision.")
 
-import logging
-logging.basicConfig(level=logging.DEBUG)
+#import logging
+#logging.basicConfig(level=logging.DEBUG)
 
 import os
 import time

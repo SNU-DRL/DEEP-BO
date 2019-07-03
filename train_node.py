@@ -22,7 +22,7 @@ def optimize_mnist_lenet1(config, **kwargs):
         max_epoch = kwargs["max_epoch"]    
 
     history = TestAccuracyCallback()
-    debug("Training configuration: {}".format(config))
+    log("Training configuration: {}".format(config))
     worker = KerasWorker(run_id='{}'.format(RESOURCE_ID))
     res = worker.compute(config=config, 
                          budget=max_epoch, 
@@ -99,6 +99,7 @@ def main(run_config):
             RESOURCE_ID = "{}{}".format(resource_type, run_config["resource_id"])
 
         eval_func = eval(run_config["eval_func"])
+        debug("Optimiziing via {}...".format(run_config["eval_func"]))
 
         wait_train_request(eval_func, hp_cfg, debug_mode,
                         device_type=resource_type,
