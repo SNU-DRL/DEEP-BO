@@ -70,6 +70,8 @@ def main(run_config):
                 master_node = run_config['master_node']
                 if master_node.endswith('/'):
                     master_node += master_node[:-1]
+            else:
+                raise ValueError("Invalid master URL: {}".format(run_config['master_node']))
         debug_mode = False
         if "debug_mode" in run_config:
             if run_config["debug_mode"]:
