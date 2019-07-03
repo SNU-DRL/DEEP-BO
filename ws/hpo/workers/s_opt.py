@@ -26,7 +26,7 @@ class SequentialOptimizer(Worker):
 
         self.type = 'smbo'
         if 'title' in run_config:
-            self.id = run_config['title']
+            self.id = run_config['title'].replace(" ", "_")
 
         self.device_id = 'hpo_cpu0'
         self.machine = None

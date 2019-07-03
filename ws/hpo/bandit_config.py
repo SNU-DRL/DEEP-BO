@@ -242,7 +242,7 @@ class ArmSelector(object):
         ''' register the diversification strategies '''
         title = ''
         if title in self.config: 
-            title = self.config['title']
+            title = self.config['title'].replace(" ","_")
         
         if spec == 'SEQ':
             return SequentialStrategy(self.num_arms, self.values, self.counts, 

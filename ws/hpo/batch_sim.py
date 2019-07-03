@@ -80,7 +80,7 @@ class BatchHPOSimulator(object):
             if 'config' in bandits[i]:
                 conf = bandits[i]['config']
                 if self.config:
-                    b['title'] = "{}-{}".format(self.config['title'], i)
+                    b['title'] = "{}-{}".format(self.config['title'].replace(" ", "_"), i)
                     conf['title'] = b['title']
             else:    
                 conf = {}            
