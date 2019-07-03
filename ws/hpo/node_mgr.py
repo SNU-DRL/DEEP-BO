@@ -210,6 +210,7 @@ class ParallelHPOManager(ManagerPrototype):
             w.set_job_request(jr)
             self.workers.append(w)
         if len(self.workers) < 1:
+            warn("Workers are not prepared")
             return False
         else:
             return True
@@ -218,15 +219,15 @@ class ParallelHPOManager(ManagerPrototype):
         # TODO: validate parameters
         try:            
             if not self.prepare(args):
-                raise ValueError("invalid job description")
+                raise ValueError("Preparation failed: {}".format(args))
 
             f = HPOJobFactory(self.workers, len(self.jobs))
             job = f.create(args)            
             self.jobs.append(job)
             debug("Job added properly: {}".format(job))
-        except:
-            warn("invalid job description: {}".format(args))
-            raise ValueError("invalid job description")
+        except Exception as ex:
+            warn("Job add failed: {}".format(ex))
+            return None
         
         return job['job_id']
 
