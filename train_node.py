@@ -16,8 +16,10 @@ RESOURCE_ID = 'cpu0'
 def optimize_mnist_lenet1(config, **kwargs):
     from samples.mnist_lenet1_keras import KerasWorker
     global RESOURCE_ID
-
+    
+    start_time = time.time()
     max_epoch = 15
+    
     if "max_epoch" in kwargs:
         max_epoch = kwargs["max_epoch"]    
 
@@ -28,13 +30,16 @@ def optimize_mnist_lenet1(config, **kwargs):
                          budget=max_epoch, 
                          working_directory='./{}/'.format(RESOURCE_ID), 
                          history=history)
-    return res
+    elapsed_time - time.time() - start_time
+    report_result(res, elapsed_time)
+
 
 @eval_task
 def optimize_kin8nm_mlp(config, **kwargs):
     from samples.kin8nm_mlp_keras import KerasWorker
     global RESOURCE_ID
 
+    start_time = time.time()
     max_epoch = 27
     if "max_epoch" in kwargs:
         max_epoch = kwargs["max_epoch"]    
@@ -46,7 +51,22 @@ def optimize_kin8nm_mlp(config, **kwargs):
                          budget=max_epoch, 
                          working_directory='./{}/'.format(RESOURCE_ID), 
                          history=history)
-    return res
+    elapsed_time - time.time() - start_time
+    report_result(res, elapsed_time)
+
+
+def report_result(res, elapsed_time):
+    # update final result
+    try:
+        if res['iter_unit'] == 'epoch':
+            update_result_per_epoch(res['cur_iter'], res['cur_loss'], elapsed_time)
+        elif res['iter_unit'] == 'steps':
+            update_result_per_steps(res['cur_iter'], res['cur_loss'], elapsed_time)
+        else:
+            raise ValueError("Invalid result format: {}".format(res))
+    except Exception as ex:
+        warn("Final result updated failed: {}".format(ex))
+
 
 def convert_config(config):
     config['shuffle'] = bool(config['shuffle'])

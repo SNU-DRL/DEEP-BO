@@ -77,7 +77,6 @@ class IterativeFunctionEvaluator(Trainer):
                     while self.paused:
                         self.pause_cond.wait()
                 debug("Assigned params: {}".format(self.params))
-
                 
                 # check stop request before long time evaluation
                 if self.stop_flag == True:
@@ -117,14 +116,13 @@ class IterativeFunctionEvaluator(Trainer):
                         cur_iter=i, max_iters=max_iters, iter_unit=self.iter_unit,
                         job_id=self.job_id)
                     if result == None:
-                        # if objective function does not return any result,
-                        # wait until terminated by calling stop()
-                        debug("Waiting stop signal")
+                        # XXX:if objective function does not return any result,
+                        # wait until terminated by calling stop()                        
                         while self.stop_flag == False:
+                            debug("Waiting stop signal...")
                             time.sleep(1)
 
                 self.update_result(result, i+1, base_time)
-                
 
         except Exception as ex:
             warn("{} occurs".format(sys.exc_info()[0]))

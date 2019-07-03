@@ -153,8 +153,6 @@ class TrainingJobManager(ManagerPrototype):
             debug("number of jobs: {}".format(len(selected_jobs)))
             return selected_jobs
 
-        
-
     def sync_result(self):
         t = self.shelf
         if t == None:
