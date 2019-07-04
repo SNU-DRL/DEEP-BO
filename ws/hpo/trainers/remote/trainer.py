@@ -200,9 +200,9 @@ class RemoteTrainer(TrainerPrototype):
                         train_epoch = self.max_train_epoch
                     
                     if loss_curve != None and len(loss_curve) > 0:
-                        max_i = np.argmin(loss_curve)
-                        test_err = loss_curve[max_i]
-                        best_epoch = max_i + 1
+                        best_i = self.get_min_loss_index(loss_curve)
+                        test_err = loss_curve[best_i]
+                        best_epoch = best_i + 1
 
                         self.add_train_history(loss_curve, 
                                                result['run_time'], 
@@ -225,6 +225,20 @@ class RemoteTrainer(TrainerPrototype):
             error("Connection error: handshaking with trainer failed.")
         
         raise ValueError("Remote training failed")       
+
+    def get_min_loss_index(self, loss_curve):
+        best_i = 0
+        best_loss = None
+        for i in range(len(loss_curve)):
+            loss = loss_curve[i]
+            if best_loss == None:
+                best_loss = loss
+            if loss != None and best_loss > loss:
+                best_loss = loss
+                best_i = i
+        return best_i
+
+
 
     def find_job_id(self, cand_index):
         for j in self.jobs.keys():

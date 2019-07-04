@@ -26,13 +26,15 @@ class ParallelOptimizer(Worker):
     def create_job_request(self, mode="DIV", spec="RANDOM", 
                            exp_crt="TIME", exp_time="24h", exp_goal=0.9999, 
                            num_trials=1,
-                           space_id="None", 
+                           space_id="None",
+                           goal_metric="error", 
                            surrogate=None):
         job_desc = {}
         job_desc['exp_crt'] = exp_crt
         job_desc['exp_time'] = exp_time
         job_desc['exp_goal'] = exp_goal
         job_desc['num_trials'] = num_trials
+        job_desc['goal_metric'] = goal_metric
         job_desc['mode'] = mode
         job_desc['spec'] = spec
 
