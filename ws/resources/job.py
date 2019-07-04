@@ -19,7 +19,7 @@ class Job(Resource):
         if not self.jm.authorize(args['Authorization']):
             return "Unauthorized", 401
 
-        self.jm.sync_result() # XXX: A better way may be existed
+        self.jm.sync_result(job_id) # XXX: A better way may be existed
         if job_id == 'active':
             aj = self.jm.get_active_job_id()
             if aj is not None:

@@ -135,6 +135,7 @@ def execute(args, save_results=False):
                 trainer = run_cfg['train_node']
                 m = bandit.create_runner(trainer, samples,
                             args['exp_crt'], args['exp_goal'], args['exp_time'],
+                            goal_metric= args['goal_metric'],
                             num_resume=num_resume,
                             save_internal=save_internal,
                             run_config=run_cfg,
@@ -143,6 +144,7 @@ def execute(args, save_results=False):
             else:
                 m = bandit.create_emulator(samples, 
                             args['exp_crt'], args['exp_goal'], args['exp_time'],
+                            goal_metric= args['goal_metric'],
                             num_resume=num_resume,
                             save_internal=save_internal,
                             run_config=run_cfg)
@@ -185,9 +187,10 @@ if __name__ == "__main__":
     all_specs = ACQ_FUNCS + DIV_SPECS + ALL_MIXING_SPECS + BATCH_SPECS
     default_model = 'DIV'
     default_spec = 'SEQ'
-    default_target_goal = 0.9999
+    default_target_goal = 0.0
+    default_goal_metric = 'error'
     default_expired_time = '1d'
-    default_early_term_rule = "None"
+    default_early_term_rule = "DecaTercet"
         
     default_exp_criteria = 'TIME'
 
@@ -207,9 +210,13 @@ if __name__ == "__main__":
                         'Or Set "GOAL" to run until each trial achieves exp_goal.' +\
                         'Default setting is {}.'.format(default_exp_criteria))                        
     parser.add_argument('-eg', '--exp_goal', default=default_target_goal, type=float,
-                        help='The expected target goal accuracy. ' +\
-                        'When it is achieved, the trial will be terminated automatically. '+\
+                        help='The expected target goal. ' +\
+                        'When it is achieved, this trial will be terminated automatically. '+\
                         'Default setting is {}.'.format(default_target_goal))
+    parser.add_argument('-gm', '--goal_metric', default=default_goal_metric, type=str,
+                        help='The target goal metric. "error" or "accuracy" can be applied. ' +\
+                        'Default setting is {}.'.format(default_goal_metric))
+
     parser.add_argument('-et', '--exp_time', default=default_expired_time, type=str,
                         help='The time each trial expires. When the time is up, '+\
                         'it is automatically terminated. Default setting is {}.'.format(default_expired_time))
@@ -220,7 +227,9 @@ if __name__ == "__main__":
     parser.add_argument('-rd', '--rconf_dir', default=RUN_CONF_PATH, type=str,
                         help='Run configuration directory.\n'+\
                         'Default setting is {}'.format(RUN_CONF_PATH))                        
-    
+    parser.add_argument('-nt', '--num_trials', type=int, default=1,
+                        help='The total number of runs for this experiment.')
+
     # XXX:below options are for experimental use.  
     parser.add_argument('-rr', '--rerun', default=0, type=int,
                         help='[Experimental] Use to expand the number of trials for the experiment. zero means no rerun. default is {}.'.format(0))
@@ -232,7 +241,6 @@ if __name__ == "__main__":
 #                        '{} are available. Default setting is {}'.format(time_penalties_modes, default_time_penalty))
  
     parser.add_argument('run_config', type=str, help='Run configuration name.')
-    parser.add_argument('num_trials', type=int, help='The total repeats of the experiment.')
 
     args = parser.parse_args()    
     main(args)

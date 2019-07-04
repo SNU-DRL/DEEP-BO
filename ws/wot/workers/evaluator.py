@@ -38,6 +38,12 @@ class IterativeFunctionEvaluator(Trainer):
                         "arguments" : args}
 
     def start(self):
+        while self.busy == True:
+            debug("Waiting until previous job finished properly.")
+            time.sleep(1)
+            if self.stop_flag:
+                break
+
         if self.params is None:
             error('Set configuration properly before starting.')
             return False
@@ -85,9 +91,8 @@ class IterativeFunctionEvaluator(Trainer):
                 if self.progressive == True:
                     max_iters = i + 1
 
-                result = None   
-                    # if objective function does not return any result,
-                    # wait until terminated by calling stop()
+                result = None
+                job_id = copy.copy(self.job_id) # XXX:store started job id   
 
                 if self.is_forked() == True:
                     self.eval_process = mp.Process(target=self.eval_func, 
@@ -107,14 +112,18 @@ class IterativeFunctionEvaluator(Trainer):
                         now = time.asctime()
                         debug("Waiting synchronization at {}.".format(now))
                         time.sleep(1)
+                        if self.stop_flag == True:
+                            break
 
                     result = self.get_cur_result(self.get_device_id())
                     self.stop_flag = True
                       
                 else:
                     result = self.eval_func(self.params, 
-                        cur_iter=i, max_iters=max_iters, iter_unit=self.iter_unit,
-                        job_id=self.job_id)
+                                            cur_iter=i, 
+                                            max_iters=max_iters, 
+                                            iter_unit=self.iter_unit,
+                                            job_id=job_id)
                     if result == None:
                         # XXX:if objective function does not return any result,
                         # wait until terminated by calling stop()                        
@@ -130,10 +139,10 @@ class IterativeFunctionEvaluator(Trainer):
         finally:
             with self.thread_cond:
                 self.busy = False
-                self.params = None
+                #self.params = None # FIXME:error occurs when previous job finished after job assigned
                 self.thread_cond.notify()
                 self.load_results(self.get_device_id())
-                debug("Evaluation {} finished properly.".format(self.job_id))
+                debug("Evaluation {} finished properly.".format(job_id))
 
     def update_result(self, result, cur_iter, base_time):
         if type(result) == dict and "cur_loss" in result:

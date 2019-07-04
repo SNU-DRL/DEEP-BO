@@ -130,13 +130,19 @@ class SequentialOptimizer(Worker):
         if self.samples == None:
             raise ValueError("Invalid sampling space. Space is not initialized properly")
 
+        goal_metric = 'error'
+        if 'goal_metric' in args:
+            goal_metric = args['goal_metric'] 
+
         if 'train_node' in args:
             if valid.url(args['train_node']):
 
-                self.machine = bandit.create_runner(args['train_node'], self.samples,
+                self.machine = bandit.create_runner(args['train_node'], 
+                                                    self.samples,
                                                     args['exp_crt'], 
                                                     args['exp_goal'], args['exp_time'],
-                                                    run_cfg, hp_cfg,                            
+                                                    run_cfg, hp_cfg,
+                                                    goal_metric=goal_metric,                            
                                                     num_resume=num_resume,
                                                     save_internal=save_internal,
                                                     use_surrogate=s_name,
@@ -147,11 +153,14 @@ class SequentialOptimizer(Worker):
         else:
 
             self.machine = bandit.create_emulator(self.samples,
-                args['exp_crt'], args['exp_goal'], args['exp_time'],
-                num_resume=num_resume,
-                save_internal=save_internal, 
-                run_config=run_cfg,
-                id=self.id + "_emul")
+                                                  args['exp_crt'], 
+                                                  args['exp_goal'], 
+                                                  args['exp_time'],
+                                                  goal_metric=goal_metric,
+                                                  num_resume=num_resume,
+                                                  save_internal=save_internal, 
+                                                  run_config=run_cfg,
+                                                  id=self.id + "_emul")
 
         if args['mode'] == 'DIV' or args['mode'] == 'ADA':
             results = self.machine.mix(args['spec'], args['num_trials'], 

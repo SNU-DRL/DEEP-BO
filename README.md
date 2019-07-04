@@ -10,16 +10,14 @@ The resulting algorithm is named as DEEP-BO (Diversified, Early-termination-Enab
 
 ## DEEP-BO Overview
 **Key Features**
-  * Simple diversification strategy over BO modeling algorithms and acquisition functions
-  * Scalable BO executing HPO jobs asynchronously based on a microservices architecture
-    * Thanks to Web Oriented Architecture via RESTful Web API
-  * Compound early termination rule to stop unuseful evaluation(s) without harmful side-effect.  
-
-We have unified three practical hyperparameter optimization frameworks of machine learning:
-
-* [Spearmint](https://github.com/JasperSnoek/spearmint) 
-* [SMAC](http://www.cs.ubc.ca/labs/beta/Projects/SMAC/)
-* [Hyperopt](https://github.com/hyperopt/hyperopt)
+  * Simple diversification strategy mixing BO modeling algorithms and acquisition functions
+  * Scalable batch BO executing HPO jobs asynchronously based on a microservices architecture
+    * Thanks to RESTful Web API
+  * Compound early termination rule to stop unuseful evaluation(s) without harm.  
+  * Unified algorithm for three practical hyperparameter optimization frameworks of machine learning:
+    * [Spearmint](https://github.com/JasperSnoek/spearmint) 
+    * [SMAC](http://www.cs.ubc.ca/labs/beta/Projects/SMAC/)
+    * [Hyperopt](https://github.com/hyperopt/hyperopt)
 
 
 ## Installation

@@ -18,9 +18,12 @@ class TimestringConverter(object):
             elif ts.endswith('h'): # hours
                 ts = time_string[:-1]
                 secs = int(ts) * 60 * 60
-            elif ts.endswith('d'): # hours
+            elif ts.endswith('d'): # days
                 ts = time_string[:-1]
                 secs = int(ts) * 60 * 60 * 24
+            elif ts.endswith('w'): # weeks
+                ts = time_string[:-1]
+                secs = int(ts) * 60 * 60 * 24 * 7                
             else:
                 secs = int(time_string)                               
 

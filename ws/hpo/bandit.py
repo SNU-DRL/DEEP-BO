@@ -33,7 +33,8 @@ NUM_MAX_ITERATIONS = 10000
 
 
 def create_emulator(space,
-                    run_mode, target_acc, time_expired, 
+                    run_mode, target_val, time_expired,
+                    goal_metric="error", 
                     run_config=None,
                     save_internal=False,
                     num_resume=0,
@@ -44,20 +45,21 @@ def create_emulator(space,
     if run_config != None and "early_term_rule" in run_config:
         id = "{}.ETR-{}".format(id, run_config["early_term_rule"]) 
 
-    machine = HPOBanditMachine(
-        space, t, 
-        run_mode, target_acc, time_expired, run_config, 
-        num_resume=num_resume, 
-        save_internal=save_internal,
-        min_train_epoch=t.get_min_train_epoch(),
-        id=id)
+    machine = HPOBanditMachine(space, t, 
+                               run_mode, target_val, time_expired, run_config, 
+                               goal_metric=goal_metric,
+                               num_resume=num_resume, 
+                               save_internal=save_internal,
+                               min_train_epoch=t.get_min_train_epoch(),
+                               id=id)
     
     return machine
 
 
 def create_runner(trainer_url, space, 
-                  run_mode, target_acc, time_expired, 
+                  run_mode, target_val, time_expired, 
                   run_config, hp_config,
+                  goal_metric="error",
                   save_internal=False,
                   num_resume=0,
                   use_surrogate=None,
@@ -90,11 +92,12 @@ def create_runner(trainer_url, space,
             if early_term_rule != "None":
                 id = "{}.ETR-{}".format(id, early_term_rule)
 
-        machine = HPOBanditMachine(
-            space, t, run_mode, target_acc, time_expired, run_config,
-            num_resume=num_resume, 
-            save_internal=save_internal, 
-            id=id)
+        machine = HPOBanditMachine(space, t, 
+                                   run_mode, target_val, time_expired, run_config,
+                                   goal_metric=goal_metric,
+                                   num_resume=num_resume, 
+                                   save_internal=save_internal, 
+                                   id=id)
         
         return machine
 
@@ -105,7 +108,8 @@ def create_runner(trainer_url, space,
 class HPOBanditMachine(object):
     ''' k-armed bandit machine of hyper-parameter optimization.'''
     def __init__(self, samples, trainer, 
-                 run_mode, target_acc, time_expired, run_config,
+                 run_mode, target_val, time_expired, run_config,
+                 goal_metric="accuracy",
                  num_resume=0, 
                  save_internal=False, 
                  calc_measure=False,
@@ -120,7 +124,8 @@ class HPOBanditMachine(object):
 
         self.calc_measure = calc_measure
         
-        self.target_accuracy = target_acc
+        self.target_goal = target_val
+        self.goal_metric = goal_metric
         self.time_expired = TimestringConverter().convert(time_expired)
         self.eval_time_model = None
 
@@ -147,7 +152,7 @@ class HPOBanditMachine(object):
 
         self.print_exception_trace = False
 
-        self.saver = ResultSaver(self.save_name, self.run_mode, self.target_accuracy,
+        self.saver = ResultSaver(self.save_name, self.run_mode, self.target_goal,
                                  self.time_expired, self.run_config, 
                                  postfix=".{}".format(self.id))
 
@@ -309,14 +314,17 @@ class HPOBanditMachine(object):
         self.cur_runtime += (total_opt_time + exec_time)
         self.samples.update_error(next_index, test_error, early_terminated)
         
-        curr_acc = test_acc
         optional = {
             'exception_raised': exception_raised,
         }
         if self.save_internal == True:
             est_log["estimated_values"] = self.bandit.choosers[model].estimates
 
-        return curr_acc, optional
+        if self.goal_metric == "accuracy":
+            return test_acc, optional
+        elif self.goal_metric == "error":
+            return test_error, optional
+
 
     def all_in(self, model, acq_func, num_trials, save_results=True):
         ''' executing a specific arm in an exploitative manner '''
@@ -334,22 +342,30 @@ class HPOBanditMachine(object):
             trial_start_time = time.time()
             self.init_bandit()
             wr = self.get_working_result()
-            best_acc = 0.0
+            best_val = None
             est_records[str(i)] = []
             for j in range(NUM_MAX_ITERATIONS):
 
-                curr_acc, opt_log = self.pull(model, acq_func, wr)
+                curr_val, opt_log = self.pull(model, acq_func, wr)
                 if self.stop_flag == True:
                     return self.total_results
                 if self.save_internal == True:
                     est_records[str(i)].append(opt_log)
 
-                if best_acc < curr_acc:
-                    best_acc = curr_acc
-                
+                if best_val == None:
+                    best_val = curr_val
+
+                if self.goal_metric == "accuracy" and best_val < curr_val:
+                    best_val = curr_val
+                elif self.goal_metric == "error" and best_val > curr_val:
+                    best_val = curr_val
+
                 if self.run_mode == 'GOAL':
-                    if best_acc >= self.target_accuracy:
+                    if self.goal_metric == "accuracy" and best_val >= self.target_goal:
                         break
+                    elif self.goal_metric == "error" and best_val <= self.target_goal:
+                        break
+                
                 elif self.run_mode == 'TIME':
                     duration = wr.get_elapsed_time()
                     #debug("current time: {} - {}".format(duration, self.time_expired))
@@ -360,9 +376,14 @@ class HPOBanditMachine(object):
                         break
 
             trial_sim_time = time.time() - trial_start_time
-            log("{} found best accuracy {:.2f}% at run #{}. ({:.1f} sec)".format(
-                self.id, best_acc * 100, i, trial_sim_time))            
-            if best_acc < self.target_accuracy:
+            log("{} found best {} {} at run #{}. ({:.1f} sec)".format(self.id, 
+                                                                      self.goal_metric, 
+                                                                      best_val, 
+                                                                      i, 
+                                                                      trial_sim_time))            
+            if self.goal_metric == "accuracy" and best_val < self.target_goal:
+                wr.force_terminated()
+            elif self.goal_metric == "error" and best_val > self.target_goal:
                 wr.force_terminated()
 
             self.total_results[i] = wr.get_current_status()
@@ -374,8 +395,8 @@ class HPOBanditMachine(object):
                 est_records = est_records
             else:
                 est_records = None
-            self.saver.save(model, acq_func,
-                            num_trials, self.total_results, est_records)
+            self.saver.save(model, acq_func,num_trials, 
+                            self.total_results, est_records)
 
         self.temp_saver.remove()
         self.show_best_hyperparams()
@@ -400,7 +421,7 @@ class HPOBanditMachine(object):
             self.init_bandit()
             arm = self.bandit.get_arm(strategy)
             wr = self.get_working_result()
-            best_acc = 0.0
+            best_val = None
 
             est_records[str(i)] = []
 
@@ -412,7 +433,7 @@ class HPOBanditMachine(object):
                         use_interim_result = False
                 model, acq_func, _ = arm.select(j, use_interim_result)
 
-                curr_acc, opt_log = self.pull(model, acq_func, wr, 
+                curr_val, opt_log = self.pull(model, acq_func, wr, 
                                              time.time() - iter_start_time)
                 if self.stop_flag == True:
                     return self.total_results
@@ -422,16 +443,22 @@ class HPOBanditMachine(object):
                     acq_func = 'RANDOM'
 
                 wr.update_trace(model, acq_func)
-                arm.update(j, curr_acc, opt_log)
+                arm.update(j, curr_val, opt_log)
                 
                 if self.save_internal == True:
                     est_records[str(i)].append(opt_log)
 
-                if best_acc < curr_acc:
-                    best_acc = curr_acc
+                if best_val == None:
+                    best_val = curr_val
+                if self.goal_metric == "accuracy" and best_val < curr_val:
+                    best_val = curr_val
+                elif self.goal_metric == "error" and best_val > curr_val:
+                    best_val = curr_val
 
                 if self.run_mode == 'GOAL':
-                    if best_acc >= self.target_accuracy:
+                    if self.goal_metric == "accuracy" and best_val >= self.target_goal:
+                        break
+                    elif self.goal_metric == "error" and best_val <= self.target_goal:
                         break
                 elif self.run_mode == 'TIME':
                     duration = wr.get_elapsed_time()
@@ -443,9 +470,14 @@ class HPOBanditMachine(object):
                         break
 
             trial_sim_time = time.time() - trial_start_time
-            log("{} found best accuracy {:.2f}% at run #{}. ({:.1f} sec)".format(
-                self.id, best_acc * 100, i, trial_sim_time))
-            if best_acc < self.target_accuracy:
+            log("{} found best {} {} at run #{}. ({:.1f} sec)".format(self.id, 
+                                                                      self.goal_metric, 
+                                                                      best_val, 
+                                                                      i, 
+                                                                      trial_sim_time))
+            if self.goal_metric == "accuracy" and best_val < self.target_goal:
+                wr.force_terminated()
+            elif self.goal_metric == "error" and best_val > self.target_goal:
                 wr.force_terminated()
 
             wr.feed_arm_selection(arm)

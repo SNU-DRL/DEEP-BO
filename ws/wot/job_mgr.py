@@ -50,7 +50,7 @@ class TrainingJobManager(ManagerPrototype):
         self.use_surrogate = use_surrogate
         self.retrieve_func = retrieve_func
         
-        self.shelf = None
+        self.work_item = None
         
         self.timeout_count = 0
         self.max_timeout = 100 # XXX: For avoiding the shared file not found error
@@ -118,7 +118,12 @@ class TrainingJobManager(ManagerPrototype):
 
             if worker.set_job_description(hpv, cand_index, job_id):
                 job['status'] = 'assigned'
-                self.shelf = {"worker": worker, "job_id": job_id, "cand_index": cand_index, "hyperparams": hpv}
+                self.work_item = {
+                    "worker": worker, 
+                    "job_id": job_id, 
+                    "cand_index": cand_index, 
+                    "hyperparams": hpv 
+                }
                 debug("Work item created properly.")
             else:
                 debug("Invalid hyperparam vector: {}".format(hpv))
@@ -153,36 +158,43 @@ class TrainingJobManager(ManagerPrototype):
             debug("number of jobs: {}".format(len(selected_jobs)))
             return selected_jobs
 
-    def sync_result(self):
-        t = self.shelf
-        if t == None:
+    def sync_result(self, job_id='active'):
+        
+        if self.work_item == None:
             return
+        w = self.work_item
+        if job_id == 'active':
+            job_id = w['job_id']
 
+        if job_id != w['job_id']:
+            warn("Something wrong happens in result sync.- {}:{}".format(job_id, w['job_id']))
+        
         #debug("Work item: {}".format(t['job_id']))
-        j = self.get_job(t['job_id'])
-        cur_status = t['worker'].get_cur_status()
+        j = self.get_job(job_id)
+        cur_status = w['worker'].get_cur_status()
         if cur_status == 'processing':
             if self.retrieve_func != None:
-                t['worker'].sync_result(self.retrieve_func)
+                w['worker'].sync_result(self.retrieve_func)
 
-            cur_result = t['worker'].get_cur_result(t['worker'].get_device_id())
+            cur_result = w['worker'].get_cur_result(w['worker'].get_device_id())
             if cur_result != None:
                 sync_time = time.time()
-                debug("[{}] Intermidiate result synchronized at {}.".format(t['job_id'], time.asctime(time.gmtime(sync_time))))
+                debug("[{}] Result updated at {}.".format(job_id, 
+                                                          time.asctime(time.gmtime(sync_time))))
                 self.timeout_count = 0 # reset timeout count               
-                self.update(t['job_id'], **cur_result)
-                t['worker'].set_sync_time(sync_time)
+                self.update(w['job_id'], **cur_result)
+                w['worker'].set_sync_time(sync_time)
             else:                                 
-                debug("[{}] Result is not updated.".format(t['job_id']))
+                debug("[{}] Result is not updated.".format(w['job_id']))
                 self.timeout_count += 1
                 if self.timeout_count > self.max_timeout:
-                    self.remove(t['job_id'])
+                    self.remove(w['job_id'])
 
         elif cur_status == 'idle':
-            self.update(t['job_id'], status='done')
+            self.update(w['job_id'], status='done')
 
     def update_result(self, cur_iter, iter_unit, cur_loss, run_time):
-        t = self.shelf
+        t = self.work_item
         if t['worker'].get_cur_status() == 'processing':
             job_id = t['job_id']
             t['worker'].add_result(cur_iter, cur_loss, run_time, iter_unit)
@@ -196,27 +208,26 @@ class TrainingJobManager(ManagerPrototype):
             if aj is not None:
                 debug("{} is processing now.".format(aj))
                 return False
-            w = self.shelf
+            w = self.work_item
             j = self.get_job(w['job_id'])
             if job_id == w['job_id'] and j != None:
                 if j['status'] != 'processing':
                     while w['worker'].start() == False:
-                        for t in self.shelf:
-                            if t['job_id'] == job_id:                                
-                                w['worker'].set_job_description(t['hyperparams'],
-                                                                t['cand_index'],
-                                                                job_id)
+                        w['worker'].set_job_description(t['hyperparams'],
+                                                        t['cand_index'],
+                                                        job_id)
                         time.sleep(1)
                     self.update(job_id, status='processing')
                     return True
                 else:
                     debug("{} job is already {}.".format(job_id, w['status']))
                     return False
-            debug("No {} job is assigned yet.".format(job_id))
-            return False
+            else:
+                debug("No {} job is assigned yet.".format(job_id))
+                return False
         elif cmd == 'pause':
                 if aj == job_id:
-                    w = self.shelf
+                    w = self.work_item
                     w['worker'].pause()
                     self.update(job_id, status='pending')
                     
@@ -225,7 +236,7 @@ class TrainingJobManager(ManagerPrototype):
                     debug("Unable to pause inactive job: {}".format(job_id))
                     return False
         elif cmd == 'resume':
-            w = self.shelf            
+            w = self.work_item            
             if w != None and w['status'] == 'pending':
                 w['worker'].resume()            
                 self.update(job_id, status='processing')
@@ -250,7 +261,7 @@ class TrainingJobManager(ManagerPrototype):
     def remove(self, job_id):
         for j in self.jobs:
             if j['job_id'] == job_id and j['status'] != 'terminated':
-                w = self.shelf
+                w = self.work_item
                 
                 if w['job_id'] != job_id:
                     debug("Request to remove: {}, Working item: {}".format(job_id, w['job_id']))
@@ -265,7 +276,7 @@ class TrainingJobManager(ManagerPrototype):
         return False
 
     def stop_working_job(self):
-        t = self.shelf
+        t = self.work_item
         if t['worker'].get_cur_status() == 'processing':
             job_id = t['job_id']
             self.remove(job_id)                

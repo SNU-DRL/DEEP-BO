@@ -13,12 +13,12 @@ from ws.shared.logger import *
 
 class ResultSaver(object):
     def __init__(self, data_type, run_mode, 
-                target_accuracy, time_expired, config, 
+                target_goal, time_expired, config, 
                 path='./results/', postfix=""):
 
         self.data_type = data_type
         self.run_mode = run_mode
-        self.target_accuracy = target_accuracy
+        self.target_goal = target_goal
         self.time_expired = time_expired
         self.path = path
         self.config = config
@@ -29,7 +29,7 @@ class ResultSaver(object):
         directory = self.path + str(self.data_type)
 
         if self.run_mode == 'GOAL':
-            directory += "/G" + str(self.target_accuracy)
+            directory += "/G" + str(self.target_goal)
         elif self.run_mode == 'TIME':
             directory += "/T" + str(int(self.time_expired)) + "S"
 
@@ -57,7 +57,7 @@ class ResultSaver(object):
         
         directory = self.path + str(self.data_type) 
         if self.run_mode == 'GOAL':
-            directory += "/G" + str(self.target_accuracy)
+            directory += "/G" + str(self.target_goal)
         elif self.run_mode == 'TIME':
             directory += "/T" + str(int(self.time_expired)) + "S"
 
@@ -81,13 +81,13 @@ class ResultSaver(object):
 class BatchResultSaver(object):
     
     def __init__(self, data_type, run_mode, 
-                target_accuracy, time_expired, config, 
+                target_goal, time_expired, config, 
                 path='./results/',
                 postfix=None):
 
         self.data_type = data_type
         self.run_mode = run_mode
-        self.target_acc = target_accuracy
+        self.target_goal = target_goal
         self.time_expired = time_expired
         self.path = path
         self.config = config
@@ -101,7 +101,7 @@ class BatchResultSaver(object):
         directory = path + str(self.data_type)
 
         if self.run_mode == 'GOAL':
-            directory += "/G" + str(self.target_acc)
+            directory += "/G" + str(self.target_goal)
         elif self.run_mode == 'TIME':
             directory += "/T" + str(int(self.time_expired)) + "S"
 
@@ -123,8 +123,9 @@ class BatchResultSaver(object):
 
 class TempSaver(object):
     
-    def __init__(self, data_type, optimizer, aquisition_func, num_trials, config,
-                path='./temp/'):
+    def __init__(self, data_type, optimizer, 
+                 aquisition_func, num_trials, config,
+                 path='./temp/'):
         title = ""
         if "title" in config:
             title = config["title"]

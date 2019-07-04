@@ -58,3 +58,20 @@ class Connection:
         resp = {'headers' : res.headers, 'body': res.content }
         return resp
 
+
+    def request_delete(self, resource, args=None, body=None, headers={}):
+        url = self.base_url + resource
+        if args == None:
+            args = {}
+
+        if body != None:
+            body = json.loads(body)
+        else:
+            body = {}
+
+        res = req.request('DELETE', url, params=args, headers=headers, json=body,
+                            #auth=self.auth, 
+                            timeout=self.timeout)
+        res.headers['status'] = str(res.status_code)
+        resp = {'headers' : res.headers, 'body': res.content }
+        return resp

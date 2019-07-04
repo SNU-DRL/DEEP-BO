@@ -51,7 +51,7 @@ def optimize_kin8nm_mlp(config, **kwargs):
                          budget=max_epoch, 
                          working_directory='./{}/'.format(RESOURCE_ID), 
                          history=history)
-    elapsed_time - time.time() - start_time
+    elapsed_time = time.time() - start_time
     report_result(res, elapsed_time)
 
 
