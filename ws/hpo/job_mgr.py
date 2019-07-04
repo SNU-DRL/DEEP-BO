@@ -115,9 +115,11 @@ class HPOJobManager(ManagerPrototype):
         
         return None        
 
-    def sync_result(self):
-        for w in self.to_dos:
+    def sync_result(self, job_id='active'):
+        for w in self.to_dos:                         
             id = w['job_id']
+            if job_id != 'active' and id != job_id:
+                id = job_id
             j = self.get_job(id)
             if j['status'] == 'processing' or j['status'] == 'terminated':
                 cur_result = w['worker'].get_cur_result()

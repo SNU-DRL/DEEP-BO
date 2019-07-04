@@ -283,8 +283,11 @@ class ParallelHPOManager(ManagerPrototype):
         for w in self.workers:
             w.stop()
 
-    def sync_result(self):
-        id = self.get_active_job_id()
+    def sync_result(self, job_id='active'):
+        if job_id == 'active':
+            id = self.get_active_job_id()
+        else:
+            id = job_id
         j = self.get_job(id)
         space_id = self.space_mgr.get_active_space_id()
         samples = self.space_mgr.get_samples(space_id)
