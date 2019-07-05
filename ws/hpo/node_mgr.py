@@ -331,6 +331,7 @@ class ParallelHPOManager(ManagerPrototype):
                 break
         if all_terminated:
             self.update(id, status="done")
+            self.space_mgr.set_space_status(space_id, "inactive")
 
     def get_all_jobs(self, n=10):        
         if len(self.jobs) <= n: 

@@ -84,7 +84,6 @@ class RemoteTrainer(TrainerPrototype):
                             if space != None:
                                 space.update_error(model_index, interim_err, True)
                         
-                        
                         if prev_interim_err != interim_err:
                             # XXX:reset time out count
                             time_out_count = 0 

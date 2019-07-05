@@ -39,7 +39,6 @@ class TrainEmulator(TrainerPrototype):
         cur_epoch = int(cur_dur / total_dur * self.lookup.num_epochs)
         error = 0.9 # random initial performance for 10 classification problem
         if cur_epoch == 0:
-            
             if self.data_type == 'CIFAR100-VGG':
                 error = 0.99 
             elif self.data_type == 'PTB-LSTM':
