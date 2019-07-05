@@ -11,5 +11,5 @@
     "resource_type" : "cpu",
     "resource_id" : 0,
 
-    "debug_mode": true    
+    "debug_mode": false    
 }

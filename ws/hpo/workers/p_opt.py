@@ -129,3 +129,7 @@ class ParallelOptimizer(Worker):
             self.job_req = self.create_job_request()
         
         return self.optimize(self.job_req)
+
+    def check_active(self):
+        return self.connector.check_active()
+

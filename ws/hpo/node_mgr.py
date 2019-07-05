@@ -326,7 +326,7 @@ class ParallelHPOManager(ManagerPrototype):
         # check whether all HPO nodes terminated and update status
         all_terminated = True
         for w in self.workers:
-            if w.get_cur_status() != 'idle':
+            if w.check_active() == True:
                 all_terminated = False
                 break
         if all_terminated:

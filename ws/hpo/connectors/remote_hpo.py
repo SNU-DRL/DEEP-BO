@@ -32,4 +32,3 @@ class RemoteOptimizerConnector(RemoteJobConnector):
             warn("Validation failed: {}".format(ex))
             
         return False
-

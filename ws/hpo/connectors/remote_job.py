@@ -80,6 +80,13 @@ class RemoteJobConnector(RemoteConnectorPrototype):
             else:
                 raise ValueError("Connection error to {} job. status code: {}".format(job_id, status))
 
+    def check_active(self):
+        job = self.get_job("active") # job will be None when no job is working
+        if job == None:
+            return False
+        else:
+            return True 
+
     def create_job(self, job_desc):
 
         body = json.dumps(job_desc)
