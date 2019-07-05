@@ -533,6 +533,6 @@ class HPOBanditMachine(object):
             best_model_index = result['model_idx'][error_min_index]
             best_error = result['error'][error_min_index]
             best_hpv = self.samples.get_hpv(best_model_index)
-            log("[{}] {:.4f} error achieved using {}".format(best_error, best_hpv))
+            log("{} error achieved using {}".format(best_error, best_hpv))
 
    
