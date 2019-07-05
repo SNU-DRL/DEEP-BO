@@ -231,11 +231,10 @@ class ParallelHPOManager(ManagerPrototype):
         
         return job['job_id']
 
-    def control(self, job_id, cmd):
+    def remove(self, job_id):
+        self.control(job_id, "stop")
 
-        if job_id == self.get_active_job_id():
-            debug("{} is processing now.".format(aj))
-            return False            
+    def control(self, job_id, cmd):
 
         j = self.get_job(job_id)
 
@@ -244,6 +243,10 @@ class ParallelHPOManager(ManagerPrototype):
 
         space_id = j['space_id']
         if cmd == 'start':
+            if job_id == self.get_active_job_id():
+                debug("{} is processing now.".format(job_id))
+                return False      
+
             if len(self.workers) == 0:
                 debug("No worker is prepared.")
                 return False
@@ -258,6 +261,10 @@ class ParallelHPOManager(ManagerPrototype):
             return True
 
         elif cmd == 'stop':
+            if job_id != self.get_active_job_id():
+                debug("{} is not processing now.".format(job_id))
+                return False 
+
             if j['status'] != 'processing':
                 debug("{} job is not working.".format(job_id))
                 return False                
