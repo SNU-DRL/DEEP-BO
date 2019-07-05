@@ -62,7 +62,7 @@ class WebServiceManager(ManagerPrototype):
                             resource_class_kwargs={'node_manager': self.job_mgr})                                
 
             space_mgr = self.job_mgr.get_space_manager()
-            # For managing sampling space and history sharing
+            # For managing parameter space and history sharing
             self.api.add_resource(Spaces, "/spaces/", 
                             resource_class_kwargs={'space_manager': space_mgr})    
             self.api.add_resource(Space, "/spaces/<string:space_id>/", 

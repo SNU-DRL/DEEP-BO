@@ -26,7 +26,7 @@ class Spaces(Resource):
             space_id = self.sm.create(space_req) 
 
             if space_id is None:
-                return "Invalid sampling space creation request: {}".format(space_req), 400
+                return "Invalid parameter space creation request: {}".format(space_req), 400
             else:                
                 return {"space_id": space_id}, 201
 

@@ -26,7 +26,7 @@ def connect_remote_space(space_url, cred):
 def create_surrogate_space(surrogate, grid_order=None, one_hot=False):
     l = lookup.load(surrogate, grid_order=grid_order)
     s = SurrogateSamplingSpace(l, one_hot=one_hot)
-    debug("Surrogate sampling space created: {}".format(surrogate))
+    debug("Surrogate model created: {}".format(surrogate))
     return s
 
 
@@ -68,7 +68,7 @@ class SamplingSpaceManager(ManagerPrototype):
             cfg = surrogate
         else:
             if not "hp_config" in space_spec:
-                raise ValueError("No hp_config in sampling space spec: {}".format(space_spec))
+                raise ValueError("No hp_config in parameter space spec: {}".format(space_spec))
             
             hp_cfg = space_spec['hp_config']
             num_samples = 20000

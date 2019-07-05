@@ -18,7 +18,7 @@ class RemoteSampleSpaceConnector(RemoteConnectorPrototype):
         self.num_samples = None
         self.hp_config = None
         self.space_id = None
-        debug("Getting sampling space status...")
+        debug("Getting parameter space status...")
         space = self.get_status()
         while space == None:
             space = self.get_status()

@@ -128,7 +128,7 @@ class SequentialOptimizer(Worker):
             self.samples = space.create_surrogate_space(args['surrogate'])
 
         if self.samples == None:
-            raise ValueError("Invalid sampling space. Space is not initialized properly")
+            raise ValueError("Invalid parameter space. Space is not initialized properly")
 
         goal_metric = 'error'
         if 'goal_metric' in args:

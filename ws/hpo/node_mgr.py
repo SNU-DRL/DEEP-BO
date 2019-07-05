@@ -299,7 +299,7 @@ class ParallelHPOManager(ManagerPrototype):
         space_id = self.space_mgr.get_active_space_id()
         samples = self.space_mgr.get_samples(space_id)
         if samples == None:
-            debug("No sampling space initialized")
+            debug("No parameter space initialized")
             return
         cur_errs = samples.get_errors("completes")
         # find index of current min error
