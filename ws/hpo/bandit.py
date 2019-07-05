@@ -128,8 +128,13 @@ class HPOBanditMachine(object):
         self.goal_metric = goal_metric
         self.time_expired = TimestringConverter().convert(time_expired)
         self.eval_time_model = None
-
         self.run_mode = run_mode  # can be 'GOAL' or 'TIME'
+        criterion = ""
+        if run_mode == "TIME":
+            criterion = "near {}".format(time.asctime(time.gmtime(time.time()+self.time_expired)))
+        elif run_mode == "GOAL":
+            criterion = "achieving {} {}".format(target_goal, goal_metric)
+        debug("Termination criterion {}: {}".format(run_mode, criterion))
 
         self.save_internal = save_internal
         
@@ -142,7 +147,7 @@ class HPOBanditMachine(object):
         self.total_results = None
         self.warm_up_time = None
         self.run_config = run_config
-        self.min_train_epoch = min_train_epoch
+        self.min_train_epoch = min_train_epoch        
         if self.run_config:
             if "min_train_epoch" in self.run_config:
                 self.min_train_epoch = self.run_config["min_train_epoch"]
@@ -151,7 +156,6 @@ class HPOBanditMachine(object):
                 self.warm_up_time = self.run_config["warm_up_time"]
 
         self.print_exception_trace = False
-
         self.saver = ResultSaver(self.save_name, self.run_mode, self.target_goal,
                                  self.time_expired, self.run_config, 
                                  postfix=".{}".format(self.id))
@@ -479,11 +483,10 @@ class HPOBanditMachine(object):
                         break
 
             trial_sim_time = time.time() - trial_start_time
-            log("{} found best {} {} at run #{}. ({:.1f} sec)".format(self.id, 
-                                                                      self.goal_metric, 
-                                                                      best_val, 
-                                                                      i, 
-                                                                      trial_sim_time))
+            log("best {} {} at run #{}. (duration: {:.1f} secs)".format(self.goal_metric, 
+                                                             best_val, 
+                                                             i, 
+                                                             trial_sim_time))
             if self.goal_metric == "accuracy" and best_val < self.target_goal:
                 wr.force_terminated()
             elif self.goal_metric == "error" and best_val > self.target_goal:
@@ -526,12 +529,10 @@ class HPOBanditMachine(object):
         for k in self.total_results.keys():
             result = self.total_results[k]
             
-            acc_max_index = np.argmax(result['accuracy'])
-            max_model_index = result['model_idx'][acc_max_index]
-            #debug(max_model_index)
-            max_hpv = self.samples.get_hpv(max_model_index)
-            log("Achieved {:.4f} at run #{} by {}".format(result['accuracy'][acc_max_index], k, max_hpv))
-            #accs = [ round(acc, 4) for acc in result['accuracy'] ]
-            #log("selected accuracies: {}".format(accs))        
+            error_min_index = np.argmin(result['error'])
+            best_model_index = result['model_idx'][error_min_index]
+            best_error = result['error'][error_min_index]
+            best_hpv = self.samples.get_hpv(best_model_index)
+            log("[{}] {:.4f} error achieved using {}".format(best_error, best_hpv))
 
    
