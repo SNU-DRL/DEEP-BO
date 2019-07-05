@@ -330,7 +330,7 @@ class ParallelHPOManager(ManagerPrototype):
                 all_terminated = False
                 break
         if all_terminated:
-            self.update(id, {"status" : "done"})
+            self.update(id, status="done")
 
     def get_all_jobs(self, n=10):        
         if len(self.jobs) <= n: 
