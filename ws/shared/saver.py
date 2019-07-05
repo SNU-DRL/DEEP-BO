@@ -41,7 +41,7 @@ class ResultSaver(object):
             name1 + '-' + name2
 
         if 'title' in self.config and name1 == "DIV":
-            file_path = "{}.{}".format(file_path, self.config['title'])
+            file_path = "{}.{}".format(file_path, self.config['title'].replace(" ", "_"))
 
         file_path = "{}{}({})".format(file_path, self.postfix, str(trials))
         

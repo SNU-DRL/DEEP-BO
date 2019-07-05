@@ -25,7 +25,7 @@ class TrainingJobFactory(object):
         job = {
             "job_id" : job_id, 
             "created" : time.time(),
-            "status" : "not assigned",
+            "status" : "created",
             "cur_loss" : None,
             "cur_acc" : None,
             "lr" : [],

@@ -22,7 +22,7 @@ class HPOJobFactory(object):
                                         time.strftime('%Y%m%d',time.gmtime()),
                                         self.n_jobs)
         job['created'] = time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime())
-        job['status'] = "not assigned"
+        job['status'] = "created"
         job['result'] = None
         for key in jr.keys():
             job[key] = jr[key]
