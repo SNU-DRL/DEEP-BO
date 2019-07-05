@@ -115,7 +115,7 @@ class RemoteTrainer(TrainerPrototype):
                     if "lr" in r:
                         num_losses = len(r["lr"])
                         if num_losses > 0:
-                            debug("Current job finished with min losses: {}.".format(min(r["lr"])))
+                            debug("Current job finished with loss curve: {}.".format(r["lr"]))
                             break
                         else:
                             debug("Result of finished job: {}".format(r)) 

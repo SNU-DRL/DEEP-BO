@@ -355,6 +355,10 @@ class HPOBanditMachine(object):
                 if best_val == None:
                     best_val = curr_val
 
+                if curr_val == None:
+                    # XXX: None return will be skipped 
+                    continue
+
                 if self.goal_metric == "accuracy" and best_val < curr_val:
                     best_val = curr_val
                 elif self.goal_metric == "error" and best_val > curr_val:
@@ -450,6 +454,11 @@ class HPOBanditMachine(object):
 
                 if best_val == None:
                     best_val = curr_val
+                
+                if curr_val == None:
+                    # XXX: None return will be skipped 
+                    continue
+
                 if self.goal_metric == "accuracy" and best_val < curr_val:
                     best_val = curr_val
                 elif self.goal_metric == "error" and best_val > curr_val:

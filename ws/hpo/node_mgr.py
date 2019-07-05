@@ -306,7 +306,8 @@ class ParallelHPOManager(ManagerPrototype):
                 min_err_i = i
             i += 1
         min_err_id = samples.get_completes()[min_err_i]
-        cur_best_hpv = samples.get_hpv(min_err_id)
+        if min_err_id != None:
+            cur_best_hpv = samples.get_hpv(min_err_id)
 
         summary = {             
             "best_err" : cur_best_err,
