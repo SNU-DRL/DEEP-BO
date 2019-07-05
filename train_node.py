@@ -59,9 +59,9 @@ def report_result(res, elapsed_time):
     # update final result
     try:
         if res['iter_unit'] == 'epoch':
-            update_result_per_epoch(res['cur_iter'], res['cur_loss'], elapsed_time)
+            update_loss_per_epoch(res['cur_iter'], res['cur_loss'], elapsed_time)
         elif res['iter_unit'] == 'steps':
-            update_result_per_steps(res['cur_iter'], res['cur_loss'], elapsed_time)
+            update_loss_per_steps(res['cur_iter'], res['cur_loss'], elapsed_time)
         else:
             raise ValueError("Invalid result format: {}".format(res))
     except Exception as ex:

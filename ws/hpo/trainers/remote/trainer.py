@@ -59,7 +59,7 @@ class RemoteTrainer(TrainerPrototype):
         return False
 
     def wait_until_done(self, job_id, model_index, estimates, space):
-        acc_curve = []
+        acc_curve = [] #XXX: we use accuracy curve instead of loss curve 
         prev_interim_err = None
         time_out_count = 0
         early_terminated = False
@@ -68,11 +68,11 @@ class RemoteTrainer(TrainerPrototype):
                 j = self.controller.get_job("active")
                 if j != None:
                     if "lr" in j and len(j["lr"]) > 0:
-                        if "cur_acc" in j and j['cur_acc'] != None:
+                        if "cur_loss" in j and j['cur_loss'] != None:
                             acc_curve = []
                             for loss in j["lr"]:
                                 if loss != None:
-                                    acc = 1.0 - loss
+                                    acc = 1.0 - loss # FIXME: handle if loss is not error rate
                                 else:
                                     acc = 0.0
                                 acc_curve.append(acc) 
