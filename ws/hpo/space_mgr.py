@@ -9,15 +9,12 @@ from ws.shared.proto import ManagerPrototype
 import ws.shared.lookup as lookup
 
 from ws.hpo.sample_space import *
-from ws.hpo.connectors.remote_space import RemoteSampleSpaceConnector
+
 
 def connect_remote_space(space_url, cred):
     try:
         debug("Connecting remote space: {}".format(space_url))
-        
-        connector = RemoteSampleSpaceConnector(space_url, credential=cred)
-        name = connector.get_space_id()
-        return RemoteSamplingSpace(name, connector)
+        return RemoteSamplingSpace(space_url, cred)
     except Exception as ex:
         warn("Fail to get remote samples: {}".format(ex))
         return None  

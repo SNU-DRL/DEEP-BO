@@ -6,7 +6,6 @@ import time
 
 from ws.shared.logger import *
 from ws.shared.proto import RemoteConnectorPrototype
-from ws.hpo.sample_space import RemoteSamplingSpace
 
 
 class RemoteSampleSpaceConnector(RemoteConnectorPrototype):
@@ -150,14 +149,19 @@ class RemoteSampleSpaceConnector(RemoteConnectorPrototype):
 
         if status == '200':
             err = json.loads(resp['body'])
-            returns = []
+            errors = []
+            orders = []
             if type(err) == list:
                 for e in err:
-                    returns.append(e['error'])
+                    errors.append(e['error'])
+                    if 'order' in e:
+                        orders.append(e['order'])
             else:
-                returns.append(err['error'])
+                errors.append(err['error'])
+                if 'order' in e:
+                    orders.append(e['order'])                
             #debug("error of {}: {}".format(id, returns))
-            return returns
+            return errors, orders
         else:
             raise ValueError("Connection failed: {}".format(status))
 

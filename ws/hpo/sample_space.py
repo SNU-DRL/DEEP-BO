@@ -7,6 +7,8 @@ from ws.hpo.utils.converter import VectorGridConverter
 from ws.hpo.utils.grid_gen import *
 from ws.hpo.utils.one_hot_grid import OneHotVectorTransformer
 
+from ws.hpo.connectors.remote_space import RemoteSampleSpaceConnector
+
 class SearchHistory(object):
     def __init__(self, num_samples):
         self.num_samples = num_samples
@@ -40,6 +42,12 @@ class SearchHistory(object):
             return self.search_order.index(sample_index)
         else:
             return None
+
+    def get_terminated(self, sample_index):
+        if self.terminal_record[sample_index] == 1:
+            return True 
+        else:
+            return False
 
     def update_error(self, sample_index, test_error, use_interim=False):
         if not sample_index in self.complete:
@@ -202,12 +210,14 @@ class SurrogateSamplingSpace(GridSamplingSpace):
         return idx
 
 
-class RemoteSamplingSpace(object):
-    def __init__(self, name, proxy):
-        self.space = proxy
+class RemoteSamplingSpace(SearchHistory):
+    def __init__(self, space_url, cred):
+
+        self.space = RemoteSampleSpaceConnector(space_url, credential=cred)
         
-        self.num_samples = proxy.get_num_samples()
-        self.name = "remote_{}".format(name)
+        self.name = "remote_{}".format(self.space.get_space_id())
+        num_samples = self.space.get_num_samples()
+        super(RemoteSamplingSpace, self).__init__(num_samples)
 
     def get_name(self):
         return self.name
@@ -232,16 +242,19 @@ class RemoteSamplingSpace(object):
 
     # For history
     def get_candidates(self, use_interim=True):
-        return np.asarray(self.space.get_candidates(use_interim))
+        self.candidates = np.asarray(self.space.get_candidates(use_interim))
+        return self.candidates
 
     def get_completes(self, use_interim=True):
-        return np.asarray(self.space.get_completes(use_interim))
+        self.complete = np.asarray(self.space.get_completes(use_interim))
+        return self.complete
 
     def update_error(self, sample_index, test_error, interim=False):
-        self.space.update_error(sample_index, test_error, interim)
+        return self.space.update_error(sample_index, test_error, interim)
 
     def get_errors(self, type_or_id, interim=False):
-        return np.asarray(self.space.get_error(type_or_id, interim))
+        self.observed_errors, self.search_order = self.space.get_error(type_or_id, interim)
+        return np.asarray(self.observed_errors)
 
     def expand(self, hpv):
         return self.space.expand(hpv)

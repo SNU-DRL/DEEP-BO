@@ -25,10 +25,12 @@ class ObservedError(Resource):
         samples = self.sm.get_samples(space_id)
         if samples == None:
             return "Sampling space {} is not available".format(space_id), 404
-
-        error = {"id": int(sample_id)}
-        error["error"] = samples.get_errors(int(sample_id))
-        error["order"] = samples.get_search_order(int(sample_id))
+        
+        sample_id = int(sample_id)
+        error = {"id": sample_id}
+        error["error"] = samples.get_errors(sample_id)
+        error["order"] = samples.get_search_order(sample_id)
+        error['terminated'] = samples.get_terminated(sample_id)
 
         return error, 200 
     
