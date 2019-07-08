@@ -120,7 +120,9 @@ class RemoteTrainer(TrainerPrototype):
                     
                     if space != None:
                         space.update_error(sample_index, min_loss)
-                        debug("Current job {} finished with loss {}".format(sample_index, min_loss))
+                    
+                    debug("Current job {} finished with loss {}".format(sample_index, min_loss))
+                    break
                 #debug("Waiting {} sec...".format(self.polling_interval)) 
                 time.sleep(self.polling_interval)
             
