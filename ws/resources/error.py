@@ -28,6 +28,7 @@ class ObservedError(Resource):
 
         error = {"id": int(sample_id)}
         error["error"] = samples.get_errors(int(sample_id))
+        error["order"] = samples.get_search_order(int(sample_id))
 
         return error, 200 
     

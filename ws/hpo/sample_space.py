@@ -17,6 +17,7 @@ class SearchHistory(object):
         self.candidates = np.setdiff1d(np.arange(self.num_samples), self.complete)
         
         self.observed_errors = np.ones(self.num_samples)
+        self.search_order = []
         self.terminal_record = np.zeros(self.num_samples)
 
     def get_candidates(self, use_interim=True):
@@ -34,17 +35,25 @@ class SearchHistory(object):
             completes = np.where(self.terminal_record == 1)[0]
             return completes
 
-    def update_error(self, model_index, test_error, use_interim=False):
-        if not model_index in self.complete:
-            self.candidates = np.setdiff1d(self.candidates, model_index)
-            self.complete = np.append(self.complete, model_index)
+    def get_search_order(self, sample_index):
+        if sample_index in self.search_order:
+            return self.search_order.index(sample_index)
+        else:
+            return None
+
+    def update_error(self, sample_index, test_error, use_interim=False):
+        if not sample_index in self.complete:
+            self.candidates = np.setdiff1d(self.candidates, sample_index)
+            self.complete = np.append(self.complete, sample_index)
             
-        self.observed_errors[model_index] = test_error
+        self.observed_errors[sample_index] = test_error
+        if not sample_index in self.search_order:
+            self.search_order.append(sample_index)
 
         if use_interim == False:
-            self.terminal_record[model_index] = 1
+            self.terminal_record[sample_index] = 1
         else:
-            self.terminal_record[model_index] = 0
+            self.terminal_record[sample_index] = 0
 
     def get_errors(self, type_or_id, use_interim=True):
         
@@ -58,13 +67,13 @@ class SearchHistory(object):
 
     def expand(self, hpv):
         # TODO: check hyperparams are existed
-        model_index = self.num_samples # assign new model index
+        sample_index = self.num_samples # assign new model index
         self.num_samples += 1
-        self.complete = np.append(self.complete, [model_index], axis=0)
+        self.complete = np.append(self.complete, [sample_index], axis=0)
         self.observed_errors = np.append(self.observed_errors, [1.0], axis=0)
         self.terminal_record = np.append(self.terminal_record, [0], axis=0) 
         #debug("Error space expanded: {}".format(len(self.observed_errors)))
-        return model_index
+        return sample_index
 
 
 class GridSamplingSpace(SearchHistory):
@@ -164,10 +173,10 @@ class SurrogateSamplingSpace(GridSamplingSpace):
         self.lookup = lookup
 
     # For search history 
-    def update_error(self, model_index, test_error=None, use_interim=False):
-        if test_error is None:
-            test_error = self.test_errors[model_index]
-        super(GridSamplingSpace, self).update_error(model_index, test_error, use_interim)
+    def update_error(self, sample_index, test_error=None, use_interim=False):
+        if test_error is None: # XXX:We already know the value of error 
+            test_error = self.test_errors[sample_index]
+        super(GridSamplingSpace, self).update_error(sample_index, test_error, use_interim)
 
     def get_errors(self, type_or_id, use_interim=False):
         if type_or_id == "completes":
@@ -193,14 +202,12 @@ class SurrogateSamplingSpace(GridSamplingSpace):
         return idx
 
 
-class RemoteSamplingSpace(SearchHistory):
+class RemoteSamplingSpace(object):
     def __init__(self, name, proxy):
         self.space = proxy
         
-        num_samples = proxy.get_num_samples()
+        self.num_samples = proxy.get_num_samples()
         self.name = "remote_{}".format(name)
-
-        return super(RemoteSamplingSpace, self).__init__(num_samples)
 
     def get_name(self):
         return self.name
@@ -230,12 +237,12 @@ class RemoteSamplingSpace(SearchHistory):
     def get_completes(self, use_interim=True):
         return np.asarray(self.space.get_completes(use_interim))
 
-    def update_error(self, model_index, test_error, interim=False):
-        self.space.update_error(model_index, test_error, interim)
+    def update_error(self, sample_index, test_error, interim=False):
+        self.space.update_error(sample_index, test_error, interim)
 
     def get_errors(self, type_or_id, interim=False):
         return np.asarray(self.space.get_error(type_or_id, interim))
 
     def expand(self, hpv):
-        self.space.expand(hpv)
+        return self.space.expand(hpv)
         
