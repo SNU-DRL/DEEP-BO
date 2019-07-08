@@ -55,7 +55,7 @@ class HyperOptChooser(object):
                                     self.shaping_func)
         #history = objective.create_history(samples.get_completes())
         t = helper.create_trials(samples.get_completes(), 
-                                samples.get_errors("all", use_interim))
+                                samples.get_errors("all"))
         
         debug("number of items in history: {}".format(len(t.trials)))
         num_iters = len(t.trials) + 1

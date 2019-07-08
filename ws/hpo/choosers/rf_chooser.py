@@ -81,7 +81,7 @@ class RFChooser:
 
         # Grab out the relevant sets.
         
-        errs = samples.get_errors("completes", use_interim)
+        errs = samples.get_errors("completes")
         comp = samples.get_grid("completes", use_interim)
         cand = samples.get_grid("candidates", use_interim)
 

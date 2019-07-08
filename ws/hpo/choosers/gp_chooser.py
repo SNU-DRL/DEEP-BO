@@ -131,7 +131,7 @@ class GPChooser:
 
         #completes = samples.get_completes(use_interim)
         comp = samples.get_grid("completes", use_interim)
-        errs = samples.get_errors("completes", use_interim)
+        errs = samples.get_errors("completes")
 
         size = len(errs)
         if size > sample_size:

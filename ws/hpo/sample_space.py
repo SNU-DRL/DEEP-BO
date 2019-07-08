@@ -60,10 +60,10 @@ class SearchHistory(object):
         if num_epochs != None:
             self.train_epochs[sample_index] = num_epochs
 
-    def get_errors(self, type_or_id, use_interim=True):
+    def get_errors(self, type_or_id):
         
         if type_or_id == "completes":
-            c = self.get_completes(use_interim)
+            c = self.get_completes()
             return self.observed_errors[c]
         elif type_or_id == "all":
             return self.observed_errors
@@ -186,9 +186,9 @@ class SurrogateSamplingSpace(GridSamplingSpace):
             num_epochs = self.num_epochs
         super(GridSamplingSpace, self).update_error(sample_index, test_error, num_epochs)
 
-    def get_errors(self, type_or_id, use_interim=False):
+    def get_errors(self, type_or_id):
         if type_or_id == "completes":
-            c = self.get_completes(use_interim)
+            c = self.get_completes()
             return self.test_errors[c]
         elif type_or_id == "all":
             return self.test_errors
