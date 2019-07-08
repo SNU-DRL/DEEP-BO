@@ -3,7 +3,7 @@ import time
 import numpy as np
 from math import log, sqrt
 from sklearn.metrics import mean_squared_error as MSE, mean_absolute_error as MAE
-from ws.apis import update_loss_per_epoch
+from ws.apis import update_current_loss
 from ws.shared.logger import *
 
 class TestAccuracyCallback(keras.callbacks.Callback):

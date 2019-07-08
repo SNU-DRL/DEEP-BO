@@ -64,7 +64,7 @@ def report_result(res, elapsed_time):
                             iter_unit=res['iter_unit'],
                             loss_type=res['loss_type'])
         if 'info' in res:
-            log(res['info'])
+            log("Training finished :{}".format(res['info']))
     except Exception as ex:
         warn("Final result updated failed: {}".format(ex))
 
