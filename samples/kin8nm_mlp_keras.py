@@ -133,7 +133,7 @@ class KerasWorker(object):
 		validation_data = (x_test_, y_test)
 		early_stopping = EarlyStopping(monitor='val_loss', patience=5, verbose=0)
 		h = model.fit(x_train_, y_train,
-							nb_epoch=int(round(n_iterations)),
+							epochs=int(round(n_iterations)),
 							batch_size=params['batch_size'],
 							shuffle=params['shuffle'],
 							validation_data=validation_data,
