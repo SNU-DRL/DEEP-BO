@@ -43,11 +43,14 @@ class SearchHistory(object):
         else:
             return None
 
-    def get_terminated(self, sample_index):
-        if self.terminal_record[sample_index] == 1:
-            return True 
-        else:
-            return False
+    def get_result_type(self, sample_index):
+        status = 'not evaluated'
+        if sample_index in self.complete:
+            if self.terminal_record[sample_index] == 1:
+                status = 'terminal' 
+            else:
+                status = 'interim'
+        return status
 
     def update_error(self, sample_index, test_error, use_interim=False):
         if not sample_index in self.complete:

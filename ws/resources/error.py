@@ -30,7 +30,7 @@ class ObservedError(Resource):
         error = {"id": sample_id}
         error["error"] = samples.get_errors(sample_id)
         error["order"] = samples.get_search_order(sample_id)
-        error['terminated'] = samples.get_terminated(sample_id)
+        error['type'] = samples.get_result_type(sample_id)
 
         return error, 200 
     

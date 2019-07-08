@@ -29,8 +29,11 @@ class ObservedErrors(Resource):
 
         errors = []
         for c_id in samples.get_completes():
-            err = {"id" : int(c_id)}
-            err["error"] = samples.get_errors(int(c_id))
+            c_id = int(c_id)
+            err = {"id" : c_id}
+            err["error"] = samples.get_errors(c_id)
+            err["order"] = samples.get_search_order(c_id)
+            err['type'] = samples.get_result_type(c_id)            
             errors.append(err)
         errors.sort(key=operator.itemgetter('error'))        
         
