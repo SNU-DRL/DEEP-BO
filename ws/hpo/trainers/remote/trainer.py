@@ -82,7 +82,7 @@ class RemoteTrainer(TrainerPrototype):
                         if prev_interim_err == None or prev_interim_err != interim_err:
                             #debug("Interim error {} will be updated".format(interim_err))
                             if space != None:
-                                space.update_error(sample_index, interim_err, True)
+                                space.update_error(sample_index, interim_err, len(j["lr"]))
                         
                         if prev_interim_err != interim_err:
                             # XXX:reset time out count
@@ -112,14 +112,18 @@ class RemoteTrainer(TrainerPrototype):
                     # cross check 
                     r = self.controller.get_job(job_id)
                     min_loss = None
+                    cur_iter = None
                     if "lr" in r:
                         min_index = self.get_min_loss_index(r["lr"])
                         min_loss = r["lr"][min_index]
+                        cur_iter = len(r['lr'])
                     elif "cur_loss" in r:
                         min_loss = r["cur_loss"]
+                        if "cur_iter" in r:
+                            cur_iter = r['cur_iter']
                     
                     if space != None:
-                        space.update_error(sample_index, min_loss)
+                        space.update_error(sample_index, min_loss, cur_iter)
                     
                     debug("Current job {} finished with loss {}".format(sample_index, min_loss))
                     break
@@ -255,12 +259,13 @@ class RemoteTrainer(TrainerPrototype):
                 result = self.controller.get_job(job_id)
                 self.jobs[job_id]["result"] = result
 
-                return result['cur_loss']
+                return result['cur_loss'], result['cur_iter']
             else:
                 debug("This job {} may be already finished.".format(job_id))
-                return self.jobs[job_id]["result"]['cur_loss']
+                result = self.jobs[job_id]["result"]
+                return result['cur_loss'], result['cur_iter']
         
-        return self.base_error
+        return self.base_error, 0
 
 
 class EarlyTerminateTrainer(RemoteTrainer):

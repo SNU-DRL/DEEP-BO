@@ -19,7 +19,7 @@ class TestAccuracyCallback(keras.callbacks.Callback):
         cur_loss = 1.0 - cur_acc
         elapsed_time = time.time() - self.start_time
         max_i = np.argmax(self.accs)
-        debug("Training {} epoch(s) yields {}({:.1f} secs). Current best accuracy {} is at epoch {}.".format(
+        debug("Training accuracy at {} epoch(s) is {} ({:.1f} secs). Current best: {} (at epoch {}).".format(
               num_epoch, cur_acc, elapsed_time, self.accs[max_i], max_i+1))
         # XXX:update result via file
         update_current_loss(num_epoch, cur_loss, elapsed_time)

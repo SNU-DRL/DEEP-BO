@@ -136,7 +136,7 @@ class RemoteSampleSpaceConnector(RemoteConnectorPrototype):
         else:
             raise ValueError("Connection failed: {}".format(status))
 
-    def get_error(self, id, use_iterim=False):
+    def get_error(self, id):
         resource = "/errors/"
         if id != 'completes': 
             if not id in self.get_completes():
@@ -165,14 +165,14 @@ class RemoteSampleSpaceConnector(RemoteConnectorPrototype):
         else:
             raise ValueError("Connection failed: {}".format(status))
 
-    def update_error(self, id, error, interim=False):
+    def update_error(self, id, error, num_epochs=None):
 
         if self.validate(id) == False:
             raise ValueError("Invalid id: {}".format(id))
     
         args = {
             "value": error, 
-            "interim": interim
+            "num_epochs": num_epochs
         }
         resp = self.conn.request_put("/errors/{}/".format(id), args=args, headers=self.headers)
         status = resp['headers']['status']

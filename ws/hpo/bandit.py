@@ -240,8 +240,8 @@ class HPOBanditMachine(object):
             self.trainer.set_response_shaping(chooser.shaping_func)
         
         # set initial error for avoiding duplicate
-        interim_error = self.trainer.get_interim_error(cand_index, 0)
-        self.samples.update_error(cand_index, test_error, True)
+        interim_error, cur_iter = self.trainer.get_interim_error(cand_index, 0)
+        self.samples.update_error(cand_index, test_error, cur_iter)
         
         train_result = self.trainer.train(cand_index, 
                                           estimates=chooser.estimates,
@@ -316,7 +316,7 @@ class HPOBanditMachine(object):
                            best_epoch=best_epoch,
                            test_acc=test_acc)
         self.cur_runtime += (total_opt_time + exec_time)
-        self.samples.update_error(next_index, test_error, early_terminated)
+        self.samples.update_error(next_index, test_error, train_epoch)
         
         optional = {
             'exception_raised': exception_raised,

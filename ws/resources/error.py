@@ -30,7 +30,7 @@ class ObservedError(Resource):
         error = {"id": sample_id}
         error["error"] = samples.get_errors(sample_id)
         error["order"] = samples.get_search_order(sample_id)
-        error['type'] = samples.get_result_type(sample_id)
+        error['num_epochs'] = samples.get_train_epoch(sample_id)
 
         return error, 200 
     
@@ -38,7 +38,7 @@ class ObservedError(Resource):
         parser = reqparse.RequestParser()        
         parser.add_argument("Authorization", location="headers") # for security reason
         parser.add_argument("value", location='args', type=float)
-        parser.add_argument("interim", location='args', type=bool, default=False)
+        parser.add_argument("num_epochs", location='args', type=int, default=1)
         args = parser.parse_args()
 
         if not self.sm.authorize(args['Authorization']):
@@ -52,10 +52,10 @@ class ObservedError(Resource):
                 if space_id != "active":
                     self.sm.set_space_status(space_id, "active")
                 sample_id = int(sample_id)
-                samples.update_error(sample_id, args["value"], args["interim"])
+                samples.update_error(sample_id, args["value"], args["num_epochs"])
                 error = {"id": sample_id}
                 error["error"] = samples.get_errors(sample_id)
-                error["interim"] = args["interim"]
+                error["num_epochs"] = args["num_epochs"]
                 
                 return error, 202
 

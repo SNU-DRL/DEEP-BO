@@ -20,21 +20,23 @@ class SearchHistory(object):
         
         self.observed_errors = np.ones(self.num_samples)
         self.search_order = []
-        self.terminal_record = np.zeros(self.num_samples)
+        self.train_epochs = np.zeros(self.num_samples)
 
     def get_candidates(self, use_interim=True):
         if use_interim:
             return self.candidates
         else:
+            max_epochs = np.max(self.train_epochs)
             # select candidates by elements which have 0 of terminal record
-            candidates = np.where(self.terminal_record == 0)[0]
+            candidates = np.where(self.train_epochs < max_epochs)[0]
             return candidates
 
     def get_completes(self, use_interim=True):
         if use_interim:
             return self.complete
         else:
-            completes = np.where(self.terminal_record == 1)[0]
+            max_epochs = np.max(self.train_epochs)
+            completes = np.where(self.train_epochs == max_epochs)[0]
             return completes
 
     def get_search_order(self, sample_index):
@@ -43,16 +45,10 @@ class SearchHistory(object):
         else:
             return None
 
-    def get_result_type(self, sample_index):
-        status = 'not evaluated'
-        if sample_index in self.complete:
-            if self.terminal_record[sample_index] == 1:
-                status = 'terminal' 
-            else:
-                status = 'interim'
-        return status
+    def get_train_epoch(self, sample_index):
+        return self.train_epochs[sample_index]
 
-    def update_error(self, sample_index, test_error, interim=False):
+    def update_error(self, sample_index, test_error, num_epochs=None):
         if not sample_index in self.complete:
             self.candidates = np.setdiff1d(self.candidates, sample_index)
             self.complete = np.append(self.complete, sample_index)
@@ -61,10 +57,8 @@ class SearchHistory(object):
         if not sample_index in self.search_order:
             self.search_order.append(sample_index)
 
-        if interim == False:
-            self.terminal_record[sample_index] = 1
-        else:
-            self.terminal_record[sample_index] = 0
+        if num_epochs != None:
+            self.train_epochs[sample_index] = num_epochs
 
     def get_errors(self, type_or_id, use_interim=True):
         
@@ -82,7 +76,7 @@ class SearchHistory(object):
         self.num_samples += 1
         self.complete = np.append(self.complete, [sample_index], axis=0)
         self.observed_errors = np.append(self.observed_errors, [1.0], axis=0)
-        self.terminal_record = np.append(self.terminal_record, [0], axis=0) 
+        self.train_epochs = np.append(self.train_epochs, [0], axis=0) 
         #debug("Error space expanded: {}".format(len(self.observed_errors)))
         return sample_index
 
@@ -173,6 +167,7 @@ class SurrogateSamplingSpace(GridSamplingSpace):
 
         self.grid = lookup.get_all_sobol_vectors()
         self.hpv = lookup.get_all_hyperparam_vectors()
+        self.num_epochs = lookup.num_epochs
 
         super(SurrogateSamplingSpace, self).__init__(lookup.data_type, 
                                                     self.grid, self.hpv, 
@@ -184,10 +179,12 @@ class SurrogateSamplingSpace(GridSamplingSpace):
         self.lookup = lookup
 
     # For search history 
-    def update_error(self, sample_index, test_error=None, interim=False):
+    def update_error(self, sample_index, test_error=None, num_epochs=None):
         if test_error is None: # XXX:We already know the value of error 
             test_error = self.test_errors[sample_index]
-        super(GridSamplingSpace, self).update_error(sample_index, test_error, interim)
+        if num_epochs is None:
+            num_epochs = self.num_epochs
+        super(GridSamplingSpace, self).update_error(sample_index, test_error, num_epochs)
 
     def get_errors(self, type_or_id, use_interim=False):
         if type_or_id == "completes":
@@ -252,11 +249,11 @@ class RemoteSamplingSpace(SearchHistory):
         self.complete = np.asarray(self.space.get_completes(use_interim))
         return self.complete
 
-    def update_error(self, sample_index, test_error, interim=False):
-        return self.space.update_error(sample_index, test_error, interim)
+    def update_error(self, sample_index, test_error, num_epochs=None):
+        return self.space.update_error(sample_index, test_error, num_epochs)
 
-    def get_errors(self, type_or_id, interim=False):
-        self.observed_errors, self.search_order = self.space.get_error(type_or_id, interim)
+    def get_errors(self, type_or_id):
+        self.observed_errors, self.search_order = self.space.get_error(type_or_id)
         return np.asarray(self.observed_errors)
 
     def expand(self, hpv):

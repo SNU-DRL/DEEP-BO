@@ -33,6 +33,7 @@ class TrainingJobFactory(object):
             "times" : [],
             "cur_iter" : 0,
             "iter_unit" : "epoch",
+            "loss_type" : None,
             "dataset" : dataset,
             "model": model,
             "config": cfg,

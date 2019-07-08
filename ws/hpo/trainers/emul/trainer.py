@@ -33,7 +33,6 @@ class TrainEmulator(TrainerPrototype):
                 'early_terminated' : False
         }  
 
-
     def get_interim_error(self, model_index, cur_dur):
         total_dur = self.total_times[model_index]
         cur_epoch = int(cur_dur / total_dur * self.lookup.num_epochs)
@@ -47,7 +46,7 @@ class TrainEmulator(TrainerPrototype):
             pre_errors = self.lookup.get_all_test_errors(cur_epoch)
             error = pre_errors[model_index]
         #debug("training model #{} at {:.1f} may return loss {:.4f}.".format(model_index, cur_dur, error))
-        return error
+        return error, cur_epoch
 
 
 class EarlyTerminateTrainer(TrainEmulator):

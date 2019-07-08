@@ -33,7 +33,7 @@ class ObservedErrors(Resource):
             err = {"id" : c_id}
             err["error"] = samples.get_errors(c_id)
             err["order"] = samples.get_search_order(c_id)
-            err['type'] = samples.get_result_type(c_id)            
+            err['num_epochs'] = samples.get_train_epoch(c_id)            
             errors.append(err)
         errors.sort(key=operator.itemgetter('error'))        
         
