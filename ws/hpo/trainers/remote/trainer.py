@@ -58,7 +58,7 @@ class RemoteTrainer(TrainerPrototype):
         # No termination check
         return False
 
-    def wait_until_done(self, job_id, model_index, estimates, space):
+    def wait_until_done(self, job_id, sample_index, estimates, space):
         acc_curve = [] #XXX: we use accuracy curve instead of loss curve 
         prev_interim_err = None
         time_out_count = 0
@@ -82,7 +82,7 @@ class RemoteTrainer(TrainerPrototype):
                         if prev_interim_err == None or prev_interim_err != interim_err:
                             #debug("Interim error {} will be updated".format(interim_err))
                             if space != None:
-                                space.update_error(model_index, interim_err, True)
+                                space.update_error(sample_index, interim_err, True)
                         
                         if prev_interim_err != interim_err:
                             # XXX:reset time out count
@@ -108,17 +108,19 @@ class RemoteTrainer(TrainerPrototype):
                         pass
                     else:
                         warn("Invalid job result: {}".format(j))
-                elif j == None:
+                elif j == None: # current job finished
                     # cross check 
                     r = self.controller.get_job(job_id)
+                    min_loss = None
                     if "lr" in r:
-                        num_losses = len(r["lr"])
-                        if num_losses > 0:
-                            debug("Current job finished with loss curve: {}.".format(r["lr"]))
-                            break
-                        else:
-                            debug("Result of finished job: {}".format(r)) 
-                
+                        min_index = self.get_min_loss_index(r["lr"])
+                        min_loss = r["lr"][min_index]
+                    elif "cur_loss" in r:
+                        min_loss = r["cur_loss"]
+                    
+                    if space != None:
+                        space.update_error(sample_index, min_loss)
+                        debug("Current job {} finished with loss {}".format(sample_index, min_loss))
                 #debug("Waiting {} sec...".format(self.polling_interval)) 
                 time.sleep(self.polling_interval)
             
@@ -236,8 +238,6 @@ class RemoteTrainer(TrainerPrototype):
                 best_loss = loss
                 best_i = i
         return best_i
-
-
 
     def find_job_id(self, cand_index):
         for j in self.jobs.keys():

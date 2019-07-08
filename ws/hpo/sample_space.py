@@ -52,7 +52,7 @@ class SearchHistory(object):
                 status = 'interim'
         return status
 
-    def update_error(self, sample_index, test_error, use_interim=False):
+    def update_error(self, sample_index, test_error, interim=False):
         if not sample_index in self.complete:
             self.candidates = np.setdiff1d(self.candidates, sample_index)
             self.complete = np.append(self.complete, sample_index)
@@ -61,7 +61,7 @@ class SearchHistory(object):
         if not sample_index in self.search_order:
             self.search_order.append(sample_index)
 
-        if use_interim == False:
+        if interim == False:
             self.terminal_record[sample_index] = 1
         else:
             self.terminal_record[sample_index] = 0
@@ -184,10 +184,10 @@ class SurrogateSamplingSpace(GridSamplingSpace):
         self.lookup = lookup
 
     # For search history 
-    def update_error(self, sample_index, test_error=None, use_interim=False):
+    def update_error(self, sample_index, test_error=None, interim=False):
         if test_error is None: # XXX:We already know the value of error 
             test_error = self.test_errors[sample_index]
-        super(GridSamplingSpace, self).update_error(sample_index, test_error, use_interim)
+        super(GridSamplingSpace, self).update_error(sample_index, test_error, interim)
 
     def get_errors(self, type_or_id, use_interim=False):
         if type_or_id == "completes":

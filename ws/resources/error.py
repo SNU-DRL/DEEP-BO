@@ -38,7 +38,7 @@ class ObservedError(Resource):
         parser = reqparse.RequestParser()        
         parser.add_argument("Authorization", location="headers") # for security reason
         parser.add_argument("value", location='args', type=float)
-        parser.add_argument("use_interim", location='args', type=bool, default=False)
+        parser.add_argument("interim", location='args', type=bool, default=False)
         args = parser.parse_args()
 
         if not self.sm.authorize(args['Authorization']):
@@ -51,9 +51,11 @@ class ObservedError(Resource):
             try:
                 if space_id != "active":
                     self.sm.set_space_status(space_id, "active")
-                samples.update_error(int(sample_id), float(args["value"]), args["use_interim"])
+                sample_id = int(sample_id)
+                samples.update_error(sample_id, args["value"], args["interim"])
                 error = {"id": sample_id}
-                error["error"] = samples.get_errors(int(sample_id))
+                error["error"] = samples.get_errors(sample_id)
+                error["interim"] = args["interim"]
                 
                 return error, 202
 
