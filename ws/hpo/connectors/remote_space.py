@@ -165,7 +165,7 @@ class RemoteSampleSpaceConnector(RemoteConnectorPrototype):
         else:
             raise ValueError("Connection failed: {}".format(status))
 
-    def update_error(self, id, error, use_iterim=False):
+    def update_error(self, id, error, use_interim=False):
 
         if self.validate(id) == False:
             raise ValueError("Invalid id: {}".format(id))
