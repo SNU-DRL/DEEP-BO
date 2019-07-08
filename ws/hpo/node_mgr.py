@@ -333,10 +333,9 @@ class ParallelHPOManager(ManagerPrototype):
             self.update(id, status="done")
             self.space_mgr.set_space_status(space_id, "inactive")
 
-    def get_all_jobs(self, n=10):        
-        if len(self.jobs) <= n: 
-            return self.jobs
-        else:
-            selected_jobs = self.jobs[-n:]
-            debug("number of jobs: {}".format(len(selected_jobs)))
-            return selected_jobs
+    def get_all_jobs(self):        
+        job_ids = []
+        for j in self.jobs:
+            job_ids.append(j['job_id'])
+        
+        return job_ids

@@ -45,4 +45,4 @@ class Jobs(Resource):
             return "Unauthorized", 401
         
         self.jm.sync_result() # XXX: A better way may be existed
-        return self.jm.get_all_jobs(n=10), 200
+        return self.jm.get_all_jobs(), 200

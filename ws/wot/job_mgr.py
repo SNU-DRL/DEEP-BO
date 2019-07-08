@@ -149,14 +149,13 @@ class TrainingJobManager(ManagerPrototype):
         debug("no such {} job is existed".format(job_id))
         return None        
 
-    def get_all_jobs(self, n=10):
+    def get_all_jobs(self):
         
-        if len(self.jobs) <= n: 
-            return self.jobs
-        else:
-            selected_jobs = self.jobs[-n:]
-            debug("number of jobs: {}".format(len(selected_jobs)))
-            return selected_jobs
+        job_ids = []
+        for j in self.jobs:
+            job_ids.append(j['job_id'])
+        
+        return job_ids
 
     def sync_result(self, job_id='active'):
         

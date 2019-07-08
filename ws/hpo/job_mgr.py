@@ -100,13 +100,12 @@ class HPOJobManager(ManagerPrototype):
         debug("no such {} job is existed".format(job_id))
         return None        
 
-    def get_all_jobs(self, n=10):        
-        if len(self.jobs) <= n: 
-            return self.jobs
-        else:
-            selected_jobs = self.jobs[-n:]
-            debug("number of jobs: {}".format(len(selected_jobs)))
-            return selected_jobs
+    def get_all_jobs(self):        
+        job_ids = []
+        for j in self.jobs:
+            job_ids.append(j['job_id'])
+        
+        return job_ids
 
     def get_to_do(self, job_id):
         for w in self.to_dos:
