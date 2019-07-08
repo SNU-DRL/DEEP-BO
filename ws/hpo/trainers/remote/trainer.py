@@ -146,7 +146,7 @@ class RemoteTrainer(TrainerPrototype):
     def train(self, cand_index, estimates=None, space=None):
         hpv = {}
         cfg = {'cand_index' : cand_index}
-        param_names = self.hp_config.get_hyperparams()
+        param_names = self.hp_config.get_param_list()
         param_values = self.space.get_hpv(cand_index)
         if type(param_values) == np.ndarray:
             param_values = param_values.tolist()

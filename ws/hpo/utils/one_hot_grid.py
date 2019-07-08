@@ -23,7 +23,7 @@ class OneHotVectorTransformer(object):
     def transform(self, hpv):
         #debug("sample: {}".format(hpv))
         encoded = []
-        for param in self.config.get_hyperparams():
+        for param in self.config.get_param_list():
             vt = self.config.get_value_type(param)
 
             r = self.config.get_range(param)

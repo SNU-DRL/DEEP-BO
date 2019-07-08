@@ -136,7 +136,7 @@ class HyperOptSearchSpaceConfig(object):
         return space
 
     def get_params(self):
-        return self.config.param_order
+        return self.config.get_param_list()
 
     def get_type(self, name):
         range = []

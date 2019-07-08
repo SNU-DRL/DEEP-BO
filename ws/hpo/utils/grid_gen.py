@@ -37,7 +37,7 @@ class SobolGridGenerator(GridGenerator):
 class HyperparameterVectorGenerator(object):
     def __init__(self, config_dict, num_samples, seed=1, grid_type='Sobol'):
         self.config = HyperparameterConfiguration(config_dict)
-        self.params = self.config.get_hyperparams()
+        self.params = self.config.get_param_list()
                 
         sobol = None
         if grid_type == 'Sobol':            

@@ -209,13 +209,5 @@
             "range": [0.1, 0.5]
         }
 
-    },
-    "param_order" : ["scaler", "n_layers", "init", 
-        "batch_size", "shuffle", "loss","optimizer", 
-        "layer_1_size", "layer_1_activation", "layer_1_reg", "dropout_rate_1",
-        "layer_2_size", "layer_2_activation", "layer_2_reg", "dropout_rate_2",
-        "layer_3_size", "layer_3_activation", "layer_3_reg", "dropout_rate_3",
-        "layer_4_size", "layer_4_activation", "layer_4_reg", "dropout_rate_4",
-        "layer_5_size", "layer_5_activation", "layer_5_reg", "dropout_rate_5"
-    ]
+    }
 }

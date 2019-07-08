@@ -52,8 +52,5 @@
             "value_type": "continuous",
             "range": [0.1, 1.0]
         }
-    },
-    "param_order" : ["c1_depth", "p1_size", "c2_depth", 
-        "p2_size", "f1_width", "window_size",
-        "learning_rate", "reg_param", "keep_prop_rate"]
+    }
 }

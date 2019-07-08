@@ -109,7 +109,7 @@ class GridSamplingSpace(SearchHistory):
         return self.hp_config
 
     def get_params(self):
-        return self.hp_config.param_order
+        return self.hp_config.get_param_list()
 
     def get_grid_dim(self):
         return self.grid.shape[1]
@@ -130,7 +130,7 @@ class GridSamplingSpace(SearchHistory):
 
     def get_hpv(self, index=None):
         if index != None:
-            params = self.hp_config.param_order
+            params = self.hp_config.get_param_list()
             args = self.hpv[index]
             hpv = {}
             for i in range(len(params)):
@@ -229,7 +229,7 @@ class RemoteSamplingSpace(SearchHistory):
         return self.space.hp_config
 
     def get_params(self):
-        return self.space.hp_config["param_order"]
+        return self.space.hp_config.get_param_list()
 
     def get_grid(self, type_or_index, use_interim=False):
         return np.asarray(self.space.get_grid(type_or_index, use_interim))

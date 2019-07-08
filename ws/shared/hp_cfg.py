@@ -96,8 +96,14 @@ class HyperparameterConfiguration(DictionaryToObject):
         self._dict = d
         super(HyperparameterConfiguration, self).__init__(d)
     
-    def get_hyperparams(self):
-        return self._dict['param_order']
+    def get_param_list(self):
+        if 'param_order' in self._dict:
+            return self._dict['param_order']
+        else:
+            # return hyperparameters alphabetical order
+            param_list = [ p for p in self.hyperparams.__dict__.keys() ]
+            param_list.sort()
+            return param_list
 
     def get_type(self, name):
         t = None

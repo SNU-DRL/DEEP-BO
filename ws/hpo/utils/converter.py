@@ -39,7 +39,7 @@ class VectorGridConverter(object):
         self.hpv = hpv
         self.candidates = candidates
         self.config = config
-        self.param_order = config.param_order
+        self.param_order = config.get_param_list()
 
     def get_param_ranges_types(self):
         ranges = []
@@ -55,7 +55,6 @@ class VectorGridConverter(object):
             ranges, types = self.get_param_ranges_types()
         
         normalized = []
-
         for i in range(0, len(ranges)):
             value = vector.tolist()[i]
             param_range = ranges[i]

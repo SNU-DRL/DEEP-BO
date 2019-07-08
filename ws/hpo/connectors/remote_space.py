@@ -5,6 +5,7 @@ import base64
 import time
 
 from ws.shared.logger import *
+from ws.shared.hp_cfg import HyperparameterConfiguration
 from ws.shared.proto import RemoteConnectorPrototype
 
 
@@ -32,7 +33,7 @@ class RemoteSampleSpaceConnector(RemoteConnectorPrototype):
                 space = json.loads(resp['body'])
                 
                 self.num_samples = space['num_samples']
-                self.hp_config = space["hp_config"]
+                self.hp_config = HyperparameterConfiguration(space["hp_config"])
                 self.space_id = space['space_id']
 
                 return space
