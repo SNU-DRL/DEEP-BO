@@ -192,11 +192,14 @@ class TrainingJobManager(ManagerPrototype):
         elif cur_status == 'idle':
             self.update(w['job_id'], status='done')
 
-    def update_result(self, cur_iter, iter_unit, cur_loss, run_time):
+    def update_result(self, cur_iter, cur_loss, run_time, 
+                      iter_unit='epoch',
+                      loss_type='error rate'):
         t = self.work_item
         if t['worker'].get_cur_status() == 'processing':
             job_id = t['job_id']
-            t['worker'].add_result(cur_iter, cur_loss, run_time, iter_unit)
+            t['worker'].add_result(cur_iter, cur_loss, run_time, 
+                                    iter_unit=iter_unit, loss_type=loss_type)
             debug("The result is updated at {} {} ".format(cur_iter, iter_unit))
         else:
             warn("Invalid state - update request for inactive task.")

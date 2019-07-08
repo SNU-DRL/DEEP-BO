@@ -153,12 +153,12 @@ class KerasWorker(object):
 
 		print("# testing  | RMSE: {:.4f}, MAE: {:.4f}".format(rmse, mae))
 		return ({'cur_loss': rmse,
-				'cur_iter' : len(h.history['loss']),
-				'iter_unit': 'epoch',                 
-				'early_stop': model.stop_training, 
-				'info' : {
+				 'loss_type': 'rmse',
+				 'cur_iter' : len(h.history['loss']),
+				 'iter_unit': 'epoch',                 
+				 'early_stop': model.stop_training, 
+				 'info' : {
 					'params': params,
-					'rmse': rmse, 
 					'mae': mae}})
 
 	@staticmethod

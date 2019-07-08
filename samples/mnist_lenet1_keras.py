@@ -132,6 +132,7 @@ class KerasWorker(object):
         return ({
                 # remember: HpBandSter always minimizes!
                 'cur_loss': 1 - test_score[1],
+                'loss_type': 'error rate',
 				'cur_iter' : int(budget),
 				'iter_unit': 'epoch',
                 'info': {'test accuracy': test_score[1],

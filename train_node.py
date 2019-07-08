@@ -30,7 +30,7 @@ def optimize_mnist_lenet1(config, **kwargs):
                          budget=max_epoch, 
                          working_directory='./{}/'.format(RESOURCE_ID), 
                          history=history)
-    elapsed_time - time.time() - start_time
+    elapsed_time = time.time() - start_time
     report_result(res, elapsed_time)
 
 
@@ -58,12 +58,13 @@ def optimize_kin8nm_mlp(config, **kwargs):
 def report_result(res, elapsed_time):
     # update final result
     try:
-        if res['iter_unit'] == 'epoch':
-            update_loss_per_epoch(res['cur_iter'], res['cur_loss'], elapsed_time)
-        elif res['iter_unit'] == 'steps':
-            update_loss_per_steps(res['cur_iter'], res['cur_loss'], elapsed_time)
-        else:
-            raise ValueError("Invalid result format: {}".format(res))
+        update_current_loss(res['cur_iter'], 
+                            res['cur_loss'], 
+                            elapsed_time, 
+                            iter_unit=res['iter_unit'],
+                            loss_type=res['loss_type'])
+        if 'info' in res:
+            log(res['info'])
     except Exception as ex:
         warn("Final result updated failed: {}".format(ex))
 

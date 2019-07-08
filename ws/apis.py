@@ -103,20 +103,15 @@ def stop_job_working():
         warn("Job manager is not ready to serve.")    
 
 
-def update_loss_per_epoch(cur_epoch, cur_loss, run_time):
+def update_current_loss(cur_epoch, cur_loss, run_time,
+                        iter_unit='epoch',
+                        loss_type='error rate'):    
     global JOB_MANAGER
 
     if JOB_MANAGER != None:
-        JOB_MANAGER.update_result(cur_epoch, "epoch", cur_loss, run_time)
-    else:
-        warn("Job manager is not ready to serve.")
-
-
-def update_loss_per_steps(cur_steps, cur_loss, run_time):
-    global JOB_MANAGER
-
-    if JOB_MANAGER != None:
-        JOB_MANAGER.update_result(cur_steps, "step", cur_loss, run_time)
+        JOB_MANAGER.update_result(cur_epoch, cur_loss, run_time,
+                                  iter_unit=iter_unit,
+                                  loss_type=loss_type)
     else:
         warn("Job manager is not ready to serve.")
 

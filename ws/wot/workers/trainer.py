@@ -98,13 +98,22 @@ class Trainer(Worker):
         else:
             return None
 
-    def add_result(self, cur_iter, cur_loss, run_time, iter_unit="epoch"):
-        if cur_loss < 1.0 and cur_loss > 0.0:
+    def add_result(self, cur_iter, cur_loss, run_time, 
+                   iter_unit="epoch",
+                   loss_type="error rate"):
+        
+        if loss_type == "error rate":
             cur_acc = 1.0 - cur_loss
         else:
             cur_acc = None
-        result = {"cur_iter": cur_iter, "iter_unit": iter_unit,
-            "cur_loss": cur_loss, "cur_acc": cur_acc, "run_time": run_time}
+        
+        result = { "cur_iter": cur_iter, 
+                   "iter_unit": iter_unit,
+                   "cur_loss": cur_loss,
+                   "loss_type" : loss_type, 
+                   "cur_acc": cur_acc, 
+                   "run_time": run_time
+        }
 
         self.results.append(result)
         self.dump_results()
@@ -114,7 +123,7 @@ class Trainer(Worker):
         The result is a dictionary object which has following attributes: 
           - "run_time" : float, run time (elapsed time for the given epoch) 
           - "cur_loss": float, current loss value
-          - "cur_acc": float, current accuracy value. typically 1.0 - cur_loss. (optional)
+          - "cur_acc": float, current accuracy value. if current loss is an error rate, it becomes 1.0 - cur_loss. (optional)
           - "cur_iter": integer, number of current iterations
           - "iter_unit" : string, epoch or steps will be accepted
         '''

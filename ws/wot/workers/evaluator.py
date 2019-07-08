@@ -131,7 +131,7 @@ class IterativeFunctionEvaluator(Trainer):
                             debug("Waiting stop signal...")
                             time.sleep(1)
 
-                self.update_result(result, i+1, base_time)
+                self.update_result(i+1, result, base_time)
 
         except Exception as ex:
             warn("{} occurs".format(sys.exc_info()[0]))
@@ -144,7 +144,7 @@ class IterativeFunctionEvaluator(Trainer):
                 self.load_results(self.get_device_id())
                 debug("Evaluation {} finished properly.".format(job_id))
 
-    def update_result(self, result, cur_iter, base_time):
+    def update_result(self, cur_iter, result, base_time):
         if type(result) == dict and "cur_loss" in result:
             cur_loss = result["cur_loss"]
             cur_acc = None
@@ -155,8 +155,6 @@ class IterativeFunctionEvaluator(Trainer):
                 cur_dur = time.time() - base_time
             if "cur_acc" in result:
                 cur_acc = result['cur_acc']
-            else:
-                cur_acc = 1.0 - cur_loss
 				
             if "cur_iter" in result:
                 cur_iter = result["cur_iter"]
