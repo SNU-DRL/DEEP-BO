@@ -48,7 +48,8 @@ def main(run_config):
             port = run_config["port"]
 
         debug("HPO node will be ready to serve...")
-        wait_hpo_request(run_cfg, hp_cfg, 
+        wait_hpo_request(run_config, 
+                         hp_cfg, 
                          debug_mode=debug_mode, 
                          port=port, 
                          master_node=master_node)

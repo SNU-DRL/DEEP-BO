@@ -20,8 +20,9 @@ def optimize_mnist_lenet1(config, **kwargs):
     start_time = time.time()
     max_epoch = 15
     
-    if "max_epoch" in kwargs:
-        max_epoch = kwargs["max_epoch"]    
+    if "max_iters" in kwargs:
+        if "iter_unit" in kwargs and kwargs["iter_unit"] == "epoch":
+            max_epoch = kwargs["max_iters"]    
 
     history = TestAccuracyCallback()
     log("Training configuration: {}".format(config))
@@ -41,8 +42,9 @@ def optimize_kin8nm_mlp(config, **kwargs):
 
     start_time = time.time()
     max_epoch = 27
-    if "max_epoch" in kwargs:
-        max_epoch = kwargs["max_epoch"]    
+    if "max_iters" in kwargs:
+        if "iter_unit" in kwargs and kwargs["iter_unit"] == "epoch":
+            max_epoch = kwargs["max_iters"]    
 
     history = RMSELossCallback()
     debug("Training configuration: {}".format(config))

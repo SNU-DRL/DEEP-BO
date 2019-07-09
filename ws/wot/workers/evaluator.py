@@ -12,10 +12,10 @@ from ws.shared.logger import *
 from ws.wot.workers.trainer import Trainer
 
 
-class IterativeFunctionEvaluator(Trainer):
+class TargetFunctionEvaluator(Trainer):
     def __init__(self, name, progressive=False, forked=True):
         
-        super(IterativeFunctionEvaluator, self).__init__(name, fork=forked)
+        super(TargetFunctionEvaluator, self).__init__(name, fork=forked)
 
         self.type = 'eval_func'
         self.eval_func = None
@@ -48,7 +48,7 @@ class IterativeFunctionEvaluator(Trainer):
             error('Set configuration properly before starting.')
             return False
         else:
-            super(IterativeFunctionEvaluator, self).start()
+            super(TargetFunctionEvaluator, self).start()
             return True
 
     def stop(self):
@@ -62,7 +62,7 @@ class IterativeFunctionEvaluator(Trainer):
             self.eval_process = None
             self.stop_flag = True
         else:            
-            super(IterativeFunctionEvaluator, self).stop()
+            super(TargetFunctionEvaluator, self).stop()
             while self.stop_flag == False:
                 time.sleep(1)
     
@@ -97,7 +97,11 @@ class IterativeFunctionEvaluator(Trainer):
                 if self.is_forked() == True:
                     self.eval_process = mp.Process(target=self.eval_func, 
                                                    args=(self.params,), 
-                                                   kwargs={"max_epoch": max_iters})
+                                                   kwargs={
+                                                            "max_iters": max_iters,
+                                                            "iter_unit": self.iter_unit,
+                                                            "job_id": job_id
+                                                           })
                     
                     self.eval_process.start()
                     self.eval_process.join()

@@ -120,7 +120,7 @@ def execute(args, save_results=False):
                             one_hot=one_hot)
             else:
                 hp_cfg = args['hp_config']
-                debug("Creating grid space with seed:{}, one-hot:{}, samples:{}".format(grid_seed, one_hot, num_samples))
+                debug("Creating parameter space with seed:{}, one-hot:{}, samples:{}".format(grid_seed, one_hot, num_samples))
 
                 samples = space.create_grid_space(hp_cfg.get_dict(),
                                                   num_samples=num_samples,

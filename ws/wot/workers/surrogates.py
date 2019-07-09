@@ -9,9 +9,9 @@ import numpy as np
 from ws.shared.logger import *
 import ws.shared.lookup as lookup
 
-from ws.wot.workers.evaluator import IterativeFunctionEvaluator
+from ws.wot.workers.evaluator import TargetFunctionEvaluator
 
-class SurrogateEvaluator(IterativeFunctionEvaluator):
+class SurrogateEvaluator(TargetFunctionEvaluator):
     def __init__(self, name, lookup, **kwargs):
         self.lookup = lookup
         id = "surrogate_{}".format(name)        
@@ -38,8 +38,12 @@ class SurrogateEvaluator(IterativeFunctionEvaluator):
 
     def init_results(self, init_loss):
         # TODO: do something for initial condition setting
-        result = {"run_time": 0.0, "cur_loss": init_loss, "cur_iter": 0, "iter_unit": "epoch"}
-
+        result = { 
+            "run_time": 0.0, 
+            "cur_loss": init_loss, 
+            "cur_iter": 0, 
+            "iter_unit": "epoch"
+        }
         self.results.append(result)
 
     def set_job_description(self, hpv, index=None, job_id=None):
