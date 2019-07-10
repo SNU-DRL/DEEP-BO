@@ -124,13 +124,15 @@ def main(run_config):
             RESOURCE_ID = "{}{}".format(resource_type, run_config["resource_id"])
 
         eval_func = eval(run_config["eval_func"])
-        debug("Optimiziing via {}...".format(run_config["eval_func"]))
+        log("Training DNN via {}...".format(run_config["eval_func"]))
 
-        wait_train_request(eval_func, hp_cfg, debug_mode,
-                        device_type=resource_type,
-                        device_index=run_config["resource_id"],
-                        master_node=master_node, 
-                        port=port)
+        wait_train_request(eval_func, 
+                           hp_cfg, 
+                           debug_mode=debug_mode,
+                           device_type=resource_type,
+                           device_index=run_config["resource_id"],
+                           master_node=master_node, 
+                           port=port)
     except Exception as ex:
         print(ex)
 

@@ -108,8 +108,8 @@ def wait_train_request(train_task,
     Keyword arguments:
         debug_mode {bool} -- show debug message or not (default False)
         port {int} -- the port number that is opened for response (default 6100)
-        device_type {str} -- type of computational device. 'cpu' or 'gpu' (default 'cpu')
-        device_index {int} -- index of computing device. it will be helpful to indicate one of multiple units (default 0)
+        device_type {str} -- type of processing unit. 'cpu' or 'gpu' (default 'cpu')
+        device_index {int} -- index of processing unit (default 0)
         enable_surrogate {bool} -- whether the use of pre-evaluated lookup table or not (default False)
         master_node {str} -- the URL to register myself to master node. if None, no register (default None)
         processed {bool} -- enable spawning a process for training (default True)
