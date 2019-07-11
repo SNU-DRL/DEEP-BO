@@ -94,7 +94,7 @@ class SamplingSpaceManager(ManagerPrototype):
         for s in self.spaces:
             if self.spaces[s]['status'] == "active":
                 return s
-        debug("No active space id now")
+        debug("No space is active now")
         return None                  
 
     def set_space_status(self, space_id, status):
@@ -118,7 +118,7 @@ class SamplingSpaceManager(ManagerPrototype):
         elif space_id in self.spaces:
             return self.spaces[space_id]['samples']
         else:
-            debug("No such named space {} existed".format(space_id))
+            debug("No such {} space existed".format(space_id))
             return None
 
     def get_space_config(self, space_id):
@@ -128,7 +128,7 @@ class SamplingSpaceManager(ManagerPrototype):
         if space_id in self.spaces:
             return self.spaces[space_id]['config']
         else:
-            debug("No such named space {} existed".format(space_id))
+            debug("No such space space {} existed".format(space_id))
             return None        
 
 

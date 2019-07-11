@@ -104,7 +104,7 @@ class ParallelHPOManager(ManagerPrototype):
         # TODO:Check job type is compatible
 
         # Create node id and append to node repository
-        node_id = "{}_node_{:03d}".format(node_type, len(self.nodes.keys()))
+        node_id = "{}-{:03d}".format(node_type, len(self.nodes.keys()))
         node_spec = {
             "id" : node_id,
             "ip_address" : ip,
