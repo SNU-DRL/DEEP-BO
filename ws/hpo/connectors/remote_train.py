@@ -25,9 +25,9 @@ class RemoteTrainConnector(RemoteJobConnector):
             if profile == None:
                 warn("Getting profile failed") 
                 return False
-            elif "spec" in profile and "job_type" in profile["spec"]:
+            elif "spec" in profile and "node_type" in profile["spec"]:
                 #debug("Remote worker profile: {}".format(profile["spec"]))
-                if profile["spec"]["job_type"] == "ML_trainer":
+                if profile["spec"]["node_type"] == "Training Node":
                     config = self.get_config()
                     if "run_config" in config and "target_func" in config["run_config"]:                
                         if config["run_config"]["target_func"] == 'surrogate':

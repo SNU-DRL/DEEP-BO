@@ -33,7 +33,7 @@ def create_master_server(hp_cfg,
     This API blocks the remained procedure unless a terminal signal enters.
  
     '''
-    from ws.hpo.node_mgr import ParallelHPOManager
+    from ws.hpo.batch_mgr import ParallelHPOManager
 
     global JOB_MANAGER
     global API_SERVER
@@ -77,7 +77,7 @@ def wait_hpo_request(run_cfg,
             try:
                 ns = MasterServerConnector(
                     master_node, JOB_MANAGER.get_credential())
-                ns.register(port, "HPO_runner")
+                ns.register(port, "BO Node")
             except Exception as ex:
                 warn("Registering to master server failed: {}".format(ex))
 
@@ -132,7 +132,7 @@ def wait_train_request(train_task,
             try:
                 ns = MasterServerConnector(
                     master_node, JOB_MANAGER.get_credential())
-                ns.register(port, "ML_trainer")
+                ns.register(port, "Training Node")
             except Exception as ex:
                 warn("Registering myself to name server failed: {}".format(ex))
 

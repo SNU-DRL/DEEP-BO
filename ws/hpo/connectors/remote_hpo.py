@@ -24,8 +24,8 @@ class RemoteOptimizerConnector(RemoteJobConnector):
     def validate(self):
         try:
             profile = self.get_profile()
-            if profile and "spec" in profile and "job_type" in profile["spec"]:
-                if profile["spec"]["job_type"] == "HPO_runner":
+            if profile and "spec" in profile and "node_type" in profile["spec"]:
+                if profile["spec"]["node_type"] == "BO Node":
                     return True       
 
         except Exception as ex:

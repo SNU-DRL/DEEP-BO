@@ -71,7 +71,7 @@ class TrainingJobManager(ManagerPrototype):
         
     def get_spec(self):
         id = {
-            "job_type": "ML_trainer",
+            "node_type": "Training Node",
             "id": self.worker.get_id(),
             "device_id": self.worker.get_device_id() }
         return id

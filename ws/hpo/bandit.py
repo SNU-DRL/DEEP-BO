@@ -38,7 +38,7 @@ def create_emulator(space,
                     run_config=None,
                     save_internal=False,
                     num_resume=0,
-                    id="HPO_emulator"):
+                    id="Emulator"):
 
     t = trainer.get_simulator(space, run_config)
 
@@ -64,7 +64,7 @@ def create_runner(trainer_url, space,
                   num_resume=0,
                   use_surrogate=None,
                   early_term_rule=None,
-                  id="HPO_runner"
+                  id="Runner"
                   ):
     
     try:

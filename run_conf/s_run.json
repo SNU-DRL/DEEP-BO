@@ -1,8 +1,10 @@
 {    
     "credential" : "debug_mode",
     "title": "HPO by runner",
+    
     "hp_config": "kin8nm-MLP",
     "hp_config_path": "./hp_conf/",
+    
     "preevaluated": false,
     "train_node": "http://127.0.0.1:6100",       
     

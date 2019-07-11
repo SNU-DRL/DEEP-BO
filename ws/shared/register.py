@@ -16,15 +16,15 @@ class MasterServerConnector(RemoteConnectorPrototype):
         self.outcome_domain = "gmail.com"
         return super(MasterServerConnector, self).__init__(target_url, credential, **kwargs)
 
-    def register(self, port, job_type):
-        if job_type != "HPO_runner" and job_type != "ML_trainer":
-            debug("Invalid job type: {}".format(job_type))
+    def register(self, port, node_type):
+        if node_type != "BO Node" and node_type != "Training Node":
+            debug("Invalid job type: {}".format(node_type))
             return False
         
         ip_addr = self.get_my_ip_addr()
         register_doc = { "ip_address": ip_addr,
                         "port_num": port,
-                        "job_type" : job_type
+                        "node_type" : node_type
                         }
         body = json.dumps(register_doc)
         resp = self.conn.request_post("/nodes/", args={}, body=body, headers=self.headers)

@@ -59,7 +59,7 @@ class HPOJobManager(ManagerPrototype):
 
     def get_spec(self):
         my_spec = {
-            "job_type": "HPO_runner",
+            "node_type": "BO Node",
             "id": self.worker.id,
             "device_id": self.worker.get_device_id() }
         return my_spec

@@ -53,7 +53,7 @@ class ParallelHPOManager(ManagerPrototype):
 
     def get_spec(self):
         my_spec = {
-            "job_type": "HPO_space",
+            "node_type": "Master Node",
             "type": self.type }
         return my_spec
 
@@ -76,7 +76,7 @@ class ParallelHPOManager(ManagerPrototype):
     def register(self, node_spec):
         ip = None
         port = None
-        job_type = None
+        node_type = None
 
         if "ip_address" in node_spec:
             ip = node_spec["ip_address"]
@@ -88,10 +88,10 @@ class ParallelHPOManager(ManagerPrototype):
         else:
             raise ValueError("No port number in specification")
 
-        if "job_type" in node_spec:
-            job_type = node_spec["job_type"]
+        if "node_type" in node_spec:
+            node_type = node_spec["node_type"]
         else:
-            raise ValueError("No job type in specification")
+            raise ValueError("No node type in specification")
         
         node_id = self.check_registered(ip, port)
         
@@ -104,12 +104,12 @@ class ParallelHPOManager(ManagerPrototype):
         # TODO:Check job type is compatible
 
         # Create node id and append to node repository
-        node_id = "{}_node_{:03d}".format(job_type, len(self.nodes.keys()))
+        node_id = "{}_node_{:03d}".format(node_type, len(self.nodes.keys()))
         node_spec = {
             "id" : node_id,
             "ip_address" : ip,
             "port_num" : port,
-            "job_type" : job_type,
+            "node_type" : node_type,
             "status" : "registered"
         }
         
@@ -141,12 +141,12 @@ class ParallelHPOManager(ManagerPrototype):
         for k in self.nodes.keys():
             n = self.nodes[k]
             if n["status"] != "paired":
-                if n["job_type"] == "HPO_runner":
+                if n["node_type"] == "BO Node":
                     optimizers.append(n["id"])
-                elif n["job_type"] == "ML_trainer":
+                elif n["node_type"] == "Training Node":
                     trainers.append(n["id"])
                 else:
-                    warn("Invalid job type of node: {}".format(n["job_type"]))
+                    warn("Invalid type of node: {}".format(n["node_type"]))
 
         # pairing with optimizer and trainer one by one
         for i in range(len(optimizers)):
