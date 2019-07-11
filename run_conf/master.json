@@ -1,5 +1,5 @@
 {
-    "title": "master node configuration",        
+    "title": "Master Node",        
     "credential" : "debug_mode",
 
     "hp_config": "MNIST-LeNet1",

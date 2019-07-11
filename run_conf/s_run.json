@@ -1,7 +1,7 @@
 {    
     "credential" : "debug_mode",
-    "title": "HPO by runner",
-    
+    "title": "Single BO",
+
     "hp_config": "kin8nm-MLP",
     "hp_config_path": "./hp_conf/",
     
