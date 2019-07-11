@@ -1,7 +1,1 @@
-{
-    "credential": "debug_mode",
-    "users": [{
-        "user_id": "user_password"
-    }],
-    "jobs": []
-}
+{"credential": "debug_mode", "jobs": [], "users": [{"user_id": "user_password"}]}

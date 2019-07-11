@@ -64,7 +64,7 @@ class BatchHPOSimulator(object):
             bandits = config['bandits']
         except:
             bandits = []
-            for m in ['GP', 'RF']:
+            for m in ['GP-HLE', 'RF-HLE']:
                 for a in ['EI', 'PI', 'UCB']:
                     b = {'mode': m, 'spec': a}
                     bandits.append(b)

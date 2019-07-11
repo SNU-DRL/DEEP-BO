@@ -4,11 +4,10 @@ import time
 from ws.shared.logger import * 
 from ws.shared.worker import Worker 
 from ws.hpo.connectors.remote_hpo import RemoteOptimizerConnector
-from ws.shared.proto import ManagerPrototype 
 
 class ParallelOptimizer(Worker):
     def __init__(self, hpo_node, train_node, hp_config, credential,   
-                id=None, polling_interval=5):
+                 id=None, polling_interval=5):
         self.hpo_node = hpo_node
         self.train_node = train_node
         self.hp_config = hp_config

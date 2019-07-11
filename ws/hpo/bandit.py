@@ -63,7 +63,7 @@ def create_runner(trainer_url, space,
                   save_internal=False,
                   num_resume=0,
                   use_surrogate=None,
-                  early_term_rule=None,
+                  early_term_rule="DecaTercet",
                   id="Runner"
                   ):
     
@@ -82,9 +82,10 @@ def create_runner(trainer_url, space,
         cred = ""
         if "credential" in run_config:
             cred = run_config["credential"]
+        else:
+            raise ValueError("No credential info in run configuration")            
         
         rtc = RemoteTrainConnector(trainer_url, hp_config, cred, **kwargs)
-
         t = trainer.get_remote_trainer(rtc, space, run_config)
 
         if run_config and "early_term_rule" in run_config:

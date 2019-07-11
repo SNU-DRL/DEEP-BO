@@ -102,12 +102,12 @@ def main(run_config):
                 set_log_level('debug')
                 print_trace()
 
-        hp_config_path = "./hp_conf/"
-        if "hp_config_path" in run_config:
-            hp_config_path = run_config["hp_config_path"]         
+        hp_config_dir = "./hp_conf/"
+        if "hp_config_dir" in run_config:
+            hp_config_dir = run_config["hp_config_dir"]         
        
         hp_cfg_file = run_config["hp_config"]
-        hp_cfg_path = '{}{}.json'.format(hp_config_path, hp_cfg_file)
+        hp_cfg_path = '{}{}.json'.format(hp_config_dir, hp_cfg_file)
         hp_cfg = read_hyperparam_config(hp_cfg_path)
 
         port = 6000
@@ -123,6 +123,12 @@ def main(run_config):
             os.environ['CUDA_VISIBLE_DEVICES'] = str(run_config["resource_id"])
             RESOURCE_ID = "{}{}".format(resource_type, run_config["resource_id"])
 
+        credential = None
+        if "credential" in run_config:
+            credential = run_config['credential']
+        else:
+            raise ValueError("No credential info in run configuration")
+
         eval_func = eval(run_config["eval_func"])
         log("Training DNN via {}...".format(run_config["eval_func"]))
 
@@ -131,7 +137,8 @@ def main(run_config):
                            debug_mode=debug_mode,
                            device_type=resource_type,
                            device_index=run_config["resource_id"],
-                           master_node=master_node, 
+                           master_node=master_node,
+                           credential=credential, 
                            port=port)
     except Exception as ex:
         print(ex)

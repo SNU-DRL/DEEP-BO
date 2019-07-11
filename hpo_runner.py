@@ -40,7 +40,7 @@ def validate_args(args):
     if run_cfg['debug_mode']:          
         set_log_level('debug')
 
-    hp_cfg_path = run_cfg['hp_config_path']
+    hp_cfg_path = run_cfg['hp_config_dir']
     
     if run_cfg['hp_config'].endswith('.json'):
         # hp_config is a json file

@@ -1,7 +1,7 @@
 {
     "credential" : "debug_mode",
 
-    "hp_config_path": "./hp_conf/",
+    "hp_config_dir": "./hp_conf/",
     "hp_config": "kin8nm-MLP",
 
     

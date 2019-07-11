@@ -34,10 +34,7 @@ def validate(config):
         if type(config) is not dict:
             return False
 
-        #if not "title" in config.keys():
-        #    return False
-
-        if "arms" in config.keys():
+        if "arms" in config:
             if len(config["arms"]) == 0:
                 error("no arm is listed.")
                 return False
@@ -48,8 +45,8 @@ def validate(config):
                     if not "acq_func" in arm.keys():
                         raise ValueError("no spec attribute  in bandit")
                     # TODO: validate value
-                return True
-        if "bandits" in config.keys():
+
+        if "bandits" in config:
             if len(config["bandits"]) == 0:
                 error("no bandit is listed.")
                 return False
@@ -60,7 +57,8 @@ def validate(config):
                     if not "spec" in bandit.keys():
                         raise ValueError("no strategy attribute  in bandit")
                     # TODO: validate value
-                return True            
+        
+        return True            
     except:
         error("invalid configuration: {}".format(config))
         return False
@@ -77,18 +75,20 @@ class BanditConfigurator(object):
 
     def init_choosers(self, config):
         
-        opts = list(set([a['model'] for a in config['arms']]))
+        opts = []
+        if 'arms' in config:
+            opts = list(set([a['model'] for a in config['arms']]))
         choosers = {}
 
         # Add default modeling methods
         if not 'SOBOL' in opts:
             opts.append('SOBOL')
 
-        if not 'GP' in opts:
-            opts.append('GP')
+        if not 'GP-HLE' in opts:
+            opts.append('GP-HLE')
 
-        if not 'RF' in opts:
-            opts.append('RF')
+        if not 'RF-HLE' in opts:
+            opts.append('RF-HLE')
 
         if not 'TPE' in opts:
             opts.append('TPE')
@@ -195,7 +195,7 @@ class ArmSelector(object):
                 
         self.config = config
 
-        self.arms = config['arms']        
+        self.arms = self.get_arms(config)        
         self.num_arms = len(self.arms)
         self.cur_arm_index = None
 
@@ -207,6 +207,39 @@ class ArmSelector(object):
 
         self.strategy = self.register(spec)
         self.num_skip = 0
+
+    def get_arms(self, config):
+        if 'arms' in config:
+            return config['arms']
+        else:
+            # Set default arms
+            arms = [
+                {
+                    "model": "GP-HLE",
+                    "acq_func": "EI"
+                },
+                {
+                    "model": "GP-HLE",
+                    "acq_func": "PI"
+                },
+                {
+                    "model": "GP-HLE",
+                    "acq_func": "UCB"
+                },        
+                {
+                    "model": "RF-HLE",
+                    "acq_func": "EI"
+                },
+                {
+                    "model": "RF-HLE",
+                    "acq_func": "PI"
+                },
+                {
+                    "model": "RF-HLE",
+                    "acq_func": "UCB"
+                }
+            ]
+        return arms
 
     def init_rewards(self):
         self.values = []

@@ -115,8 +115,9 @@ class RemoteTrainer(TrainerPrototype):
                     cur_iter = None
                     if "lr" in r:
                         min_index = self.get_min_loss_index(r["lr"])
-                        min_loss = r["lr"][min_index]
-                        cur_iter = len(r['lr'])
+                        if min_index != None:
+                            min_loss = r["lr"][min_index]
+                            cur_iter = len(r['lr'])
                     elif "cur_loss" in r:
                         min_loss = r["cur_loss"]
                         if "cur_iter" in r:
@@ -234,12 +235,13 @@ class RemoteTrainer(TrainerPrototype):
         raise ValueError("Remote training failed")       
 
     def get_min_loss_index(self, loss_curve):
-        best_i = 0
+        best_i = None
         best_loss = None
         for i in range(len(loss_curve)):
             loss = loss_curve[i]
             if best_loss == None:
                 best_loss = loss
+                best_i = i
             if loss != None and best_loss > loss:
                 best_loss = loss
                 best_i = i

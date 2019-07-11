@@ -35,23 +35,30 @@ def main(run_config):
                 set_log_level('debug')
                 print_trace()
 
-        hp_config_path = "./hp_conf/"
-        if "hp_config_path" in run_config:
-            hp_config_path = run_config["hp_config_path"]         
+        hp_config_dir = "./hp_conf/"
+        if "hp_config_dir" in run_config:
+            hp_config_dir = run_config["hp_config_dir"]         
        
         hp_cfg_file = run_config["hp_config"]
-        hp_cfg_path = '{}{}.json'.format(hp_config_path, hp_cfg_file)
+        hp_cfg_path = '{}{}.json'.format(hp_config_dir, hp_cfg_file)
         hp_cfg = read_hyperparam_config(hp_cfg_path)
 
         port = 5000
         if "port" in run_config:
             port = run_config["port"]
 
+        credential = None
+        if "credential" in run_config:
+            credential = run_config['credential']
+        else:
+            raise ValueError("No credential info in run configuration")
+
         debug("HPO node will be ready to serve...")
         wait_hpo_request(run_config, 
                          hp_cfg, 
                          debug_mode=debug_mode, 
-                         port=port, 
+                         port=port,
+                         credential=credential, 
                          master_node=master_node)
     
     except KeyboardInterrupt as ki:

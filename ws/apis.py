@@ -17,6 +17,7 @@ API_SERVER = None
 # Job request awaiting APIs
 def create_master_server(hp_cfg,
                          debug_mode=False,
+                         credential=None,
                          port=5000,
                          threaded=False):
 
@@ -27,6 +28,7 @@ def create_master_server(hp_cfg,
 
     Keyword arguments:
         debug_mode {bool} -- show debug message or not (default False)
+        credential {str} -- credential key for authentication (default None)
         port {int} -- the port number that is opened for response (default 5000)
         threaded {bool} -- enable multi-threading (default False)
 
@@ -38,7 +40,7 @@ def create_master_server(hp_cfg,
     global JOB_MANAGER
     global API_SERVER
     JOB_MANAGER = ParallelHPOManager(hp_cfg)
-    API_SERVER = WebServiceManager(JOB_MANAGER, hp_cfg)
+    API_SERVER = WebServiceManager(JOB_MANAGER, hp_cfg, credential=credential)
     API_SERVER.run_service(port, debug_mode, threaded)
 
 
@@ -47,6 +49,7 @@ def wait_hpo_request(run_cfg,
                      debug_mode=False,
                      port=6000,
                      enable_surrogate=False,
+                     credential=None,
                      master_node=None,
                      threaded=False):
     '''Spawn a worker daemon which serves Bayesian Optimization.  
@@ -59,6 +62,7 @@ def wait_hpo_request(run_cfg,
         debug_mode {bool} -- show debug message or not (default False)
         port {int} -- the port number that is opened for response (default 6000)
         enable_surrogate {bool} -- whether the use of pre-evaluated lookup table or not (default False)
+        credential {str} -- credential key for authentication (default None)
         master_node {str} -- the URL to register myself to master node. if None, no register (default None)
         threaded {bool} -- enable multi-threading (default False)
 
@@ -76,12 +80,12 @@ def wait_hpo_request(run_cfg,
         if master_node != None and valid.url(master_node):
             try:
                 ns = MasterServerConnector(
-                    master_node, JOB_MANAGER.get_credential())
+                    master_node, credential)
                 ns.register(port, "BO Node")
             except Exception as ex:
                 warn("Registering to master server failed: {}".format(ex))
 
-        API_SERVER = WebServiceManager(JOB_MANAGER, hp_cfg)
+        API_SERVER = WebServiceManager(JOB_MANAGER, hp_cfg, credential=credential)
         API_SERVER.run_service(port, debug_mode, threaded)
     else:
         warn("Job manager already initialized.")
@@ -97,6 +101,7 @@ def wait_train_request(train_task,
                        retrieve_func=None,
                        enable_surrogate=False,
                        master_node=None,
+                       credential=None,
                        processed=True
                        ):
     '''Spawn a worker daemon which serves DNN training.  
@@ -112,6 +117,7 @@ def wait_train_request(train_task,
         device_index {int} -- index of processing unit (default 0)
         enable_surrogate {bool} -- whether the use of pre-evaluated lookup table or not (default False)
         master_node {str} -- the URL to register myself to master node. if None, no register (default None)
+        credential {str} -- credential key for authentication (default None)
         processed {bool} -- enable spawning a process for training (default True)
 
     This API blocks the remained procedure unless a terminal signal enters.
@@ -131,12 +137,12 @@ def wait_train_request(train_task,
         if master_node != None and valid.url(master_node):
             try:
                 ns = MasterServerConnector(
-                    master_node, JOB_MANAGER.get_credential())
+                    master_node, credential)
                 ns.register(port, "Training Node")
             except Exception as ex:
                 warn("Registering myself to name server failed: {}".format(ex))
 
-        API_SERVER = WebServiceManager(JOB_MANAGER, hp_cfg)
+        API_SERVER = WebServiceManager(JOB_MANAGER, hp_cfg, credential=credential)
         API_SERVER.run_service(port, debug_mode, with_process=processed)
     else:
         warn("Job manager already initialized.")
@@ -174,7 +180,7 @@ def update_current_loss(cur_iters,
     global JOB_MANAGER
 
     if JOB_MANAGER != None:
-        JOB_MANAGER.update_result(cur_epoch, cur_loss, run_time,
+        JOB_MANAGER.update_result(cur_iters, cur_loss, run_time,
                                   iter_unit=iter_unit,
                                   loss_type=loss_type)
     else:

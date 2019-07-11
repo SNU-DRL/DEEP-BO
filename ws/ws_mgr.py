@@ -19,12 +19,16 @@ from flask_restful import Api
 
 class WebServiceManager(ManagerPrototype):
 
-    def __init__(self, job_mgr, hp_cfg):
+    def __init__(self, job_mgr, hp_cfg,
+                 credential=None):
         super(WebServiceManager, self).__init__(type(self).__name__)
         self.app = Flask(self.type)
         self.api = Api(self.app)
         self.job_mgr = job_mgr
         
+        if credential != None:
+            self.save_db('credential', credential)
+
         self.hp_cfg = hp_cfg        
         self.my_process = None
         
