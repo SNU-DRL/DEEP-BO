@@ -1,5 +1,5 @@
 {
-    "title": "BO Node 0",        
+    "title": "BO Node",        
     "credential" : "debug_mode",
     "master_node": "http://127.0.0.1:5000",
 
