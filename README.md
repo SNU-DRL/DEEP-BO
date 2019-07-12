@@ -7,18 +7,7 @@ This repo contains code accompaning the paper, [DEEP-BO for Hyperparameter Optim
 The performance of deep neural networks (DNN) is very sensitive to the particular choice of hyperparameters. To make it worse, the shape of the learning curve can be significantly affected when a technique like batchnorm is used. As a result, hyperparameter optimization of deep networks can be much more challenging than traditional machine learning models. In this work, we start from well known Bayesian Optimization solutions and provide enhancement strategies specifically designed for hyperparameter optimization of deep networks. 
 The resulting algorithm is named as DEEP-BO (Diversified, Early-termination-Enabled, and Parallel Bayesian Optimization). When evaluated over six DNN benchmarks, DEEP-BO easily outperforms or shows comparable performance as some of the well-known solutions including GP-Hedge, Hyperband, BOHB, Median Stopping Rule, and Learning Curve Extrapolation.
 
-
-## DEEP-BO Overview
-**Key Features**
-  * Simple diversification strategy mixing BO algorithms and acquisition functions
-    * BO algorithms employed from three practical hyperparameter optimization frameworks of machine learning:
-      * [Spearmint](https://github.com/JasperSnoek/spearmint) 
-      * [SMAC](http://www.cs.ubc.ca/labs/beta/Projects/SMAC/)
-      * [Hyperopt](https://github.com/hyperopt/hyperopt)
-  * Compound early termination rule to stop unuseful evaluation(s) without harm.  
-  * Scalable parallel BO based on a web oriented architecture
-
-See the details and experimental results in the paper. 
+See the details in the [guide](https://github.com/snu-adsl/DEEP-BO/wiki). 
 
 ## Installation
 
@@ -98,7 +87,5 @@ If you are use of any material in this repository, we ask to cite:
 }
 
 ```
--------------------
 
-For more information, Refer to [Wiki](https://github.com/snu-adsl/DEEP-BO/wiki).
 
