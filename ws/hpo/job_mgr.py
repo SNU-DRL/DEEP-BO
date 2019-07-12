@@ -33,7 +33,7 @@ class HPOJobManager(ManagerPrototype):
     def __init__(self, run_cfg, hp_cfg, port, use_surrogate=False):
 
         super(HPOJobManager, self).__init__(type(self).__name__)
-        self.jobs = [] # self.database['jobs'] # XXX:for debug only
+        self.jobs = self.get_hpo_jobs()
          
         self.worker = SequentialOptimizer(run_cfg, hp_cfg, "s-opt_{}".format(port))
         self.prefix = self.worker.get_id()
@@ -49,7 +49,7 @@ class HPOJobManager(ManagerPrototype):
         for j in self.jobs:
             j["status"] = 'terminated'
 
-        #self.save_db('jobs', self.jobs)
+        #self.save_db('hpo_jobs', self.jobs) # TODO:uncomment if you save previous jobs
 
     def get_config(self):
         # This returns run config

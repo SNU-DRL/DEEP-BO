@@ -1,6 +1,6 @@
 {
     "title": "BO Node",        
-    "credential" : "debug_mode",
+    "credential" : "********",
     "master_node": "http://127.0.0.1:5000",
 
     "hp_config": "MNIST-LeNet1",

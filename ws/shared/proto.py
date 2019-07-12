@@ -70,19 +70,41 @@ class ManagerPrototype(object):
     def __init__(self, mgr_type):
         self.type = mgr_type
         self.dbm = get_database_manager()
-        self.database = self.dbm.get_db()
 
     def get_credential(self):
-        return self.database['credential']
+        # XXX:access DB at request
+        database = self.dbm.get_db()        
+        return database['credential']
+
+    def get_train_jobs(self):
+        # XXX:access DB at request
+        database = self.dbm.get_db()
+        if 'train_jobs' in database:       
+            return database['train_jobs']
+        else:
+            return []        
+
+    def get_hpo_jobs(self):
+        # XXX:access DB at request
+        database = self.dbm.get_db()
+        if 'hpo_jobs' in database:       
+            return database['hpo_jobs']
+        else:
+            return []  
+
+    def get_users(self):
+        # XXX:access DB at request
+        database = self.dbm.get_db()
+        if 'users' in database:        
+            return database['users']
+        else:
+            return []
 
     def save_db(self, key, data):
-        if key in self.database: 
-            self.database[key] = data
-        
-        if self.dbm:
-            self.dbm.save(self.database)
-        else:
-            warn("database can not be updated because it does not loaded yet.")
+        # XXX:access DB at request
+        database = self.dbm.get_db()            
+        database[key] = data
+        self.dbm.save(database)
 
     def authorize(self, auth_key):
         # XXX:Use of basic auth as default
@@ -94,10 +116,10 @@ class ManagerPrototype(object):
             if ":" in u_pw:
                 tokens = u_pw.split(":")
                 #debug("Tokens: {}".format(tokens))
-                for u in self.database['users']:
+                for u in self.get_users():
                     if tokens[0] in u and u[tokens[0]] == tokens[1]:
                         return True
-            elif u_pw == self.database['credential']:
+            elif u_pw == self.get_credential():
                 #debug("Use of global auth key: {}".format(u_pw))
                 # FIXME:global password for debug mode 
                 return True

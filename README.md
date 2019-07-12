@@ -26,7 +26,7 @@ See the details and experimental results in the paper.
 
 Firstly, creating new virtual environment by using [Anaconda](https://www.anaconda.com/download/) is strongly suggested.
 Even though the maintenance period for python 2.7.x is almost over, we still recommend creating this environment based on python 2.7.x.
-Running in python 3.x may be supported soon, but so far this project has only been tested in Python 2.7.x on Linux.
+Running in python 3.x is also supported, but so far this project has been tested in Python 2.7.x on Linux.
 
 ```bash
     conda create -n hpo python=2.7

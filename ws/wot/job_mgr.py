@@ -45,7 +45,7 @@ class TrainingJobManager(ManagerPrototype):
     def __init__(self, worker, use_surrogate=False, retrieve_func=None):
 
         super(TrainingJobManager, self).__init__(type(self).__name__)
-        self.jobs =  self.database['jobs'] #[ dummy_item, ] # XXX:change to empty list in future
+        self.jobs = self.get_train_jobs()
          
         self.worker = worker
         self.use_surrogate = use_surrogate
@@ -62,7 +62,7 @@ class TrainingJobManager(ManagerPrototype):
         for j in self.jobs:
             j["status"] = 'terminated'
 
-        #self.save_db('jobs', self.jobs)
+        #self.save_db('train_jobs', self.jobs) # XXX:uncomment if you want to keep job history 
 
     def get_config(self):
         if self.use_surrogate:

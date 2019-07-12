@@ -1,5 +1,5 @@
 {    
-    "credential" : "debug_mode",
+    "credential" : "********",
     "title": "Single BO",
 
     "hp_config": "kin8nm-MLP",

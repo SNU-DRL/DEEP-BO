@@ -121,6 +121,8 @@ temp/
 results/*/*/*.json
 #*.xlsx
 
+db.json
+
 results/figs/
 *_log.txt
 results/data2/benchmark/partial/*.json
