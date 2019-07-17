@@ -12,16 +12,6 @@ def debug(msg):
     pass
 
 
-def load_json(file_path):
-    with open(file_path) as f: 
-        return json.load(f)
-
-
-def load_pickle(file_path):
-    with open(file_path, 'rb') as pkl:
-        return pickle.load(pkl)    
-
-
 def get_num_iters_over_threshold(logs, num_runs, threshold):
     num_iterations = []
 
@@ -179,67 +169,6 @@ def get_best_errors(selected_result):
         else:
             best_errors.append(cur_best_error)
     return best_errors
-
-
-def load_lookup_data(lookup_name, path='./lookup'):
-    if not path.endswith('/'):
-        path = path + '/'
-    lookup_path = "{}{}.csv".format(path, lookup_name)
-    try:
-        lookup = pd.read_csv(lookup_path)        
-        if lookup_name == 'PTB-LSTM':            
-            lookup['best_perplexity'] = get_best_of_train(lookup, metric='perplexity')
-            max_perplexity = 1000.0
-            lookup['best_acc'] = (max_perplexity - lookup['best_perplexity']) / max_perplexity  
-        elif lookup_name == 'CIFAR10-VGG':
-            lookup['best_acc'] = get_best_of_train(lookup, start_col=11, end_col=61)
-        elif lookup_name == 'CIFAR100-VGG':
-            lookup['best_acc'] = get_best_of_train(lookup, start_col=11, end_col=61)
-        elif lookup_name == 'CIFAR10-ResNet':
-            lookup['best_acc'] = get_best_of_train(lookup, start_col=9, end_col=109)            
-        else:
-            lookup['best_acc'] = get_best_of_train(lookup)
-        return lookup
-    except:
-        raise ValueError("{} is not found.".format(lookup_path))
-
-
-def get_best_of_train(lookup_table, start_col=10, end_col=25, metric='acc'):
-    if metric == 'acc':
-        return np.max(get_train_curve(lookup_table, start_col, end_col), axis=1)
-    elif metric == 'perplexity':
-        best_perp = np.min(get_train_curve(lookup_table, start_col, end_col), axis=1)
-        return best_perp  
-
-
-def get_train_curve(lookup_table, start_col, end_col):
-    return lookup_table.iloc[:, start_col:end_col].values
-
-
-
-def get_difficulty_stats(lookup, difficulties=[]):
-
-    num_lookup = len(lookup)
-    if len(difficulties) == 0:
-        difficulties = np.array([float(100/num_lookup), float(10/num_lookup)])    
-
-    stats = []
-    best_accs = lookup['best_acc']
-    sorted_accs = np.sort(best_accs)[::-1]
-    top_acc = max(sorted_accs)
-    t_i = 0
-    for df in difficulties:
-        stat = {}
-        th = int(df * num_lookup)        
-        stat['difficulty'] = float(df)
-        stat['rank'] = int(num_lookup * float(df))
-        stat['error'] = 1.0 - sorted_accs[th]
-        stat['accuracy'] = sorted_accs[th]
-        stat['regret'] = top_acc - sorted_accs[th]
-        debug(stat)
-        stats.append(stat)
-
-    return stats
 
 
 def create_no_share_result(results, mix_type, num_iters, max_hours):

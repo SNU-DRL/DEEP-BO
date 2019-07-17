@@ -75,3 +75,5 @@ class Connection:
         res.headers['status'] = str(res.status_code)
         resp = {'headers' : res.headers, 'body': res.content }
         return resp
+		
+		

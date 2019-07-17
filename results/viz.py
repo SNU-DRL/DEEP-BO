@@ -1,4 +1,5 @@
 from __future__ import print_function
+from __future__ import absolute_import
 
 import numpy as np
 import pandas as pd
@@ -6,7 +7,8 @@ import pandas as pd
 import math
 
 import copy
-import analyze
+import analysis as anal
+from viz_util import *
 
 from pylab import rcParams
 import matplotlib.pyplot as plt
@@ -17,7 +19,6 @@ import scipy.stats as sps
 def debug(args):
     #print(args)
     pass
-    
 
 
 def draw_catastrophic_failures(results, target_goal,
@@ -43,10 +44,10 @@ def draw_catastrophic_failures(results, target_goal,
     for opt in list(sorted(results.keys())):
         x_values = None
         if criteria is 'Iterations':
-            x_values = np.array(analyze.get_num_iters_over_threshold(
+            x_values = np.array(anal.get_num_iters_over_threshold(
                 results[opt], num_runs, target_goal))
         else:
-            x_values = np.array(analyze.get_exec_times_over_threshold(
+            x_values = np.array(anal.get_exec_times_over_threshold(
                 results[opt], num_runs, target_goal, unit=criteria))
 
         opt_iterations[opt] = x_values
@@ -244,10 +245,10 @@ def draw_success_rate_fig(results, target_goal, x_max,
     for opt in list(sorted(results.keys())):
         x_values = None
         if x_unit is 'Iteration':
-            x_values = np.array(analyze.get_num_iters_over_threshold(
+            x_values = np.array(anal.get_num_iters_over_threshold(
                 results[opt], num_runs, target_goal))
         else:
-            x_values = np.array(analyze.get_exec_times_over_threshold(
+            x_values = np.array(anal.get_exec_times_over_threshold(
                 results[opt], num_runs, target_goal, unit=x_unit))
         debug("x_values: {}".format(x_values[0]))
         opt_iterations[opt] = x_values
@@ -430,7 +431,7 @@ def draw_bar_catastrophic_failures(results, target_goal,
     if opts is None:
         opts = list(sorted(results.keys()))
     for opt in opts:
-        mean_list, std_dev_list = analyze.get_percentile(
+        mean_list, std_dev_list = anal.get_percentile(
             results[opt], target_goal, num_iters, percentiles, criteria=criteria)
         means[opt] = mean_list
         std_devs[opt] = std_dev_list
@@ -489,10 +490,10 @@ def draw_boxplot_strategies(results, threshold,
     for opt in opts:
         value = 0
         if criteria == 'Trials':
-            value = analyze.get_num_iters_over_threshold(
+            value = anal.get_num_iters_over_threshold(
                 results[opt], num_runs, threshold)
         else:
-            value = analyze.get_exec_times_over_threshold(
+            value = anal.get_exec_times_over_threshold(
                 results[opt], num_runs, threshold, unit=criteria)
         data.append(value)
         index += 1
@@ -522,268 +523,12 @@ def draw_boxplot_strategies(results, threshold,
         plt.savefig(target_folder + save_name + '.png', format='png', dpi=300)
 
 
-def name_map(name):
-    if name == 'SP-GP-EI(6)':
-        return 'Synch. GP-EI-MCMC(10)'
-    elif name == 'P-GP-EI(6)':
-        return 'GP-EI-MCMC(10)'
-    elif name == 'P-GP-EI-MCMC1(6)':
-        return 'GP-EI-MCMC(1)'
-    elif name == 'P-RF-EI(6)':
-        return 'RF-EI'
-    elif name == 'xN-Div-I':
-        return 'Theoretical'
-    elif name == 'P-Div(6)':
-        return 'P-Div'
-    elif name == 'P-Div-P(6)':
-        return 'P-Div (in-progress)'
-    else:
-        return name
-
-
-def get_label(arm):
-    label = arm.replace('_', '-')
-    postfix = ""
-
-    if '-NR' in label:
-        label = label.replace("-NR", "-R")
-    elif '-NC' in label:
-        label = label.replace("-NC", "-N")
-    elif '-NP' in label:
-        label = label.replace("-NP", "-P")  
-
-    if '-LOG-ERR' in label:
-        label = label.replace("-LOG-ERR", " ")
-        postfix = " (log err)"
-    elif '-ADALOG3TIME' in label:
-        label = label.replace("-ADALOG3TIME", "-Div")
-        #postfix = " (partial log + early stop)"
-    elif '-ADALOG3' in label:
-        label = label.replace("-ADALOG3", "-Div")
-        #postfix = " (partial log)"
-    elif '-TIME' in label:
-        label = label.replace("-TIME", " ")
-        postfix = " (early stop)"
-    elif '-LOGMIX' in label:
-        label = label.replace("-LOGMIX", " ")
-        postfix = " (pure & adalog)"
-
-    if 'SMAC-' in label:
-        label = label.replace('SMAC-', 'RF-',)
-    elif '-NM' in label:
-        label = label.replace('-NM', '-MCMC1')
-
-    if '-HLE' in label:
-        label = label.replace('-HLE', '')
-
-    elif 'DIVERSIFIED' in label:
-        if 'RANDOM' in label:
-            return 'R-Div' + postfix
-        elif 'SEQ' in label:
-            return 'S-Div' + postfix
-        elif 'SKO' in label:
-            return 'S-Knockout' + postfix
-        elif 'HEDGE' in label:
-            return 'Hedge' + postfix
-        elif 'GT-' in label:
-            return u"\u03B5" + "-greedy"
-        elif 'EG-' in label:
-            return 'e-greedy' + postfix
-
-    if 'BATCH' in label:
-        label = label.replace('ASYNC-BATCH', 'P')
-        label = label.replace('SYNC-BATCH', 'SP')
-
-        if 'P-GP+SMAC' in label:
-            label = label.replace('P-GP+SMAC', 'P-Div')              
-
-        return label + postfix
-    elif 'RANDOM' in label:
-        return 'Random' + postfix
-
-    return label + postfix
-
-
-
-def get_style(arm, all_items):
-    markers = ['o', 'p', '*', '^', 's', 'D', 'x', '<', '.', 'v',
-               '>', '+', '1', '2', '3', 'P', '4', 'H', '8', 'd']
-    marker_colors = ['xkcd:brown', 'xkcd:purple', 'xkcd:violet', 
-                     'xkcd:green', 'xkcd:lime green', 'xkcd:teal', 
-                     'xkcd:magenta', 'xkcd:mustard', 'xkcd:orange', 
-                     'xkcd:red', 'xkcd:pink', 'xkcd:yellow',                      
-                     'xkcd:peach', 'xkcd:lavender', 'xkcd:fuchsia',
-                     'xkcd:goldenrod', 'xkcd:light green', 'xkcd:leaf green', 
-                     'xkcd:deep purple', 'xkcd:sage']
-        
-    if 'DIV' in arm:
-        line_style = '-'
-    else:
-        line_style = '--'
-        arm = arm.replace('+', '_')
-    try:
-        index = list(all_items).index(arm)
-    except:
-        index = 0
-
-    return markers[index], marker_colors[index], line_style
-
-
-def get_predefined_style(name):
-    marker = ''
-    color = 'black'
-    palette = ['gray', 'xkcd:red', 'xkcd:deep blue', 'brown']
-    line_style = '-'
-    markers = ['', 'p', '^', '*', 's', 'v', 'D', '<', '>',
-               '1', '3', '2', '4', '8', "|", "_", '', ",", 'H', '+', 'P', ',', 'h', 'x']
-
-    marker_index = 0
-
-
-    if 'DEEP-BO' in name:
-        line_style = '-'
-        color = 'xkcd:red'
-        if 'S-Div' in name:            
-            marker = 'x'
-        elif 'R-Div' in name:
-            marker = 'o'
-        elif 'P-Div' in name:
-            #line_style = '--'
-            if '-R' in name:
-                marker = '*'  
-                color = 'gray'
-            elif '-N' in name:
-                marker = 'd'
-                color = 'orange'
-            elif '-P' in name:
-                line_style = '-'
-                marker = 'o'
-                color = 'red'
-            else:
-                marker = 'x'
-        elif 'x6-Div' in name:
-            marker_index += 5            
-        else:
-            #color = 'xkcd:violet'
-            #line_style = ':'
-            if 'xN-Div' in name:
-                marker = 'D'
-            elif 'xN-Div-I' in name:
-                marker = '*'
-    elif 'Hedge' in name:
-        line_style = '-'
-        color = palette[2]
-        marker = ''
-        if "(k=3)" in name:
-            marker = '^'
-        elif "(k=9)" in name:
-            marker = 'v'
-    elif '-greedy' in name:
-        color = palette[2]
-        marker = 's'
-    elif 'Random' in name:
-        color = 'gray'
-        line_style = '--'
-    elif 'Ind-Avg' == name:
-        line_style = ':'
-    elif 'Knockout' in name:
-        line_style = '--'
-    elif 'BOHB' in name:
-        color = palette[3]
-        #marker = 's'
-
-    if 'GP-' in name and not 'GP-Hedge' in name:
-        # thin blues
-        palette = ['xkcd:royal blue', 'xkcd:bright blue',
-                'xkcd:baby blue', 'xkcd:sky blue']
-        color = palette[0]
-        line_style = '-.'
-        
-        if '-MCMC10' in name:
-            marker_index += 1
-        elif '-MCMC1' in name:
-            marker_index += 2
-        marker = markers[marker_index]
-
-    elif 'RF-' in name:
-        # thick greens
-        palette = ['xkcd:forest green',
-                'xkcd:green', 'xkcd:olive', 'xkcd:teal']
-        color = palette[0]
-        line_style = '--'
-        marker = markers[marker_index]
-    elif 'TPE' in name:
-        line_style = ':'
-
-    if '-EI' in name:
-        color = palette[1]
-    elif '-PI' in name:
-        color = palette[2]
-    elif '-UCB' in name:
-        color = palette[3]
-
-    if 'P-GP-' in name or 'P-RF-' in name or 'P-Div-' in name:
-        #marker_index += 3
-        if 'SP-' in name:
-            marker_index += 3        
-            marker = markers[marker_index]
-
-    if '(baseline' in name:
-        line_style = ':'
-
-    if '(surrogate' in name:
-        marker = '8'
-        line_style = '--'
-
-    if '-LCE' in name:
-        #marker = 'd'
-        line_style = '-'
-
-    if '-CR' in name:
-        line_style = '-'
-
-    if '-MSR' in name:
-        #marker = 'o'
-        line_style = '-'
-
-    if '(naive' in name:
-        marker = '^'
-        #color = 'xkcd:royal blue'
-    elif '(log' in name:
-        marker = '*'
-        #color = 'xkcd:royal blue'
-    elif '(hybrid' in name:
-        marker = 'o'
-        #color = 'black'
-    elif '(baseline' in name:
-        marker = ''
-        #color = 'black'                 
-    if 'β=0.1' in name:
-        color = 'xkcd:orange'
-        marker = '*'  
-    elif 'β=0.25' in name:
-        color = 'xkcd:orange'
-        marker = 'd' 
-    elif 'β=0.2' in name:
-        color = 'xkcd:orange'
-        marker = 'v'
-    elif 'β=0.05' in name:
-        color = 'xkcd:orange'
-        marker = '|'   
-
-    if 'fantasy' in name:
-        marker = '*'
-        line_style = ':'
-
-    return marker, color, line_style
-
-
 def draw_trials_curve(results, arm, run_index,
                       x_unit='Hour', guidelines=[], g_best_acc=None,
                       xlim=None, ylim=None, title=None, save_name=None, 
                       loc=3, width=10, height=6):
-    selected = analyze.get_result(results, arm, run_index)
-    x_time = analyze.get_total_times(selected, x_unit)
+    selected = anal.get_result(results, arm, run_index)
+    x_time = anal.get_total_times(selected, x_unit)
     y_errors = 1.0 - selected['accuracy']
     
     if g_best_acc != None:
@@ -791,7 +536,7 @@ def draw_trials_curve(results, arm, run_index,
         y_errors = y_errors - g_best_err 
 
     max_err = 1.0
-    line_best_errors = np.array(analyze.get_best_errors(selected))
+    line_best_errors = np.array(anal.get_best_errors(selected))
     if g_best_acc != None:
         line_best_errors = line_best_errors - g_best_err
         max_err = g_best_acc
@@ -923,7 +668,7 @@ def draw_best_error_curve(results, arms, repeats,
                           xlim=None, ylim=(.001, 1), alpha_fill=0.1, std_div=4,
                           width=14, height=8, x_steps=1, plot_func='semilogy',
                           save_name=None, target_folder='.', y_scale=1,
-                          x_ticks=None, y_ticks=None,
+                          x_ticks=None, y_ticks=None, sub_y_metric="test error",
                           legend=None, l_order=None, style_format=None):
 
     if type(arms) is not list:
@@ -949,9 +694,9 @@ def draw_best_error_curve(results, arms, repeats,
         if summary is False:
             best_errors = []
             for i in range(repeats):
-                selected = analyze.get_result(results, arm, i)
-                x_time = analyze.get_total_times(selected, x_unit)
-                y_best_errors = np.array(analyze.get_best_errors(selected)) * y_scale
+                selected = anal.get_result(results, arm, i)
+                x_time = anal.get_total_times(selected, x_unit)
+                y_best_errors = np.array(anal.get_best_errors(selected)) * y_scale
                 best_errors.append({'x': x_time, 'y': y_best_errors.tolist() })
 
             for best_error in best_errors:
@@ -971,9 +716,9 @@ def draw_best_error_curve(results, arms, repeats,
             
             for i in range(repeats):
 
-                selected = analyze.get_result(results, arm, i)
-                y_best_errors = np.array(analyze.get_best_errors(selected)) * y_scale
-                t_times = analyze.get_total_times(selected, x_unit)
+                selected = anal.get_result(results, arm, i)
+                y_best_errors = np.array(anal.get_best_errors(selected)) * y_scale
+                t_times = anal.get_total_times(selected, x_unit)
                 t_max = int(max(t_times)) + 1
                 
                 if i == 0:
@@ -1069,7 +814,7 @@ def draw_best_error_curve(results, arms, repeats,
         plt.text(x_range[0] + .1, s['error'], label)
         plt.axhline(y=s['error'], color='gray', linestyle=':')
 
-    plt.ylabel("Min Function Value", fontsize=15)
+    plt.ylabel("Min Function Value ({})".format(sub_y_metric), fontsize=15)
     plt.xlabel(x_unit, fontsize=15)
     if save_name is not None:
         plt.tight_layout()
@@ -1123,7 +868,7 @@ def draw_mean_sd_corr(opt, estimates, results, num_trial,
                 arm = result[t]['select_trace'][i]
             trial['arm'] = arm
             trial['cur_acc'] = result[t]['accuracy'][i]
-            best_errors = analyze.get_best_errors(result[t])
+            best_errors = anal.get_best_errors(result[t])
             trial['cum_op_time'] = result[t]['cum_exec_time'][i] + \
                 result[t]['cum_opt_time'][i]
             op_hours = trial['cum_op_time'] / (60 * 60)
@@ -1281,7 +1026,7 @@ def draw_acq_values(opt, estimates, results, it,
                 cur_best_acc = trial['cur_acc']
                 debug('current best {} updated at iteration {}.'.format(
                     cur_best_acc, i))
-            best_errors = analyze.get_best_errors(result[it])
+            best_errors = anal.get_best_errors(result[it])
             trial['cum_op_time'] = result[it]['cum_exec_time'][i] + \
                 result[it]['cum_opt_time'][i]
             if est is None:
@@ -1367,12 +1112,3 @@ def draw_acq_values(opt, estimates, results, it,
 
         fig.show()
 
-
-def test_style():
-    name = get_label('P-Div-P(6)')
-    marker, color, line_style = get_predefined_style(name)
-    print("{}, {}, {}, {}".format(name, marker, color, line_style))
-
-
-if __name__ == '__main__':
-    test_style()

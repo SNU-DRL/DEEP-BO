@@ -131,4 +131,4 @@ class ParallelOptimizer(Worker):
 
     def check_active(self):
         return self.connector.check_active()
-
+		

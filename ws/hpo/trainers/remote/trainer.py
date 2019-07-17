@@ -21,6 +21,7 @@ class RemoteTrainer(TrainerPrototype):
 
         self.jobs = {}
         self.history = []
+        self.no_response_time = 0.0
 
         #debug("Run configuration: {}".format(kwargs))
         
@@ -87,10 +88,16 @@ class RemoteTrainer(TrainerPrototype):
                         if prev_interim_err != interim_err:
                             # XXX:reset time out count
                             time_out_count = 0 
+                            if self.polling_interval > 1:
+                                self.polling_interval -= 1
+                                debug("polling faster: {}".format(self.polling_interval))  
                         else:
                             time_out_count += 1
+                            self.no_response_time += self.polling_interval
+                            if self.polling_interval < 10:
+                                self.polling_interval += 1
                             if time_out_count > self.max_timeout:
-                                log("Force to stop {} due to no update for {} sec".format(job_id, self.polling_interval * self.max_timeout))
+                                log("Force to stop {} due to no update for {} sec".format(job_id, self.no_response_time))
                                 self.controller.stop(job_id)
                                 break
                         prev_interim_err = interim_err
@@ -108,7 +115,7 @@ class RemoteTrainer(TrainerPrototype):
                         pass
                     else:
                         warn("Invalid job result: {}".format(j))
-                elif j == None: # current job finished
+                else:
                     # cross check 
                     r = self.controller.get_job(job_id)
                     min_loss = None
@@ -160,7 +167,7 @@ class RemoteTrainer(TrainerPrototype):
             param_values = values_only
         
         early_terminated = False
-        log("Training model using hyperparameters: {}".format(param_values))
+        debug("Training model using hyperparameters: {}".format(param_values))
         
         if type(param_values) == dict:
             for param in param_names:

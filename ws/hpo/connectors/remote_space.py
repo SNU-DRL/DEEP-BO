@@ -9,11 +9,11 @@ from ws.shared.hp_cfg import HyperparameterConfiguration
 from ws.shared.proto import RemoteConnectorPrototype
 
 
-class RemoteSampleSpaceConnector(RemoteConnectorPrototype):
+class RemoteParameterSpaceConnector(RemoteConnectorPrototype):
     
     def __init__(self, url, credential, **kwargs):
         
-        super(RemoteSampleSpaceConnector, self).__init__(url, credential, **kwargs)
+        super(RemoteParameterSpaceConnector, self).__init__(url, credential, **kwargs)
 
         self.num_samples = None
         self.hp_config = None

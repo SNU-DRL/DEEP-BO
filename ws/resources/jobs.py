@@ -46,3 +46,5 @@ class Jobs(Resource):
         
         self.jm.sync_result() # XXX: A better way may be existed
         return self.jm.get_all_jobs(), 200
+		
+		

@@ -16,7 +16,7 @@ class TrainEmulator(TrainerPrototype):
         super(TrainEmulator, self).__init__()
 
     def get_min_train_epoch(self):
-        if self.lookup.data_type == "data200":
+        if self.lookup.data_type == "CIFAR10-ResNet":
             return 30
         elif self.lookup.data_type == "CIFAR10-VGG" or \
             self.lookup.data_type == "CIFAR100-VGG":

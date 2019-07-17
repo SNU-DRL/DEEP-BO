@@ -9,6 +9,24 @@ The resulting algorithm is named as DEEP-BO (Diversified, Early-termination-Enab
 
 See the details in the [guide](https://github.com/snu-adsl/DEEP-BO/wiki). 
 
+
+## Citation
+
+If you are use of any material in this repository, we ask to cite:
+
+```
+
+@article{cho2019deep,
+  title={DEEP-BO for Hyperparameter Optimization of Deep Networks},
+  author={Cho, Hyunghun and Kim, Yongjin and Lee, Eunjung and Choi, Daeyoung and Lee, Yongjae and Rhee, Wonjong},
+  journal={arXiv preprint arXiv:1905.09680},
+  year={2019}
+}
+
+```
+
+-------
+
 ## Installation
 
 ### Prerequisite
@@ -73,19 +91,5 @@ In case of CPU only, you can install above packages as follows:
 (hpo)device:path$ conda install pytorch-cpu torchvision-cpu -c pytorch
 ```
 
-## Citation
-
-If you are use of any material in this repository, we ask to cite:
-
-```
-
-@article{cho2019deep,
-  title={DEEP-BO for Hyperparameter Optimization of Deep Networks},
-  author={Cho, Hyunghun and Kim, Yongjin and Lee, Eunjung and Choi, Daeyoung and Lee, Yongjae and Rhee, Wonjong},
-  journal={arXiv preprint arXiv:1905.09680},
-  year={2019}
-}
-
-```
 
 

@@ -7,9 +7,9 @@ from ws.hpo.utils.converter import VectorGridConverter
 from ws.hpo.utils.grid_gen import *
 from ws.hpo.utils.one_hot_grid import OneHotVectorTransformer
 
-from ws.hpo.connectors.remote_space import RemoteSampleSpaceConnector
+from ws.hpo.connectors.remote_space import RemoteParameterSpaceConnector
 
-class SearchHistory(object):
+class ParameterSpace(object):
     def __init__(self, num_samples):
         self.num_samples = num_samples
         self.reset()       
@@ -81,7 +81,7 @@ class SearchHistory(object):
         return sample_index
 
 
-class GridSamplingSpace(SearchHistory):
+class GridParameterSpace(ParameterSpace):
 
     def __init__(self, name, grid, hpv, hp_config, one_hot=False):
 
@@ -97,7 +97,7 @@ class GridSamplingSpace(SearchHistory):
         else:
             self.grid = np.asarray(grid)
         
-        super(GridSamplingSpace, self).__init__(len(hpv))
+        super(GridParameterSpace, self).__init__(len(hpv))
 
     def get_size(self):
         return len(self.hpv)
@@ -147,7 +147,7 @@ class GridSamplingSpace(SearchHistory):
         self.hpv = np.append(self.hpv, [hpv], axis=0)
         self.grid = np.append(self.grid, [grid_vec], axis=0)
         debug("Sampling space expanded: {}".format(len(self.hpv))) 
-        return super(GridSamplingSpace, self).expand(hpv)
+        return super(GridParameterSpace, self).expand(hpv)
 
     def get_one_hot_grid(self):
         grid = []
@@ -161,7 +161,7 @@ class GridSamplingSpace(SearchHistory):
         return np.asarray(grid) 
 
 
-class SurrogateSamplingSpace(GridSamplingSpace):
+class SurrogatesSpace(GridParameterSpace):
 
     def __init__(self, lookup, one_hot=False):
 
@@ -169,7 +169,7 @@ class SurrogateSamplingSpace(GridSamplingSpace):
         self.hpv = lookup.get_all_hyperparam_vectors()
         self.num_epochs = lookup.num_epochs
 
-        super(SurrogateSamplingSpace, self).__init__(lookup.data_type, 
+        super(SurrogatesSpace, self).__init__(lookup.data_type, 
                                                     self.grid, self.hpv, 
                                                     lookup.hp_config,
                                                     one_hot=one_hot)
@@ -184,7 +184,7 @@ class SurrogateSamplingSpace(GridSamplingSpace):
             test_error = self.test_errors[sample_index]
         if num_epochs is None:
             num_epochs = self.num_epochs
-        super(GridSamplingSpace, self).update_error(sample_index, test_error, num_epochs)
+        super(GridParameterSpace, self).update_error(sample_index, test_error, num_epochs)
 
     def get_errors(self, type_or_id):
         if type_or_id == "completes":
@@ -210,14 +210,14 @@ class SurrogateSamplingSpace(GridSamplingSpace):
         return idx
 
 
-class RemoteSamplingSpace(SearchHistory):
+class RemoteParameterSpace(ParameterSpace):
     def __init__(self, space_url, cred):
 
-        self.space = RemoteSampleSpaceConnector(space_url, credential=cred)
+        self.space = RemoteParameterSpaceConnector(space_url, credential=cred)
         
         self.name = "remote_{}".format(self.space.get_space_id())
         num_samples = self.space.get_num_samples()
-        super(RemoteSamplingSpace, self).__init__(num_samples)
+        super(RemoteParameterSpace, self).__init__(num_samples)
 
     def get_name(self):
         return self.name

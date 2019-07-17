@@ -12,7 +12,7 @@ from samples.keras_cb import *
 
 RESOURCE_ID = 'cpu0'
 
-@eval_task
+@objective_function
 def optimize_mnist_lenet1(config, **kwargs):
     from samples.mnist_lenet1_keras import KerasWorker
     global RESOURCE_ID
@@ -35,7 +35,7 @@ def optimize_mnist_lenet1(config, **kwargs):
     report_result(res, elapsed_time)
 
 
-@eval_task
+@objective_function
 def optimize_kin8nm_mlp(config, **kwargs):
     from samples.kin8nm_mlp_keras import KerasWorker
     global RESOURCE_ID

@@ -14,7 +14,7 @@ from ws.hpo.sample_space import *
 def connect_remote_space(space_url, cred):
     try:
         debug("Connecting remote space: {}".format(space_url))
-        return RemoteSamplingSpace(space_url, cred)
+        return RemoteParameterSpace(space_url, cred)
     except Exception as ex:
         warn("Fail to get remote samples: {}".format(ex))
         return None  
@@ -22,7 +22,7 @@ def connect_remote_space(space_url, cred):
 
 def create_surrogate_space(surrogate, grid_order=None, one_hot=False):
     l = lookup.load(surrogate, grid_order=grid_order)
-    s = SurrogateSamplingSpace(l, one_hot=one_hot)
+    s = SurrogatesSpace(l, one_hot=one_hot)
     debug("Surrogate model created: {}".format(surrogate))
     return s
 
@@ -40,7 +40,7 @@ def create_grid_space(hp_cfg_dict, num_samples=20000, grid_seed=1, one_hot=False
     name = "{}-{}".format(prefix, time.strftime('%Y%m%dT%H%M%SZ',time.gmtime()))
     
     hvg = HyperparameterVectorGenerator(hp_cfg_dict, num_samples, grid_seed)
-    s = GridSamplingSpace(name, 
+    s = GridParameterSpace(name, 
                         hvg.get_grid(), hvg.get_hpv(), 
                         hp_cfg_dict, 
                         one_hot=one_hot)

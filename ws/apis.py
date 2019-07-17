@@ -190,7 +190,7 @@ def update_current_loss(cur_iters,
 #########################################################################
 # Decorator functions
 # (Do NOT invoke it directly)
-def eval_task(eval_func):
+def objective_function(eval_func):
     def wrapper_function():
         from ws.wot.workers.evaluator import TargetFunctionEvaluator
 
@@ -203,7 +203,7 @@ def eval_task(eval_func):
     return wrapper_function
 
 
-def progressive_eval_task(eval_func):
+def progressive_objective_function(eval_func):
     def wrapper_function():
         from ws.wot.workers.evaluator import TargetFunctionEvaluator
 

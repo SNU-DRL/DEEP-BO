@@ -10,11 +10,11 @@ def get_database_manager(db_type="JSON"):
     else:
         raise NotImplementedError("No such DB type implemented: {}".format(db_type))
 
+
 # FIXME: This is just a naive database implementation.
 class JsonFileDBManager(object):
     def __init__(self, file_name=JSON_DB_FILE):
         self.file_name = file_name
-        
 
     def update(self, key, value):
         database = self.load(self.file_name)
