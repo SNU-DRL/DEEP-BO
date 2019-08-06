@@ -84,11 +84,13 @@ If you want to run a sample, following deep learning packages may be required:
 * [tensorflow(-gpu)](https://www.tensorflow.org/install)
 * [karas(-gpu)](https://keras.io/#installation)
 * [pytorch](https://pytorch.org/get-started/locally/)
+* ConfigSpace
 
 In case of CPU only, you can install above packages as follows:
 ```bash
 (hpo)device:path$ conda install -c conda-forge keras tensorflow 
 (hpo)device:path$ conda install pytorch-cpu torchvision-cpu -c pytorch
+(hpo)device:path$ pip install ConfigSpace
 ```
 
 
