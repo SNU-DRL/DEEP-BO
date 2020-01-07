@@ -121,6 +121,8 @@ class TargetFunctionEvaluator(Trainer):
                             break
 
                     result = self.get_cur_result(self.get_device_id())
+                    if result == None:
+                        result = sys.float_info.max # Set max number of float when NaN    
                     self.stop_flag = True
                       
                 else:
