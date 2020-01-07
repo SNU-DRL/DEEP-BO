@@ -1,6 +1,7 @@
 import traceback
 import atexit
 import inspect
+import math
 
 import validators as valid
 
@@ -180,7 +181,10 @@ def update_current_loss(cur_iters,
     global JOB_MANAGER
 
     if JOB_MANAGER != None:
-        JOB_MANAGER.update_result(cur_iters, cur_loss, run_time,
+        if math.isnan(cur_loss):
+            warn("Invalid loss value: {}".format(cur_loss))
+        else:
+            JOB_MANAGER.update_result(cur_iters, cur_loss, run_time,
                                   iter_unit=iter_unit,
                                   loss_type=loss_type)
     else:
