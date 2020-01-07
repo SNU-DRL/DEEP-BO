@@ -8,6 +8,7 @@ import argparse
 import traceback
 import validators as valid
 
+from ws.shared.lookup import check_lookup_existed
 from ws.shared.logger import *
 from ws.shared.read_cfg import *
 
@@ -23,7 +24,7 @@ ALL_MIXING_SPECS = ['HEDGE', 'BO-HEDGE', 'BO-HEDGE-T', 'BO-HEDGE-LE', 'BO-HEDGE-
                     'EG', 'EG-LE', 'GT', 'GT-LE', 'SKO']
 BATCH_SPECS = ['SYNC', 'ASYNC']
     
-LOOKUP_PATH = './lookup/'
+
 RUN_CONF_PATH = './run_conf/'
 
 
@@ -67,11 +68,6 @@ def validate_args(args):
     return valid
 
 
-def check_lookup_existed(name):
-    for csv in os.listdir(LOOKUP_PATH):
-        if str(csv) == '{}.csv'.format(name):
-            return True
-    return False
 
 
 def execute(args, save_results=False):
@@ -109,15 +105,23 @@ def execute(args, save_results=False):
                 if 'grid_seed' in run_cfg['grid']:
                     grid_seed = run_cfg['grid']['grid_seed']                       
             
+            if args["early_term_rule"] != "None":
+                run_cfg["early_term_rule"] = args["early_term_rule"]            
             
             if args['preevaluated'] == True:
                 if not check_lookup_existed(run_cfg['hp_config']):
                     raise ValueError('Pre-evaluated configuration not found: {}'.format(run_cfg['hp_config']))
                 debug("Create surrogate space: order-{}, one hot-{}, seed-{}".format(grid_order, one_hot, grid_seed))
                 
-                samples = space.create_surrogate_space(args['hp_config'], 
-                            grid_order=grid_order, 
-                            one_hot=one_hot)
+                samples = space.create_surrogate_space(run_cfg['hp_config'], 
+                                                       grid_order=grid_order, 
+                                                       one_hot=one_hot)
+                m = bandit.create_emulator(samples, 
+                            args['exp_crt'], args['exp_goal'], args['exp_time'],
+                            goal_metric= args['goal_metric'],
+                            num_resume=num_resume,
+                            save_internal=save_internal,
+                            run_config=run_cfg)
             else:
                 hp_cfg = args['hp_config']
                 debug("Creating parameter space with seed:{}, one-hot:{}, samples:{}".format(grid_seed, one_hot, num_samples))
@@ -127,27 +131,20 @@ def execute(args, save_results=False):
                                                   grid_seed=grid_seed,
                                                   one_hot=one_hot)
 
-            if args["early_term_rule"] != "None":
-                run_cfg["early_term_rule"] = args["early_term_rule"]
 
             
-            if valid.url(run_cfg['train_node']):
-                trainer = run_cfg['train_node']
-                m = bandit.create_runner(trainer, samples,
-                            args['exp_crt'], args['exp_goal'], args['exp_time'],
-                            goal_metric= args['goal_metric'],
-                            num_resume=num_resume,
-                            save_internal=save_internal,
-                            run_config=run_cfg,
-                            hp_config=hp_cfg,
-                            use_surrogate=use_surrogate)
-            else:
-                m = bandit.create_emulator(samples, 
-                            args['exp_crt'], args['exp_goal'], args['exp_time'],
-                            goal_metric= args['goal_metric'],
-                            num_resume=num_resume,
-                            save_internal=save_internal,
-                            run_config=run_cfg)
+                if valid.url(run_cfg['train_node']):
+                    trainer = run_cfg['train_node']
+                    m = bandit.create_runner(trainer, samples,
+                                args['exp_crt'], args['exp_goal'], args['exp_time'],
+                                goal_metric= args['goal_metric'],
+                                num_resume=num_resume,
+                                save_internal=save_internal,
+                                run_config=run_cfg,
+                                hp_config=hp_cfg,
+                                use_surrogate=use_surrogate)
+                else:
+                    raise ValueError("Invalid train node: {}".format(run_cfg["train_node"]))
 
             if args['mode'] == 'DIV' or args['mode'] == 'ADA':
                 result = m.mix(args['spec'], args['num_trials'], 

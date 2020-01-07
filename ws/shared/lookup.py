@@ -3,20 +3,28 @@ import os
 import pandas as pd
 import numpy as np
 
-import ws.shared.hp_cfg as hp_cfg
+from ws.shared.read_cfg import read_hyperparam_config
 from ws.shared.logger import *
 
-def load(data_type, data_folder='lookup/', config_folder='hp_conf/', grid_order=None):
+LOOKUP_DIR = './lookup/'
+def check_lookup_existed(name, lookup_dir=LOOKUP_DIR):
+    if name.endswith('.json'):
+        name = name[:-4]
+    for csv in os.listdir(lookup_dir):
+        if str(csv) == '{}.csv'.format(name):
+            return True
+    return False
+def load(data_type, lookup_dir=LOOKUP_DIR, config_folder='hp_conf/', grid_order=None):
     grid_shuffle = False
     if grid_order == 'shuffle':
         grid_shuffle = True
     
-    csv_path = data_folder + str(data_type) + '.csv'
+    csv_path = lookup_dir + str(data_type) + '.csv'
     csv_data = pd.read_csv(csv_path)
 
     cfg_path = config_folder + str(data_type) + '.json'
     #debug("lookup load: {} config path: {}".format(data_type, cfg_path))
-    cfg = hp_cfg.read_config(cfg_path)
+    cfg = read_hyperparam_config(cfg_path)
 
     num_epochs = 15
     if data_type == 'CIFAR10-VGG' or data_type == 'CIFAR100-VGG':

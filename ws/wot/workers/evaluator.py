@@ -4,6 +4,7 @@ import sys
 import time
 import traceback
 import copy
+import math
 
 import multiprocessing as mp
 import numpy as np
@@ -177,6 +178,8 @@ class TargetFunctionEvaluator(Trainer):
         elif type(result) == list and len(result) > 0:
             self.results = result # update all results            
         elif type(result) == float:
+            if math.isnan(result):
+                result = sys.float_info.max # Set max number of float when NaN 
             result = { 
                 "run_time": time.time() - base_time,
                 "cur_loss": result,

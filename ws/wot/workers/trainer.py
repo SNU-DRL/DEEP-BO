@@ -88,14 +88,15 @@ class Trainer(Worker):
     def get_cur_result(self, device_id):
         if self.is_forked() == True:
             self.load_results(device_id)
+        
         if len(self.results) > 0:
             latest = self.results[-1]
             result = copy.copy(latest)
             result['lr'] = [copy.copy(r['cur_loss']) for r in self.results]
             result['run_time'] = latest['run_time']
             return result
-
         else:
+            warn("No result available.")
             return None
 
     def add_result(self, cur_iter, cur_loss, run_time, 
