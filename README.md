@@ -45,31 +45,34 @@ After creating the environment, activate your environment as follows:
     source activate hpo
 ```
 
-### Dependent packages
+### Package Dependencies
 
 DEEP-BO requires the following packages:
 
-* For WOA
+* For any thinking node (basic requirements)
+  * future
   * flask-restful
   * requests
   * httplib2
   * validators
-* For DEEP-BO
+  * pyYAML
+
+* For DEEP-BO (especially for tuner node and HPO runner)
   * pandas
   * scikit-learn
   * numpy
   * scipy
-  * future
   * hyperopt
+  * pyDOE
 
 
-It is better to install using conda than pip to avoid dependency conflicts, but conda only offers some popular packages.
-Therefore, if you are working in a conda environment, install as follows:
+It is better to install using conda than pip to avoid dependency conflicts but conda manges some limitted packages.
+Therefore, if you are working in a conda environment as I suggested, install them seperately as follows:
 
 ```bash
-
-(hpo)device:path$ conda install pandas scikit-learn future numpy scipy
-(hpo)device:path$ pip install hyperopt validators flask-restful requests httplib2
+(hpo)device:path$ pip install future validators flask-restful requests httplib2 pyYAML
+(hpo)device:path$ conda install pandas numpy scipy scikit-learn
+(hpo)device:path$ pip install hyperopt pyDOE
 ```
 
 ### Additional packages
@@ -79,17 +82,18 @@ You can also speed up the gradient calculation in GP when installing weave packa
 (hpo)device:path$ conda install -c conda-forge weave
 ```
 
-If you want to run a sample, following deep learning packages may be required:
+### Deep learning packages
+
+If you want to run a sample code, following deep learning packages may be required:
 
 * [tensorflow(-gpu)](https://www.tensorflow.org/install)
-* [karas(-gpu)](https://keras.io/#installation)
-* [pytorch](https://pytorch.org/get-started/locally/)
-* ConfigSpace
+* [keras(-gpu)](https://keras.io/#installation)
 
 In case of CPU only, you can install above packages as follows:
 ```bash
-(hpo)device:path$ conda install -c conda-forge keras tensorflow 
-(hpo)device:path$ conda install pytorch-cpu torchvision-cpu -c pytorch
+(hpo)device:path$ conda install tensorflow=1.15 keras
+```
+
 ```
 
 

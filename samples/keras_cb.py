@@ -19,11 +19,10 @@ class TestAccuracyCallback(keras.callbacks.Callback):
         cur_loss = 1.0 - cur_acc
         elapsed_time = time.time() - self.start_time
         max_i = np.argmax(self.accs)
-        debug("Training accuracy at {} epoch(s) is {} ({:.1f} secs). Current best: {} (at epoch {}).".format(
-              num_epoch, cur_acc, elapsed_time, self.accs[max_i], max_i+1))
         # XXX:update result via file
         update_current_loss(num_epoch, cur_loss, elapsed_time)
-
+        log("The test accuracy at {} epoch(s) is {}. The best is {} at epoch {}. ({:.1f} secs)".format(
+              num_epoch, cur_acc, self.accs[max_i], max_i+1, elapsed_time))
 
 class RMSELossCallback(keras.callbacks.Callback):
 
@@ -41,5 +40,5 @@ class RMSELossCallback(keras.callbacks.Callback):
         elapsed_time = time.time() - self.start_time
         # XXX:update result via file
         update_current_loss(num_epoch, rmse, elapsed_time, loss_type='rmse')
-        debug("Training {} epoches takes {:.1f} secs. Current min loss: {}".format(
+        log("Training {} epoches takes {:.1f} secs. Current best RMSE: {}".format(
             num_epoch, elapsed_time, min(self.losses)))

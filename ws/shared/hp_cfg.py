@@ -1,5 +1,3 @@
-import numpy as np
-import pandas as pd
 
 import json
 import os
@@ -148,3 +146,16 @@ class HyperparameterConfiguration(DictionaryToObject):
 
     def get_dict(self):
         return self._dict
+
+    def to_typed_list(self, arr):
+        typed_list = []
+        p_list = self.get_param_list()
+        if len(p_list) != len(arr):
+            raise TypeError("Invalid hyperparameter vector: {}".format(arr))
+        for i in range(len(p_list)):
+            p = p_list[i]
+            t = self.get_type(p)
+            v = eval(t)(arr[i])
+            typed_list.append(v)
+
+        return typed_list

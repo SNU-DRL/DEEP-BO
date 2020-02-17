@@ -12,10 +12,10 @@ from ws.shared.lookup import check_lookup_existed
 from ws.shared.logger import *
 from ws.shared.read_cfg import *
 
-import ws.hpo.bandit_config as bconf
-import ws.hpo.bandit as bandit
-import ws.hpo.batch_sim as batch
-import ws.hpo.space_mgr as space
+import hpo.bandit_config as bconf
+import hpo.bandit as bandit
+import hpo.batch_sim as batch
+import hpo.space_mgr as space
 
 ALL_OPT_MODELS = ['SOBOL', 'GP', 'RF', 'TPE', 'GP-NM', 'GP-HLE', 'RF-HLE', 'TPE-HLE']
 ACQ_FUNCS = ['RANDOM', 'EI', 'PI', 'UCB']
@@ -57,13 +57,33 @@ def validate_args(args):
 
 
     for attr, value in vars(args).items():
-        valid[str(attr)] = value  
+        if attr in run_cfg:
+            valid[str(attr)] = run_cfg[str(attr)]
+        else:
+            valid[str(attr)] = value  
 
+    if not "early_term_rule" in run_cfg:
+        run_cfg["early_term_rule"] = args.early_term_rule
+		
+    space_setting = {}
+    if not 'search_space' in run_cfg:
+        run_cfg['search_space'] = space_setting
+    else:
+        space_setting = run_cfg['search_space']
+		
+    if not 'order' in space_setting:
+        space_setting['order'] = None
+    if not 'num_samples' in space_setting:
+        space_setting['num_samples'] = 20000
+    if not 'seed' in space_setting:
+        space_setting['seed'] = 1
+    if not 'preevaluated' in space_setting:
+        space_setting['preevaluated'] = False
+    if not 'prior_history' in space_setting:
+        space_setting['prior_history'] = None
     valid['hp_config'] = hp_cfg
     valid['run_config'] = run_cfg
-    valid['preevaluated'] = False
-    if 'preevaluated' in run_cfg:
-        valid['preevaluated'] = run_cfg['preevaluated']
+
            
     return valid
 
@@ -72,108 +92,84 @@ def validate_args(args):
 
 def execute(args, save_results=False):
     try:
-        num_resume = 0
-        save_internal = False
-        if 'rerun' in args:
-            num_resume = args['rerun']
-        if 'save_internal' in args:
-            save_internal = args['save_internal']
         
-        result = []
         run_cfg = args['run_config']
-
-        if args['mode'].upper() != 'BATCH':
+        space_set = run_cfg['search_space']
             
-            m = None
-            hp_cfg = None 
-            use_surrogate = None
+        samples = None
 
-            trainer = None
-            samples = None
+        m = None        
 
-            grid_order = None 
-            one_hot = True # Set one hot coding as default for preparing final revision
-            num_samples = 20000
-            grid_seed = 1
-            if 'grid' in run_cfg:
-                if 'order' in run_cfg['grid']:
-                    grid_order = run_cfg['grid']['order']
-                if 'one_hot' in run_cfg['grid']:
-                    one_hot = run_cfg['grid']['one_hot']
-                if 'num_samples' in run_cfg['grid']:
-                    num_samples = run_cfg['grid']['num_samples']
-                if 'grid_seed' in run_cfg['grid']:
-                    grid_seed = run_cfg['grid']['grid_seed']                       
+        result = []
             
-            if args["early_term_rule"] != "None":
-                run_cfg["early_term_rule"] = args["early_term_rule"]            
             
-            if args['preevaluated'] == True:
-                if not check_lookup_existed(run_cfg['hp_config']):
-                    raise ValueError('Pre-evaluated configuration not found: {}'.format(run_cfg['hp_config']))
-                debug("Create surrogate space: order-{}, one hot-{}, seed-{}".format(grid_order, one_hot, grid_seed))
+        if space_set['preevaluated']:
+            if not check_lookup_existed(run_cfg['hp_config']):
+                raise ValueError('Pre-evaluated configuration not found: {}'.format(run_cfg['hp_config']))
+            debug("Create surrogate space by lookup table: {}".format(space_set))
                 
-                samples = space.create_surrogate_space(run_cfg['hp_config'], 
-                                                       grid_order=grid_order, 
-                                                       one_hot=one_hot)
-                m = bandit.create_emulator(samples, 
-                            args['exp_crt'], args['exp_goal'], args['exp_time'],
-                            goal_metric= args['goal_metric'],
-                            num_resume=num_resume,
-                            save_internal=save_internal,
-                            run_config=run_cfg)
-            else:
-                hp_cfg = args['hp_config']
-                debug("Creating parameter space with seed:{}, one-hot:{}, samples:{}".format(grid_seed, one_hot, num_samples))
+            samples = space.create_lookup_space(run_cfg['hp_config'], 
+                                                grid_order=space_set['order'])
+            m = bandit.create_emulator(samples, 
+                        args['exp_crt'], 
+                        args['exp_goal'], 
+                        args['exp_time'],
+                        goal_metric=args['goal_metric'],
+                        num_resume=args['rerun'],
+                        save_internal=args['save_internal'],
+                        run_config=run_cfg)
+        else:
+            hp_cfg = args['hp_config']
+            debug("Search space will be created as {}".format(space_set))
 
-                samples = space.create_grid_space(hp_cfg.get_dict(),
-                                                  num_samples=num_samples,
-                                                  grid_seed=grid_seed,
-                                                  one_hot=one_hot)
+            samples = space.create_surrogate_space(hp_cfg.get_dict(), space_set)
 
 
             
-                if valid.url(run_cfg['train_node']):
-                    trainer = run_cfg['train_node']
-                    m = bandit.create_runner(trainer, samples,
-                                args['exp_crt'], args['exp_goal'], args['exp_time'],
-                                goal_metric= args['goal_metric'],
-                                num_resume=num_resume,
-                                save_internal=save_internal,
-                                run_config=run_cfg,
-                                hp_config=hp_cfg,
-                                use_surrogate=use_surrogate)
-                else:
-                    raise ValueError("Invalid train node: {}".format(run_cfg["train_node"]))
+            if valid.url(run_cfg['train_node']):
+                trainer_url = run_cfg['train_node']
+                m = bandit.create_runner(trainer_url, samples,
+                            args['exp_crt'], 
+                            args['exp_goal'], 
+                            args['exp_time'],
+                            goal_metric= args['goal_metric'],
+                            num_resume=args['rerun'],
+                            save_internal=args['save_internal'],
+                            run_config=run_cfg,
+                            hp_config=hp_cfg
 
-            if args['mode'] == 'DIV' or args['mode'] == 'ADA':
-                result = m.mix(args['spec'], args['num_trials'], 
-                               save_results=save_results)
-            elif args['mode'] in ALL_OPT_MODELS:
-                result = m.all_in(args['mode'], args['spec'], args['num_trials'], 
-                                  save_results=save_results)
+                            )
             else:
-                raise ValueError('unsupported mode: {}'.format(args['mode']))
-        elif args['mode'] == 'BATCH':            
-            c = batch.get_simulator(args['spec'].upper(), 
-                                    args['surrogate'],
-                                    args['exp_crt'], 
-                                    args['exp_goal'], 
-                                    args['exp_time'], 
-                                    args['run_cfg'])
-            result = c.run(args['num_trials'], save_results=True)
+                raise ValueError("Invalid train node: {}".format(run_cfg["train_node"]))
+        if args['mode'] == 'DIV' or args['mode'] == 'ADA':
+            result = m.mix(args['spec'], args['num_trials'], 
+                            save_results=save_results)
+        elif args['mode'] in ALL_OPT_MODELS:
+            result = m.all_in(args['mode'], args['spec'], args['num_trials'], 
+                                save_results=save_results)
         else:
-            raise ValueError("upsupported run mode: {}".format(args['mode']))
+            raise ValueError('unsupported mode: {}'.format(args['mode']))
     except Exception as ex:
-        warn('{} occurs on executing SMBO'.format(ex))     
+        warn('Exception raised during optimization: {}'.format(ex))     
     
+    if samples != None:
+        samples.save() 
     return result
 
 
 def main(args):
     try:
         valid_args = validate_args(args)
-        results = execute(valid_args, save_results=True)    
+        if valid_args['mode'].upper() == 'BATCH':
+            c = batch.get_simulator(valid_args['spec'].upper(), 
+                                    valid_args['run_config']['hp_config'],
+                                    valid_args['exp_crt'], 
+                                    valid_args['exp_goal'], 
+                                    valid_args['exp_time'], 
+                                    valid_args['run_config'])
+            results = c.run(valid_args['num_trials'], save_results=True)
+        else:
+            results = execute(valid_args, save_results=True)    
     except Exception as ex:
         error(ex)
         traceback.print_exc()        
@@ -237,7 +233,7 @@ if __name__ == "__main__":
 #                        help='[Experimental] Time penalty strategies for acquistion function.\n'+\
 #                        '{} are available. Default setting is {}'.format(time_penalties_modes, default_time_penalty))
  
-    parser.add_argument('run_config', type=str, help='Run configuration name.')
+    parser.add_argument('run_config', type=str, default='debug', help='Run configuration name.')
 
     args = parser.parse_args()    
     main(args)

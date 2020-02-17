@@ -22,7 +22,7 @@ class Spaces(Resource):
             
             space_req = request.get_json(force=True)
             # TODO:check whether 'surrogate', 'hp_cfg' existed
-            debug("Sampling space creation request accepted.")  
+            debug("Search space creation request accepted.")  
             space_id = self.sm.create(space_req) 
 
             if space_id is None:
@@ -31,7 +31,7 @@ class Spaces(Resource):
                 return {"space_id": space_id}, 201
 
         except Exception as ex:
-            return "Sampling space creation failed: {}".format(ex), 400
+            return "Search space creation failed: {}".format(ex), 400
 
     def get(self):
         # TODO:add argument handling for windowing items

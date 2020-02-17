@@ -24,7 +24,7 @@ class ObservedError(Resource):
         
         samples = self.sm.get_samples(space_id)
         if samples == None:
-            return "Sampling space {} is not available".format(space_id), 404
+            return "Search space {} is not available".format(space_id), 404
         
         sample_id = int(sample_id)
         error = {"id": sample_id}

@@ -50,7 +50,7 @@ class WebServiceManager(ManagerPrototype):
 
         if self.job_mgr.type == "ParallelHPOManager":
             from ws.resources.candidates import Candidates
-            from ws.resources.completes import Completes
+            from ws.resources.completions import Completions
             from ws.resources.grid import Grid
             from ws.resources.hparams import HyperparamVector
             from ws.resources.errors import ObservedErrors
@@ -71,11 +71,11 @@ class WebServiceManager(ManagerPrototype):
                             resource_class_kwargs={'space_manager': space_mgr})    
             self.api.add_resource(Space, "/spaces/<string:space_id>/", 
                             resource_class_kwargs={'space_manager': space_mgr})
-            self.api.add_resource(Grid, "/spaces/<string:space_id>/grids/<string:sample_id>/", 
+            self.api.add_resource(Grid, "/spaces/<string:space_id>/grid/<string:sample_id>/", 
                             resource_class_kwargs={'space_manager': space_mgr})
             self.api.add_resource(HyperparamVector, "/spaces/<string:space_id>/vectors/<string:sample_id>/", 
                             resource_class_kwargs={'space_manager': space_mgr})
-            self.api.add_resource(Completes, "/spaces/<string:space_id>/completes/", 
+            self.api.add_resource(Completions, "/spaces/<string:space_id>/completions/", 
                             resource_class_kwargs={'space_manager': space_mgr})
             self.api.add_resource(Candidates, "/spaces/<string:space_id>/candidates/", 
                             resource_class_kwargs={'space_manager': space_mgr})                                         
@@ -101,9 +101,9 @@ class WebServiceManager(ManagerPrototype):
 
         space_urls = [ 
             {"/spaces/[space_id]/": {"method": ['GET']}},
-            {"/spaces/[space_id]/completes/": {"method": ['GET']}},
+            {"/spaces/[space_id]/completions/": {"method": ['GET']}},
             {"/spaces/[space_id]/candidates/": {"method": ['GET']}},
-            {"/spaces/[space_id]/grids/[id]/": {"method": ['GET']}},
+            {"/spaces/[space_id]/grid/[id]/": {"method": ['GET']}},
             {"/spaces/[space_id]/vectors/[id]/": {"method": ['GET']}},
             {"/spaces/[space_id]/errors/[id]/": {"method": ['GET', 'PUT']}}
         ]

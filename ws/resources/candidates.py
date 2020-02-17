@@ -23,7 +23,7 @@ class Candidates(Resource):
 
         samples = self.sm.get_samples(space_id)
         if samples == None:
-            return "Sampling space {} is not available".format(space_id), 500
+            return "Search space {} is not available".format(space_id), 500
 
         result = {}
 

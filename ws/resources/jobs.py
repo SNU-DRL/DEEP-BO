@@ -22,7 +22,7 @@ class Jobs(Resource):
             
             job_req = request.get_json(force=True)
             # TODO:check whether 'surrogate', 'hp_cfg' existed
-            debug("Job creation request accepted.")  
+              
             job_id = self.jm.add(job_req) 
 
             if job_id == None:

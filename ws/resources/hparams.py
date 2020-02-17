@@ -24,13 +24,13 @@ class HyperparamVector(Resource):
 
         samples = self.sm.get_samples(space_id)
         if samples == None:
-            return "Sampling space {} is not available".format(space_id), 500
+            return "Search space {} is not available".format(space_id), 500
 
         if sample_id == 'all':
             all_items =[]
-            for c_id in range(samples.num_samples):
+            for c_id in range(samples.get_size()):
                 grid = {"id": c_id}
-                grid["hparams"] = samples.get_hpv(int(c_id))
+                grid["hparams"] = samples.get_hpv_dict(int(c_id))
                 all_items.append(grid)
             
             return all_items, 200                
@@ -39,23 +39,23 @@ class HyperparamVector(Resource):
             candidates = []
             for c_id in samples.get_candidates(args['use_interim']):
                 hpv = {"id": c_id}
-                hpv["hparams"] = samples.get_hpv(int(c_id))
+                hpv["hparams"] = samples.get_hpv_dict(int(c_id))
                 candidates.append(hpv)
             
             return candidates, 200
 
-        elif sample_id == 'completes':
-            completes = []
-            for c_id in samples.get_completes(args['use_interim']):
+        elif sample_id == 'completions':
+            completions = []
+            for c_id in samples.get_completions(args['use_interim']):
                 hpv = {"id": c_id}
-                hpv["hparams"] = samples.get_hpv(int(c_id))
-                completes.append(hpv)
+                hpv["hparams"] = samples.get_hpv_dict(int(c_id))
+                completions.append(hpv)
             
-            return completes, 200
+            return completions, 200
         else:
             try:
                 hpv = {"id": sample_id}
-                hpv["hparams"] = samples.get_hpv(int(sample_id))
+                hpv["hparams"] = samples.get_hpv_dict(int(sample_id))
                 return hpv, 200
 
             except Exception as ex:

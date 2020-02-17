@@ -1,7 +1,6 @@
 import traceback
 import atexit
 import inspect
-import math
 
 import validators as valid
 
@@ -36,7 +35,7 @@ def create_master_server(hp_cfg,
     This API blocks the remained procedure unless a terminal signal enters.
  
     '''
-    from ws.hpo.batch_mgr import ParallelHPOManager
+    from hpo.batch_mgr import ParallelHPOManager
 
     global JOB_MANAGER
     global API_SERVER
@@ -70,7 +69,7 @@ def wait_hpo_request(run_cfg,
     This API blocks the remained procedure unless a terminal signal enters.
  
     '''
-    from ws.hpo.job_mgr import HPOJobManager
+    from hpo.job_mgr import HPOJobManager
 
     global JOB_MANAGER
     global API_SERVER
@@ -181,10 +180,7 @@ def update_current_loss(cur_iters,
     global JOB_MANAGER
 
     if JOB_MANAGER != None:
-        if math.isnan(cur_loss):
-            warn("Invalid loss value: {}".format(cur_loss))
-        else:
-            JOB_MANAGER.update_result(cur_iters, cur_loss, run_time,
+        JOB_MANAGER.update_result(cur_iters, cur_loss, run_time,
                                   iter_unit=iter_unit,
                                   loss_type=loss_type)
     else:
@@ -200,8 +196,14 @@ def objective_function(eval_func):
 
         argspec = inspect.getargspec(eval_func)
         fe = TargetFunctionEvaluator(
-            "{}_evaluator".format(eval_func.__name__))
-        fe.set_exec_func(eval_func, argspec.args)
+            "{}".format(eval_func.__name__))
+        defaults = None
+        try:
+            defaults = getattr(argspec, 'defaults')
+            debug("Target function arguments: {}, defaults: {}".format(argspec.args, defaults))
+        except Exception as ex:            
+            pass
+        fe.set_exec_func(eval_func, argspec.args, defaults)
         return fe
 
     return wrapper_function
@@ -213,7 +215,7 @@ def progressive_objective_function(eval_func):
 
         argspec = inspect.getargspec(eval_func)
         fe = TargetFunctionEvaluator(
-            "{}_evaluator".format(eval_func.__name__), progressive=True)
+            "{}".format(eval_func.__name__), progressive=True)
         fe.set_exec_func(eval_func, argspec.args)
         return fe
 

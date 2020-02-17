@@ -24,7 +24,6 @@ class TargetFunctionEvaluator(Trainer):
         self.max_iters = 1
         self.iter_unit = "epoch"
         self.progressive = progressive
-        self.config = {}
         self.eval_process = None
 
     def get_config(self):
@@ -33,35 +32,48 @@ class TargetFunctionEvaluator(Trainer):
     def set_max_iters(self, num_max_iters, iter_unit="epoch"):
         self.max_iters = num_max_iters
 
-    def set_exec_func(self, eval_func, args):
+    def set_exec_func(self, eval_func, args, defaults=None):
         self.eval_func = eval_func
         self.config = {"target_func": eval_func.__name__,
-                        "arguments" : args}
+                        "arguments" : args,
+                        "defaults" : defaults}
 
     def start(self):
-        while self.busy == True:
-            debug("Waiting until previous job finished properly.")
-            time.sleep(1)
-            if self.stop_flag:
-                break
+        if self.is_working() == True:
+            debug("Trainer is busy!")
+            time.sleep(3) # XXX:set proper waiting time
+            return False
 
         if self.params is None:
-            error('Set configuration properly before starting.')
+            error('Set configuration properly before starting!')
             return False
         else:
+            debug("Training is starting with {}".format(self.params))
             super(TargetFunctionEvaluator, self).start()
             return True
 
+    def is_working(self):
+        try:
+            if self.is_forked() and self.eval_process != None:
+                self.busy = self.eval_process.is_alive()
+                return self.busy
+            else:
+                self.busy = False
+        except Exception as ex:
+            debug("Exception raised when checking work state: {}".format(ex))
+        finally:
+            return self.busy
     def stop(self):
         if self.eval_process != None:
             try:
                 while self.eval_process.is_alive():
                     os.kill(self.eval_process._popen.pid, signal.SIGKILL)
                     time.sleep(1)
+                debug("Evaluation process stopped.")                
+                self.stop_flag = True
             except Exception as ex:
-                pass
-            self.eval_process = None
-            self.stop_flag = True
+                warn("Exception occurs on stopping an evaluation job: {}".format(ex))
+                self.stop() # XXX:retry to kill process
         else:            
             super(TargetFunctionEvaluator, self).stop()
             while self.stop_flag == False:
@@ -108,48 +120,39 @@ class TargetFunctionEvaluator(Trainer):
                     self.eval_process.join()
                     end_time = time.time()
 
-                    et = time.asctime(time.gmtime(end_time))
-                    ls = time.asctime(time.gmtime(self.last_sync_time))
-                    debug("Task ended at {}. However, result synched at {}".format(et, ls))
+                    et = time.asctime(time.localtime(end_time))
+                    ls = time.asctime(time.localtime(self.last_sync_time))
+                    debug("Task ended at {} but the final result was synchronized at {}.".format(et, ls))
 
                     # waits until the final result is synchronized
                     while self.last_sync_time == None or end_time > self.last_sync_time:
                         now = time.asctime()
-                        debug("Waiting synchronization at {}.".format(now))
+                        #debug("Waiting the result synchronization at {}.".format(now))
                         time.sleep(1)
                         if self.stop_flag == True:
                             break
-
-                    result = self.get_cur_result(self.get_device_id())
-                    if result == None:
-                        result = sys.float_info.max # Set max number of float when None returns    
-                    self.stop_flag = True
-                      
                 else:
-                    result = self.eval_func(self.params, 
-                                            cur_iter=i, 
-                                            max_iters=max_iters, 
-                                            iter_unit=self.iter_unit,
-                                            job_id=job_id)
-                    if result == None:
-                        # XXX:if objective function does not return any result,
-                        # wait until terminated by calling stop()                        
-                        while self.stop_flag == False:
-                            debug("Waiting stop signal...")
-                            time.sleep(1)
+                    self.eval_func(self.params, 
+                                    cur_iter=i, 
+                                    max_iters=max_iters, 
+                                    iter_unit=self.iter_unit,
+                                    job_id=job_id)
+                
 
+                result = self.get_cur_result(self.get_device_id())
                 self.update_result(i+1, result, base_time)
 
         except Exception as ex:
-            warn("{} occurs".format(sys.exc_info()[0]))
+            warn("{} occurs on evaluation: {}".format(ex, sys.exc_info()[0]))
+            self.stop_flag = True
 
         finally:
             with self.thread_cond:
-                self.busy = False
                 #self.params = None # FIXME:error occurs when previous job finished after job assigned
                 self.thread_cond.notify()
                 self.load_results(self.get_device_id())
-                debug("Evaluation {} finished properly.".format(job_id))
+                debug("Evaluating {} has finished.".format(job_id))
+                self.busy = False
 
     def update_result(self, cur_iter, result, base_time):
         if type(result) == dict and "cur_loss" in result:

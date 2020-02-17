@@ -12,7 +12,6 @@ class Trainer(Worker):
 
     def __init__(self, id=None, fork=False):
         self.fork = fork
-        self.config = {}
         self.device_id = 'cpu0'
         self.last_sync_time = None
 
@@ -52,7 +51,7 @@ class Trainer(Worker):
         self.dump_results()
 
     def set_sync_time(self, sync_time):
-        debug("synched at {}".format(time.asctime(time.gmtime(sync_time))))
+        #debug("Result had been synched at {}".format(time.asctime(time.localtime(sync_time))))
         self.last_sync_time = sync_time
 
     def set_job_description(self, params, index=None, job_id=None):
@@ -70,6 +69,8 @@ class Trainer(Worker):
     def is_forked(self):
         return self.fork
 		
+    def is_working(self):
+        return False
     def dump_results(self):
         if self.is_forked() == True:
             pkl = "{}.pkl".format(self.device_id)
@@ -82,7 +83,6 @@ class Trainer(Worker):
             with open("{}".format(pkl), "rb") as f:                
                 self.results = pickle.load(f)
         except Exception as ex:
-            debug("Read error: {}".format(ex))
             self.results = []
 
     def get_cur_result(self, device_id):
@@ -96,8 +96,21 @@ class Trainer(Worker):
             result['run_time'] = latest['run_time']
             return result
         else:
-            warn("No result available.")
-            return None
+            try:
+                if "arguments" in self.config:
+                    if "fail_err" in self.config['arguments']:
+                        default_err = self.config['defaults'][-1]
+                        default_result = {"cur_iter": 0, 
+                                "iter_unit": "epoch",
+                                "cur_loss": default_err,
+                                "loss_type": "error rate", 
+                                "run_time": 0.0
+                        }
+                        return default_result
+                    else:
+                        return None                        
+            except Exception as ex:
+                return None 
 
     def add_result(self, cur_iter, cur_loss, run_time, 
                    iter_unit="epoch",
@@ -109,11 +122,11 @@ class Trainer(Worker):
             cur_acc = None
         
         result = { "cur_iter": cur_iter, 
-                   "iter_unit": iter_unit,
-                   "cur_loss": cur_loss,
-                   "loss_type" : loss_type, 
-                   "cur_acc": cur_acc, 
-                   "run_time": run_time
+                  "iter_unit": iter_unit,
+                  "cur_loss": cur_loss,
+                  "loss_type" : loss_type, 
+                  "cur_acc": cur_acc, 
+                  "run_time": run_time
         }
 
         self.results.append(result)

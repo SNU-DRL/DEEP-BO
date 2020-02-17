@@ -24,14 +24,14 @@ class Grid(Resource):
 
         samples = self.sm.get_samples(space_id)
         if samples == None:
-            return "Sampling space {} is not available".format(space_id), 500
+            return "Search space {} is not available".format(space_id), 500
 
-        if id == 'all':
+        if sample_id == 'all':
             all_items =[]
-            for c_id in range(samples.num_samples):
+            for c_id in range(samples.get_size()):
                 grid = {"id": int(c_id)}
                 grid["values"] = []
-                for v in samples.get_grid(int(c_id)).tolist():
+                for v in samples.get_param_vectors(int(c_id)).tolist():
                     grid["values"].append(float(v))
                 all_items.append(grid)
             
@@ -42,27 +42,27 @@ class Grid(Resource):
             for c_id in samples.get_candidates(args['use_interim']):
                 grid = {"id": int(c_id)}
                 grid["values"] = []
-                for v in samples.get_grid(int(c_id)).tolist():
+                for v in samples.get_param_vectors(int(c_id)).tolist():
                     grid["values"].append(float(v))
                 candidates.append(grid)
             
             return candidates, 200
 
-        elif sample_id == 'completes':
-            completes = []
-            for c_id in samples.get_completes(args['use_interim']):
+        elif sample_id == 'completions':
+            completions = []
+            for c_id in samples.get_completions(args['use_interim']):
                 grid = {"id": int(c_id)}
                 grid["values"] = []
-                for v in samples.get_grid(int(c_id)).tolist():
+                for v in samples.get_param_vectors(int(c_id)).tolist():
                     grid["values"].append(float(v))
-                completes.append(grid)
+                completions.append(grid)
             
-            return completes, 200
+            return completions, 200
         else:
             try:
                 grid = {"id": int(sample_id)}
                 grid["values"] = []
-                for v in samples.get_grid(int(c_id)).tolist():
+                for v in samples.get_param_vectors(int(sample_id)).tolist():
                     grid["values"].append(float(v))
                 return grid, 200
 

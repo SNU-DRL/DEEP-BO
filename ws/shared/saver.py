@@ -40,12 +40,17 @@ class ResultSaver(object):
         file_path = directory + '/' +\
             name1 + '-' + name2
 
-        if 'title' in self.config and name1 == "DIV":
+        if 'title' in self.config:
             file_path = "{}.{}".format(file_path, self.config['title'].replace(" ", "_"))
 
         file_path = "{}{}({})".format(file_path, self.postfix, str(trials))
+        for retry in range(1, 100):        
+            if os.path.exists("{}.json".format(file_path)):
+                file_path = "{}.retry".format(file_path)
+            else:
+                break
         
-        log("The results will be saved as {}.json".format(file_path))
+        log("The optimization result saved as {}.json".format(file_path))
         with open(file_path + '.json', 'w') as json_file:
             json_file.write(json.dumps(results))
 
@@ -115,8 +120,14 @@ class BatchResultSaver(object):
         
         file_path = "{}/{}-BATCH.M{}.{}({})".format(directory, sync_type.upper(), 
                         size, self.postfix, trials)
-        
-        log("The results will be saved as {}.json".format(file_path))
+						
+        for retry in range(1, 100):        
+            if os.path.exists("{}.json".format(file_path)):
+                file_path = ".retry".format(file_path)
+            else:
+                break
+				
+        log("The optimization result saved as {}.json".format(file_path))
         with open(file_path + '.json', 'w') as json_file:
             json_file.write(json.dumps(results))    
 
@@ -129,9 +140,11 @@ class TempSaver(object):
         title = ""
         if "title" in config:
             title = config["title"]
+        else:
+            title = data_type
 
-        self.temp_name = "{}.{}-{}.{}.({})".format(data_type, 
-                        optimizer, aquisition_func, title, num_trials)
+        self.temp_name = "{}.{}-{}({})".format(title, 
+                        optimizer, aquisition_func, num_trials)
 
         self.path = path
         if not os.path.exists(self.path):
@@ -149,10 +162,14 @@ class TempSaver(object):
         self.temp_file_path = self.path + self.temp_name + '.json'
         if os.path.isfile(self.temp_file_path):
             with open(self.temp_file_path) as json_temp:
-                temp_results = json.load(json_temp)
-                iters = [int(key) for key in temp_results.keys()]
-                sorted_iters = sorted(iters)
-                return temp_results, sorted_iters[-1] + 1
+                try:                
+                    temp_results = json.load(json_temp)
+                    iters = [int(key) for key in temp_results.keys()]
+                    sorted_iters = sorted(iters)
+                    return temp_results, sorted_iters[-1] + 1
+                except Exception as ex:
+                    warn("temp file loading error: {}".format(ex))
+                    return {}, 0
         else:
             return {}, 0
 

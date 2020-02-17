@@ -9,12 +9,13 @@ import argparse
 import validators as valid
 
 from samples.keras_cb import *
+from samples.load_dataset import load_data    
 
 RESOURCE_ID = 'cpu0'
 
 @objective_function
-def optimize_mnist_lenet1(config, **kwargs):
-    from samples.mnist_lenet1_keras import KerasWorker
+def optimize_mnist_lenet1(config, fail_err=0.9, **kwargs):
+    from samples.classify_lenet1_keras import KerasClassificationWorker
     global RESOURCE_ID
     
     start_time = time.time()
@@ -26,7 +27,8 @@ def optimize_mnist_lenet1(config, **kwargs):
 
     history = TestAccuracyCallback()
     log("Training configuration: {}".format(config))
-    worker = KerasWorker(run_id='{}'.format(RESOURCE_ID))
+    dataset = load_data('mnist')
+    worker = KerasClassificationWorker(dataset, run_id='{}'.format(RESOURCE_ID))
     res = worker.compute(config=config, 
                          budget=max_epoch, 
                          working_directory='./{}/'.format(RESOURCE_ID), 
@@ -37,7 +39,7 @@ def optimize_mnist_lenet1(config, **kwargs):
 
 @objective_function
 def optimize_kin8nm_mlp(config, **kwargs):
-    from samples.kin8nm_mlp_keras import KerasWorker
+    from samples.regress_mlp_keras import KerasRegressionWorker
     global RESOURCE_ID
 
     start_time = time.time()
@@ -48,7 +50,8 @@ def optimize_kin8nm_mlp(config, **kwargs):
 
     history = RMSELossCallback()
     debug("Training configuration: {}".format(config))
-    worker = KerasWorker(run_id='{}'.format(RESOURCE_ID))
+    dataset = load_data('kin8nm')
+    worker = KerasRegressionWorker(dataset, run_id='{}'.format(RESOURCE_ID))
     res = worker.compute(config=convert_config(config), 
                          budget=max_epoch, 
                          working_directory='./{}/'.format(RESOURCE_ID), 
@@ -57,6 +60,25 @@ def optimize_kin8nm_mlp(config, **kwargs):
     report_result(res, elapsed_time)
 
 
+@objective_function
+def optimize_surrogate_model_mlp(config, **kwargs):
+    from samples.regress_mlp_keras import KerasRegressionWorker
+    global RESOURCE_ID
+    start_time = time.time()
+    max_epoch = 100
+    if "max_iters" in kwargs:
+        if "iter_unit" in kwargs and kwargs["iter_unit"] == "epoch":
+            max_epoch = kwargs["max_iters"]    
+    history = RMSELossCallback()
+    debug("Training configuration: {}".format(config))
+    dataset = load_data('MNIST-LeNet1')
+    worker = KerasRegressionWorker(dataset, run_id='{}'.format(RESOURCE_ID))
+    res = worker.compute(config=convert_config(config), 
+                         budget=max_epoch, 
+                         working_directory='./{}/'.format(RESOURCE_ID), 
+                         history=history)
+    elapsed_time = time.time() - start_time
+    report_result(res, elapsed_time)
 def report_result(res, elapsed_time):
     # update final result
     try:
@@ -85,6 +107,7 @@ def convert_config(config):
 
 def main(run_config):    
     global RESOURCE_ID
+    os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
     try:
         master_node = None

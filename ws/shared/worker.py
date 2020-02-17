@@ -20,6 +20,7 @@ class Worker(object):
         self.timer = None
         self.timeout = None
         self.type = 'prototype'
+        self.config = {}
         
         if id != None:
             self.id = id

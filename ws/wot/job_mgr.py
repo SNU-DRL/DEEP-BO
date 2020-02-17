@@ -18,9 +18,9 @@ class TrainingJobFactory(object):
 
     def create(self, dataset, model, hpv, cfg):
         job_id = "{}-{}-{}{}".format(self.worker.get_id(), 
-                                        self.worker.get_device_id(), 
-                                        time.strftime('%Y%m%d',time.gmtime()),
-                                        len(self.jobs))
+                                     self.worker.get_device_id(), 
+                                     time.strftime('%Y%m%d',time.localtime()),
+                                     len(self.jobs))
 
         job = {
             "job_id" : job_id, 
@@ -54,7 +54,7 @@ class TrainingJobManager(ManagerPrototype):
         self.work_item = None
         
         self.timeout_count = 0
-        self.max_timeout = 100 # XXX: For avoiding the shared file not found error
+        self.max_timeout = 100000 # XXX: For avoiding the result file not found error
 
     def __del__(self):
         #debug("All of jobs will be terminated")
@@ -179,16 +179,20 @@ class TrainingJobManager(ManagerPrototype):
             cur_result = w['worker'].get_cur_result(w['worker'].get_device_id())
             if cur_result != None:
                 sync_time = time.time()
-                debug("[{}] Result updated at {}.".format(job_id, 
-                                                          time.asctime(time.gmtime(sync_time))))
+                #debug("The result of {} updated at {}.".format(job_id, 
+                #                                          time.asctime(time.localtime(sync_time))))
                 self.timeout_count = 0 # reset timeout count               
                 self.update(w['job_id'], **cur_result)
                 w['worker'].set_sync_time(sync_time)
             else:                                 
-                debug("[{}] Result is not updated.".format(w['job_id']))
                 self.timeout_count += 1
                 if self.timeout_count > self.max_timeout:
                     self.remove(w['job_id'])
+                elif w['worker'].is_working() == False:
+                    warn("Job {} finished with no result".format(w['job_id']))
+                    self.remove(w['job_id'])
+                else:
+                    debug("An interim result is not updated yet. Timeout: {}/{}".format(self.timeout_count, self.max_timeout))
 
         elif cur_status == 'idle':
             self.update(w['job_id'], status='done')
@@ -201,7 +205,7 @@ class TrainingJobManager(ManagerPrototype):
             job_id = t['job_id']
             t['worker'].add_result(cur_iter, cur_loss, run_time, 
                                     iter_unit=iter_unit, loss_type=loss_type)
-            debug("The result is updated at {} {} ".format(cur_iter, iter_unit))
+            #debug("The result is updated at {} {} ".format(cur_iter, iter_unit))
         else:
             warn("Invalid state - update request for inactive task.")
 
@@ -216,10 +220,10 @@ class TrainingJobManager(ManagerPrototype):
             if job_id == w['job_id'] and j != None:
                 if j['status'] != 'processing':
                     while w['worker'].start() == False:
-                        w['worker'].set_job_description(t['hyperparams'],
-                                                        t['cand_index'],
+                        w['worker'].set_job_description(w['hyperparams'],
+                                                        w['cand_index'],
                                                         job_id)
-                        time.sleep(1)
+                        time.sleep(3)
                     self.update(job_id, status='processing')
                     return True
                 else:
@@ -262,21 +266,17 @@ class TrainingJobManager(ManagerPrototype):
                         debug("{} is invalid in {}".format(k, job_id))
 
     def remove(self, job_id):
-        for j in self.jobs:
-            if j['job_id'] == job_id and j['status'] != 'terminated':
-                w = self.work_item
+        debug("Job termination request accepted: {}".format(job_id))
+        w = self.work_item                
                 
-                if w['job_id'] != job_id:
-                    debug("Request to remove: {}, Working item: {}".format(job_id, w['job_id']))
-                    job_id = w['job_id']
-
-                debug("{} will be stopped".format(job_id))
-                w['worker'].stop()
-                self.update(job_id, status='terminated')                
-                return True
-
-        warn("No such jobs available: {}".format(job_id))
-        return False
+        if w['job_id'] == job_id:
+            debug("{} will be stopped".format(w['job_id']))
+            w['worker'].stop()
+            self.update(w['job_id'], status='terminated')
+            return True
+        else:
+            warn("{} is not working! Current job is {}.".format(job_id, w['job_id']))
+            return False          
 
     def stop_working_job(self):
         t = self.work_item

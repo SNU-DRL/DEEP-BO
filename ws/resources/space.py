@@ -27,7 +27,7 @@ class Space(Resource):
         space = {}
         if hasattr(samples, 'name'):
             space["space_id"] = samples.get_name()            
-        space["num_samples"] = samples.num_samples
+        space["num_samples"] = samples.get_size()
         space["hp_config"] = samples.get_hp_config().get_dict()
 
         return space, 200
@@ -50,7 +50,7 @@ class Space(Resource):
             samples.expand(expand_req)
             return {"space_id": space_id}, 201
         except Exception as ex:
-            return "Sampling space expand failed: {}".format(ex), 400        
+            return "Search space expand failed: {}".format(ex), 400        
 
 
 
