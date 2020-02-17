@@ -7,8 +7,6 @@ This repo contains code accompaning the paper, [DEEP-BO for Hyperparameter Optim
 The performance of deep neural networks (DNN) is very sensitive to the particular choice of hyperparameters. To make it worse, the shape of the learning curve can be significantly affected when a technique like batchnorm is used. As a result, hyperparameter optimization of deep networks can be much more challenging than traditional machine learning models. In this work, we start from well known Bayesian Optimization solutions and provide enhancement strategies specifically designed for hyperparameter optimization of deep networks. 
 The resulting algorithm is named as DEEP-BO (Diversified, Early-termination-Enabled, and Parallel Bayesian Optimization). When evaluated over six DNN benchmarks, DEEP-BO easily outperforms or shows comparable performance as some of the well-known solutions including GP-Hedge, Hyperband, BOHB, Median Stopping Rule, and Learning Curve Extrapolation.
 
-See the details in the [guide](https://github.com/snu-adsl/DEEP-BO/wiki). 
-
 
 ## Citation
 
@@ -31,15 +29,15 @@ If you are use of any material in this repository, we ask to cite:
 
 ### Prerequisite
 
-Firstly, creating new virtual environment by using [Anaconda](https://www.anaconda.com/download/) is strongly suggested.
-Even though the maintenance period for python 2.7.x is almost over, we still recommend creating this environment based on python 2.7.x.
-Running in python 3.x is also supported, but so far this project has been tested in Python 2.7.x on Linux.
+While this project supports on both python 2.x and python 3.x, but it has been tested in Python 2.7.x on Linux.
+Before installing it with your existing project, we strongly suggest that creating new virtual environment is preferred by using [Anaconda](https://www.anaconda.com/download/).
+Even though the maintenance period for python 2.x is over, we still recommend creating this environment based on python 2.x.
 
 ```bash
     conda create -n hpo python=2.7
 ```
 
-After creating the environment, activate your environment as follows:
+After creating the above environment, activate this environment as follows:
 
 ```bash
     source activate hpo
@@ -60,11 +58,10 @@ DEEP-BO requires the following packages:
 * For DEEP-BO (especially for tuner node and HPO runner)
   * pandas
   * scikit-learn
-  * numpy
-  * scipy
+    * numpy
+    * scipy
   * hyperopt
   * pyDOE
-
 
 It is better to install using conda than pip to avoid dependency conflicts but conda manges some limitted packages.
 Therefore, if you are working in a conda environment as I suggested, install them seperately as follows:
@@ -75,26 +72,24 @@ Therefore, if you are working in a conda environment as I suggested, install the
 (hpo)device:path$ pip install hyperopt pyDOE
 ```
 
-### Additional packages
-
-You can also speed up the gradient calculation in GP when installing weave package:
+Optionally, you can speed up the gradient calculation in GP when installing the weave package as follows:
 ```bash
 (hpo)device:path$ conda install -c conda-forge weave
 ```
 
-### Deep learning packages
+### Deep learning packages for sample code
 
-If you want to run a sample code, following deep learning packages may be required:
+If you want to run a sample code, following deep learning packages are required:
 
 * [tensorflow(-gpu)](https://www.tensorflow.org/install)
 * [keras(-gpu)](https://keras.io/#installation)
 
 In case of CPU only, you can install above packages as follows:
+
 ```bash
 (hpo)device:path$ conda install tensorflow=1.15 keras
 ```
 
-```
-
+See the other details in the [guide](https://github.com/snu-adsl/DEEP-BO/wiki). 
 
 
