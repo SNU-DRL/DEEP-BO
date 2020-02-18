@@ -23,25 +23,7 @@ def get_num_iters_over_threshold(logs, num_runs, threshold):
     return num_iterations
 
 
-def add_opt_time_span(results, opt, num_iters):
-    for i in range(num_iters):
-        iter_key = str(i)
-        eval_case = results[opt][iter_key]
-        cum_exec_time = eval_case['cum_exec_time']
-        cum_opt_time = eval_case['cum_opt_time']
-        exec_time_spans = []
-        opt_time_spans = []
-        for i in range(len(cum_exec_time)):
-            if i == 0:
-                exec_time_spans.append(cum_exec_time[i])
-                opt_time_spans.append(cum_opt_time[i])
-            else:
-                exec_time_spans.append( cum_exec_time[i] - cum_exec_time[i-1])
-                opt_time_spans.append( cum_opt_time[i] - cum_opt_time[i-1])
-        eval_case['exec_time_span'] = exec_time_spans
-        eval_case['opt_time_span'] = opt_time_spans
         
-        return results
 
 
 def get_exec_times_over_threshold(logs, num_runs, threshold, unit='Hour'):
@@ -49,28 +31,36 @@ def get_exec_times_over_threshold(logs, num_runs, threshold, unit='Hour'):
     
     for i in range(num_runs):
         opt = logs[str(i)]
-        index_cum_time = len(get_accuracies_under_threshold(opt['accuracy'], threshold)) - 1
-        if type(opt['accuracy'][0]) is not list:
-            total_secs = opt['cum_exec_time'][index_cum_time] + opt['cum_opt_time'][index_cum_time]
+        if opt['accuracy'][0] == None:
+            accs = []
+            for err_list in opt['error']:                
+                err = np.asarray(err_list)
+                acc = 1.0 - err
+                accs.append(acc.tolist())
         else:
-            num_batch = len(opt['accuracy'])
+            accs = opt['accuracy']
+        index_cum_time = len(get_accuracies_under_threshold(accs, threshold)) - 1
+        if type(accs[0]) is not list:
+            total_secs = sum(opt['exec_time'][:index_cum_time+1]) + sum(opt['opt_time'][:index_cum_time+1])
+        else:
+            num_batch = len(accs)
             cur_best_acc = 0.0
             best_index = 0
             for b in range(num_batch):
-                single_accs = opt['accuracy'][b]
+                single_accs = accs[b]
                 if len(single_accs) > index_cum_time:
                     acc = single_accs[index_cum_time]
                     if cur_best_acc < acc:
                         cur_best_acc = acc
                         best_index = b
-            total_secs = opt['cum_exec_time'][best_index][index_cum_time] + \
-                        opt['cum_opt_time'][best_index][index_cum_time]
+            total_secs = sum(opt['exec_time'][best_index][:index_cum_time+1]) + \
+                        sum(opt['opt_time'][best_index][:index_cum_time+1])
 
         total_mins = float(total_secs) / 60.0
         total_hours = float(total_mins) / 60.0
-        if unit == 'Sec':
+        if unit == 'Second':
             cum_exec_time.append(total_secs)
-        elif unit == 'Min':
+        elif unit == 'Minute':
             cum_exec_time.append(total_mins)
         elif unit == '10min':
             cum_exec_time.append(total_mins / 10.0)            
@@ -136,18 +126,20 @@ def get_result(logs, arm, run_index):
     raise ValueError('invalid key or run_index: {}, {}'.format(arm, run_index))
 
 
-def get_total_times(selected_result, unit='Min'):
+def get_total_times(selected_result, unit='Minute'):
     cum_total_time = []
-    if len(selected_result['cum_exec_time']) != len(selected_result['cum_opt_time']):
+    if len(selected_result['exec_time']) != len(selected_result['opt_time']):
         raise ValueError('time record size mismatch: {}, {}'.format(
-            len(selected_result['cum_exec_time']), 
-            len(selected_result['cum_opt_time'])))
-    for t in range(len(selected_result['cum_exec_time'])):
-        cet = selected_result['cum_exec_time'][t]
-        cot = selected_result['cum_opt_time'][t]
+            len(selected_result['exec_time']), 
+            len(selected_result['opt_time'])))
+    for t in range(len(selected_result['exec_time'])):
+        cet = sum(selected_result['exec_time'][:t+1])
+        cot = sum(selected_result['opt_time'][:t+1])
         total_time = cet + cot 
-        if unit == 'Min':
+        if unit == 'Minute':
             total_time = total_time / 60.0
+        elif unit == '10min':
+            total_time = total_time / 6.0                
         elif unit == 'Hour':
             total_time = total_time / 3600.0
         else:
@@ -162,8 +154,9 @@ def get_best_errors(selected_result):
     best_errors  = []
 
     for err in selected_result['error']:
-        #err = 1.0 - acc
-        if cur_best_error > err:
+        if err == None:
+            best_errors.append(cur_best_error) # XXX:None error handling
+        elif cur_best_error > err:
             best_errors.append(err)
             cur_best_error = err
         else:
@@ -175,7 +168,6 @@ def create_no_share_result(results, mix_type, num_iters, max_hours):
     synth_result = {}
     for iteration in range(num_iters):
         synth_result[str(iteration)] = { "accuracy": [], 'error': [], 
-                                'cum_exec_time': [], 'cum_opt_time': [], 
                                 'exec_time' : [], "opt_time": [],
                                 'select_trace' : [] }
         selected_arms = results[mix_type][str(iteration)]['select_trace']
@@ -201,12 +193,10 @@ def create_no_share_result(results, mix_type, num_iters, max_hours):
                 opt_time = results[key][str(iteration)]['opt_time'][cur_index]
                 synth_result[str(iteration)]['opt_time'].append(opt_time)
                 cum_opt_time += opt_time
-                synth_result[str(iteration)]['cum_opt_time'].append(cum_opt_time)
                 
                 exec_time = results[key][str(iteration)]['exec_time'][cur_index]
                 synth_result[str(iteration)]['exec_time'].append(exec_time)
                 cum_exec_time += exec_time
-                synth_result[str(iteration)]['cum_exec_time'].append(cum_exec_time)
                 
                 arm_indexes[key] = cur_index  + 1
                 synth_result[str(iteration)]['select_trace'].append(arm)
@@ -361,7 +351,7 @@ def analyze_mean_var_ranks(opt, estimates, results, start_index=0, classifier=No
                 arm = result[it]['select_trace'][i]
             trial['arm'] = arm
             trial['cur_acc'] = result[it]['accuracy'][i]
-            trial['cum_op_time'] = result[it]['cum_exec_time'][i] + result[it]['cum_opt_time'][i]    
+            trial['cum_op_time'] = sum(result[it]['exec_time'][:i+1]) + sum(result[it]['opt_time'][:i+1])    
             if est is None:
                 num_explores += 1
             else:
@@ -525,7 +515,7 @@ def flatten_parallel_trial(n_p, sr, num_trial):
     t = sr[str(num_trial)]
     m_i= 0 # machine index
     i = 0 # iteration index
-    keys = ["cum_exec_time", "select_trace", "exec_time", "opt_time", "model_idx", "cum_opt_time", "error", "accuracy"]
+    keys = ["select_trace", "exec_time", "opt_time", "model_idx", "error", "accuracy"]
     flat_results = []
     max_i_list = t["iters"]
     for m_i in range(len(max_i_list)):
@@ -534,7 +524,10 @@ def flatten_parallel_trial(n_p, sr, num_trial):
             r = {"i" : i, "m": m_i }
             for k in keys:            
                 r[k] = t[k][m_i][i]
-            r['end_time'] = r['cum_opt_time'] + r['cum_exec_time']
+            r['end_time'] = []
+            for i in len(r['opt_time']):
+                et = sum(r['opt_time'][:i+1]) + sum(r['exec_time'][:i+1])
+                r['end_time'].append(et)
             #print("{}.{}: {}".format(m_i, i, r['end_time']))
             flat_results.append(r)
 

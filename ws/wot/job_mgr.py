@@ -220,10 +220,13 @@ class TrainingJobManager(ManagerPrototype):
             if job_id == w['job_id'] and j != None:
                 if j['status'] != 'processing':
                     while w['worker'].start() == False:
+                        warn("Killing the zombie process...")
+                        w['worker'].stop()
+                        time.sleep(3) # Waiting until the worker being stopped
                         w['worker'].set_job_description(w['hyperparams'],
                                                         w['cand_index'],
                                                         job_id)
-                        time.sleep(3)
+                        
                     self.update(job_id, status='processing')
                     return True
                 else:

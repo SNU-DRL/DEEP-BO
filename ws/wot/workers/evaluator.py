@@ -117,20 +117,24 @@ class TargetFunctionEvaluator(Trainer):
                                                            })
                     
                     self.eval_process.start()
-                    self.eval_process.join()
-                    end_time = time.time()
+                    time.sleep(10)
+                    if self.check_started() == True:                                                               
+                        self.eval_process.join() # Here takes long time to complete 
+                        end_time = time.time()
 
-                    et = time.asctime(time.localtime(end_time))
-                    ls = time.asctime(time.localtime(self.last_sync_time))
-                    debug("Task ended at {} but the final result was synchronized at {}.".format(et, ls))
+                        et = time.asctime(time.localtime(end_time))
+                        ls = time.asctime(time.localtime(self.last_sync_time))
+                        debug("Task ended at {} but the final result was synchronized at {}.".format(et, ls))
 
                     # waits until the final result is synchronized
-                    while self.last_sync_time == None or end_time > self.last_sync_time:
-                        now = time.asctime()
+                        while self.last_sync_time == None or end_time > self.last_sync_time:
+                            now = time.asctime()
                         #debug("Waiting the result synchronization at {}.".format(now))
-                        time.sleep(1)
-                        if self.stop_flag == True:
-                            break
+                            time.sleep(1)
+                            if self.stop_flag == True:
+                                break
+                    else:
+                        raise RuntimeError("Fail to start the evaluation with {}".format(self.params))
                 else:
                     self.eval_func(self.params, 
                                     cur_iter=i, 
@@ -143,7 +147,7 @@ class TargetFunctionEvaluator(Trainer):
                 self.update_result(i+1, result, base_time)
 
         except Exception as ex:
-            warn("{} occurs on evaluation: {}".format(ex, sys.exc_info()[0]))
+            warn("Exception raised on evaluation: {}\n{}".format(ex, sys.exc_info()[0]))
             self.stop_flag = True
 
         finally:

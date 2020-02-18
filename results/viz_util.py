@@ -180,7 +180,7 @@ def get_style(arm, all_items):
 def get_predefined_style(name):
     marker = ''
     color = 'black'
-    palette = ['gray', 'xkcd:red', 'xkcd:deep blue', 'brown']
+    palette = ['gray', 'xkcd:red', 'xkcd:deep blue', 'xkcd:periwinkle']
     line_style = '-'
     markers = ['', 'p', '^', '*', 's', 'v', 'D', '<', '>',
                '1', '3', '2', '4', '8', "|", "_", '', ",", 'H', '+', 'P', ',', 'h', 'x']
@@ -218,6 +218,9 @@ def get_predefined_style(name):
                 marker = 'D'
             elif 'xN-Div-I' in name:
                 marker = '*'
+    elif 'Diversif' in name:
+        line_style = '-'
+        color = 'xkcd:red'        
     elif 'Hedge' in name:
         line_style = '-'
         color = palette[2]
@@ -231,7 +234,7 @@ def get_predefined_style(name):
         marker = 's'
     elif 'Random' in name:
         color = 'gray'
-        line_style = '--'
+        line_style = '-'
     elif 'Ind-Avg' == name:
         line_style = ':'
     elif 'Knockout' in name:

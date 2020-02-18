@@ -4,6 +4,8 @@ import time
 import traceback
 import copy
 import pickle
+import subprocess
+import json
 
 from ws.shared.logger import *
 from ws.shared.worker import Worker
@@ -12,7 +14,8 @@ class Trainer(Worker):
 
     def __init__(self, id=None, fork=False):
         self.fork = fork
-        self.device_id = 'cpu0'
+        self.device_type = 'cpu'
+        self.device_index = 0
         self.last_sync_time = None
 
         if id == None:
@@ -22,15 +25,16 @@ class Trainer(Worker):
         self.reset()
 
     def set_resource(self, device_type, device_index):
-        self.device_id = "{}{}".format(device_type, device_index)
+        self.device_type = device_type
+        self.device_index = device_index
 		
     def get_device_id(self):
-        return self.device_id
+        return "{}{}".format(self.device_type, self.device_index)
 		
     def reset(self):
         self.results = []
         try:
-            pkl = "{}.pkl".format(self.device_id)
+            pkl = "{}.pkl".format(self.get_device_id())
             os.remove(pkl)
         except OSError:
             pass
@@ -63,7 +67,7 @@ class Trainer(Worker):
             self.params = params
             return True
         else:
-            debug("Invalid params: {}".format(params))
+            debug("Invalid parameters: {}".format(params))
             return False
 
     def is_forked(self):
@@ -73,7 +77,7 @@ class Trainer(Worker):
         return False
     def dump_results(self):
         if self.is_forked() == True:
-            pkl = "{}.pkl".format(self.device_id)
+            pkl = "{}.pkl".format(self.get_device_id())
             with open("{}".format(pkl), 'wb') as f:
                 pickle.dump(self.results, f)
 				
@@ -132,6 +136,26 @@ class Trainer(Worker):
         self.results.append(result)
         self.dump_results()
 
+    def check_started(self):
+        if self.device_type == 'gpu':
+            try:
+			    # Assume that gpustat installed properly
+                result = subprocess.check_output('gpustat --json', shell=True)
+                gpu_dict = json.loads(result)
+                for g in gpu_dict['gpus']:
+                    if g['index'] == int(self.device_index):
+                        debug("Working processes on {}: {}".format(self.get_device_id(), g['processes']))
+                        if len(g['processes']) > 0:
+                            return True
+                        else:
+                            return False
+                debug("No {} device found: {}".format(self.get_device_id(), gpu_dict))
+                return False
+            except Exception as ex:
+                debug("Checking GPU processes failed: {}".format(ex))
+                return True
+        else:
+            return True 
     def execute(self):
         ''' Execute target function and append an intermidiate result per epoch to self.results.
         The result is a dictionary object which has following attributes: 

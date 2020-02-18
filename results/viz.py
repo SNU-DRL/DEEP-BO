@@ -529,7 +529,7 @@ def draw_trials_curve(results, arm, run_index,
                       loc=3, width=10, height=6):
     selected = anal.get_result(results, arm, run_index)
     x_time = anal.get_total_times(selected, x_unit)
-    y_errors = 1.0 - selected['accuracy']
+    y_errors = selected['error']
     
     if g_best_acc != None:
         g_best_err = 1.0 - g_best_acc
@@ -699,10 +699,13 @@ def draw_best_error_curve(results, arms, repeats,
                 y_best_errors = np.array(anal.get_best_errors(selected)) * y_scale
                 best_errors.append({'x': x_time, 'y': y_best_errors.tolist() })
 
+            pfunc = subplot.plot
+            if plot_func == 'semilogy':
+                pfunc = subplot.semilogy
+            elif plot_func == 'loglog':
+                pfunc = subplot.loglog
+                subplot.set_xscale('log',  nonposx='clip')
             for best_error in best_errors:
-                pfunc = subplot.plot
-                if plot_func == 'semilogy':
-                    pfunc = subplot.semilogy                
                 if arm in unlabeled_arms:
                     pfunc([0] + best_error['x'], 
                         ([1.0] + best_error['y']), 
@@ -713,6 +716,11 @@ def draw_best_error_curve(results, arms, repeats,
         else:
             errors_by_interval = { }            
             subplot.set_yscale('log')
+            if plot_func == 'semilogy':
+                subplot.set_yscale('log')
+            elif plot_func == 'loglog':
+                subplot.set_yscale('log')
+                subplot.set_xscale('log')
             
             for i in range(repeats):
 
@@ -811,8 +819,12 @@ def draw_best_error_curve(results, arms, repeats,
         elif 'difficulty' in s:
             label = "Top {:.2f}%".format(s['difficulty']*100)
         
-        plt.text(x_range[0] + .1, s['error'], label)
-        plt.axhline(y=s['error'], color='gray', linestyle=':')
+        if 'perplexity' in s:
+            plt.text(x_range[0] + .1, s['perplexity'], label)
+            plt.axhline(y=s['perplexity'], color='gray', linestyle=':')
+        else:
+            plt.text(x_range[0] + .1, s['error'], label)
+            plt.axhline(y=s['error'], color='gray', linestyle=':')
 
     plt.ylabel("Min Function Value ({})".format(sub_y_metric), fontsize=15)
     plt.xlabel(x_unit, fontsize=15)
@@ -869,8 +881,8 @@ def draw_mean_sd_corr(opt, estimates, results, num_trial,
             trial['arm'] = arm
             trial['cur_acc'] = result[t]['accuracy'][i]
             best_errors = anal.get_best_errors(result[t])
-            trial['cum_op_time'] = result[t]['cum_exec_time'][i] + \
-                result[t]['cum_opt_time'][i]
+            trial['cum_op_time'] = sum(result[t]['exec_time'][:i+1]) + \
+                sum(result[t]['opt_time'][:i+1])
             op_hours = trial['cum_op_time'] / (60 * 60)
 
             if trial['cur_acc'] > cur_best_acc:
@@ -1027,8 +1039,8 @@ def draw_acq_values(opt, estimates, results, it,
                 debug('current best {} updated at iteration {}.'.format(
                     cur_best_acc, i))
             best_errors = anal.get_best_errors(result[it])
-            trial['cum_op_time'] = result[it]['cum_exec_time'][i] + \
-                result[it]['cum_opt_time'][i]
+            trial['cum_op_time'] = sum(result[it]['exec_time'][:i+1]) + \
+                sum(result[it]['opt_time'][:i+1])
             if est is None:
                 num_explores += 1
             else:

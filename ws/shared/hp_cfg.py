@@ -148,10 +148,12 @@ class HyperparameterConfiguration(DictionaryToObject):
         return self._dict
 
     def to_typed_list(self, arr):
+	
         typed_list = []
         p_list = self.get_param_list()
         if len(p_list) != len(arr):
             raise TypeError("Invalid hyperparameter vector: {}".format(arr))
+			
         for i in range(len(p_list)):
             p = p_list[i]
             t = self.get_type(p)
@@ -159,3 +161,17 @@ class HyperparameterConfiguration(DictionaryToObject):
             typed_list.append(v)
 
         return typed_list
+		
+    def to_typed_dict(self, arr):
+        typed_dict = {}
+        p_list = self.get_param_list()
+        if len(p_list) != len(arr):
+            raise TypeError("Invalid hyperparameter vector: {}".format(arr))
+			
+        for i in range(len(p_list)):
+            p = p_list[i]
+            t = self.get_type(p)
+            v = eval(t)(arr[i])
+            typed_dict[p] = v
+			
+        return typed_dict
