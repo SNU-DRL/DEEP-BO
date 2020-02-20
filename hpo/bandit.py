@@ -426,7 +426,7 @@ class HPOBanditMachine(object):
 
             wall_time = time.time() - start_time
             log("Best {} {:.4f} at run #{}. (wall time: {:.1f} secs)".format(self.goal_metric, 
-                                                             best_val, 
+                                                             incumbent, 
                                                              i, 
                                                              wall_time))
 
@@ -444,11 +444,11 @@ class HPOBanditMachine(object):
 
         return self.current_results
 
-    def check_stop(self, best_val, start_time):
+    def check_stop(self, incumbent, start_time):
         if self.run_mode == 'GOAL':
-            if self.goal_metric == "accuracy" and best_val >= self.target_goal:
+            if self.goal_metric == "accuracy" and incumbent >= self.target_goal:
                 return True
-            elif self.goal_metric == "error" and best_val <= self.target_goal:
+            elif self.goal_metric == "error" and incumbent <= self.target_goal:
                 return True
         elif self.run_mode == 'TIME':
             duration = self.repo.get_elapsed_time()
