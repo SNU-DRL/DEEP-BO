@@ -316,12 +316,14 @@ class GPChooser:
             lp -= 0.5 * (np.log(amp2) / self.amp2_scale) ** 2
 
             return lp
-
-        hypers = slice_sample(np.array([self.mean, self.amp2, self.noise]),
+        try:
+            hypers = slice_sample(np.array([self.mean, self.amp2, self.noise]),
                                    logprob, compwise=False)
-        self.mean = hypers[0]
-        self.amp2 = hypers[1]
-        self.noise = hypers[2]
+            self.mean = hypers[0]
+            self.amp2 = hypers[1]
+            self.noise = hypers[2]
+        except Exception as ex:
+            warn("Exception raised during GP hyperparameter sampling: {}".format(ex))
 
     def _sample_noiseless(self, comp, vals):
         def logprob(hypers):

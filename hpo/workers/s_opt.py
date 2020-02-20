@@ -8,7 +8,6 @@ from ws.shared.read_cfg import read_hyperparam_config
 from ws.shared.worker import Worker 
 import ws.shared.lookup as lookup
 
-from hpo.utils.grid_gen import *
 import hpo.space_mgr as space
 import hpo.bandit as bandit
 from hpo_runner import ALL_OPT_MODELS
@@ -22,13 +21,13 @@ class SequentialOptimizer(Worker):
         self.hconf = hp_config
         self.hp_dir = hp_dir
 
-        self.type = 'smbo'
+        self.type = 'tuner'
         if 'title' in run_config:
             self.id = run_config['title'].replace(" ", "_")
 
-        self.device_id = 'hpo_cpu0'
+        self.device_id = 'cpu0'
         self.machine = None
-        self.samples = None
+        self.search_space = None
 
         self.reset()
 
@@ -47,10 +46,10 @@ class SequentialOptimizer(Worker):
             debug("invalid params: {}".format(params))
             return False
 
-    def get_sampling_space(self):
-        if self.samples == None:
+    def get_search_space(self):
+        if self.search_space == None:
             warn("Search space space is not initialized.")
-        return self.samples
+        return self.search_space
         
     def start(self):
         if self.params is None:
@@ -64,8 +63,8 @@ class SequentialOptimizer(Worker):
 
     def get_cur_result(self):
         if len(self.results) == 0:
-            if self.machine != None and self.machine.get_working_result() != None:
-                latest = self.machine.get_current_results()
+            if self.machine != None:
+                latest = self.machine.get_results()
                 #debug("current result: {}".format(latest))
             else:
                 latest = {}
@@ -90,7 +89,7 @@ class SequentialOptimizer(Worker):
 
     def stop(self):
         if self.machine != None:
-            self.machine.force_stop()
+            self.machine.stop()
 
         super(SequentialOptimizer, self).stop()
  
@@ -105,7 +104,7 @@ class SequentialOptimizer(Worker):
 
         results = []
         s_name = None
-        self.samples = None
+        self.search_space = None
         
         if 'surrogate' in args and args['surrogate'] != 'None':
             s_name = args['surrogate']
@@ -119,13 +118,13 @@ class SequentialOptimizer(Worker):
             history_url = "{}/spaces/{}/".format(run_cfg["master_node"], space_id)
             debug("Global history: {}".format(history_url))
             if valid.url(history_url):
-                self.samples = space.connect_remote_space(history_url, 
+                self.search_space = space.connect_remote_space(history_url, 
                                                           run_cfg["credential"])
         else:
             warn("No valid space ID: {}".format(space_id))
-            self.samples = space.create_lookup_space(args['surrogate'])
+            self.search_space = space.create_space_from_table(args['surrogate'])
 
-        if self.samples == None:
+        if self.search_space == None:
             raise ValueError("Invalid parameter space. Space is not initialized properly")
 
         goal_metric = 'error'
@@ -135,7 +134,7 @@ class SequentialOptimizer(Worker):
         if 'train_node' in args:
             if valid.url(args['train_node']):
                 self.machine = bandit.create_runner(args['train_node'], 
-                                                    self.samples,
+                                                    self.search_space,
                                                     args['exp_crt'], 
                                                     args['exp_goal'], args['exp_time'],
                                                     run_cfg, hp_cfg,
@@ -149,7 +148,7 @@ class SequentialOptimizer(Worker):
                 raise ValueError("Invalid node URL: {}".format(args["train_node"]))
         else:
 
-            self.machine = bandit.create_emulator(self.samples,
+            self.machine = bandit.create_emulator(self.search_space,
                                                   args['exp_crt'], 
                                                   args['exp_goal'], 
                                                   args['exp_time'],
@@ -159,13 +158,7 @@ class SequentialOptimizer(Worker):
                                                   run_config=run_cfg,
                                                   id=self.id + "_emul")
 
-        if args['mode'] == 'DIV' or args['mode'] == 'ADA':
-            results = self.machine.mix(args['spec'], args['num_trials'], 
+        results = self.machine.play(args['mode'], args['spec'], args['num_trials'], 
                 save_results=save_results)
-        elif args['mode'] in ALL_OPT_MODELS:
-            results = self.machine.all_in(args['mode'], args['spec'], args['num_trials'], 
-                save_results=save_results)
-        else:
-            raise ValueError('unsupported mode: {}'.format(args['mode']))
           
         return results

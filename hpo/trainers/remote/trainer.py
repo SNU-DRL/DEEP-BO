@@ -105,11 +105,11 @@ class RemoteTrainer(TrainerPrototype):
                         
                         no_response = time.time() - self.response_time
                         if time_out_count > self.max_timeout:
-                            log("Force to stop {} due to no update for {} sec".format(job_id, no_response))
+                            log("Force to stop {} because of no update during {:.0f} secs".format(job_id, no_response))
                             self.controller.stop(job_id)
                             break
                         elif time_out_count % 10 == 0:
-                            debug("No responses during {:.0f}... Timeout: {}/{}".format(no_response, 
+                            debug("No response during {:.0f} secs... Timeout count: {}/{}".format(no_response, 
                                                                                 time_out_count, 
                                                                                 self.max_timeout))
                 

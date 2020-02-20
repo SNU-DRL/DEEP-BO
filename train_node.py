@@ -26,7 +26,7 @@ def optimize_mnist_lenet1(config, fail_err=0.9, **kwargs):
             max_epoch = kwargs["max_iters"]    
 
     history = TestAccuracyCallback()
-    log("Training configuration: {}".format(config))
+    log("Training with {}".format(config))
     dataset = load_data('mnist')
     worker = KerasClassificationWorker(dataset, run_id='{}'.format(RESOURCE_ID))
     res = worker.compute(config=config, 
@@ -49,7 +49,7 @@ def optimize_kin8nm_mlp(config, **kwargs):
             max_epoch = kwargs["max_iters"]    
 
     history = RMSELossCallback()
-    debug("Training configuration: {}".format(config))
+    debug("Training with {}".format(config))
     dataset = load_data('kin8nm')
     worker = KerasRegressionWorker(dataset, run_id='{}'.format(RESOURCE_ID))
     res = worker.compute(config=convert_config(config), 
@@ -70,7 +70,7 @@ def optimize_surrogate_model_mlp(config, **kwargs):
         if "iter_unit" in kwargs and kwargs["iter_unit"] == "epoch":
             max_epoch = kwargs["max_iters"]    
     history = RMSELossCallback()
-    debug("Training configuration: {}".format(config))
+    debug("Training with {}".format(config))
     dataset = load_data('MNIST-LeNet1')
     worker = KerasRegressionWorker(dataset, run_id='{}'.format(RESOURCE_ID))
     res = worker.compute(config=convert_config(config), 

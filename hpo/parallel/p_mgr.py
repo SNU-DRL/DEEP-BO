@@ -8,7 +8,7 @@ from future.utils import iteritems
 from ws.shared.logger import * 
 from ws.shared.proto import ManagerPrototype 
 
-from hpo.space_mgr import SamplingSpaceManager
+from hpo.space_mgr import SearchSpaceManager
 from hpo.workers.p_opt import ParallelOptimizer
 
 class HPOJobFactory(object):
@@ -38,7 +38,7 @@ class ParallelHPOManager(ManagerPrototype):
         self.nodes = {}
         self.pairs = []
         self.workers = []
-        self.space_mgr = SamplingSpaceManager()
+        self.space_mgr = SearchSpaceManager()
         return super(ParallelHPOManager, self).__init__(type(self).__name__)
 
     def __del__(self):
@@ -96,7 +96,8 @@ class ParallelHPOManager(ManagerPrototype):
         node_id = self.check_registered(ip, port)
         
         if node_id != None:
-            debug("Node already registered: {}:{}".fcreate_surrogate_space       return node_id, 200
+            debug("Node already registered:{}".format(node_id))
+            return node_id, 200
 
         # Try handshaking with registered node to check it is healthy.
         url = "http://{}:{}".format(ip, port)

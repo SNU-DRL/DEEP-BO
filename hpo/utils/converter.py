@@ -40,7 +40,6 @@ class OneHotVectorTransformer(object):
         self.config = config
 
     def transform(self, hpv):
-        #debug("sample: {}".format(hpv))
         encoded = []
         for param in self.config.get_param_list():
             vt = self.config.get_value_type(param)
@@ -92,7 +91,6 @@ class OneHotVectorTransformer(object):
 
         return decoded
 
-
     def create_vectors(self, size):
         vecs = []
         for i in range(size):
@@ -125,7 +123,7 @@ class OneHotVectorTransformer(object):
         raise ValueError("No value {} in category {}".format(value, category))
 
 
-class VectorGridConverter(object):
+class RepresentationConverter(object):
 
     def __init__(self, config):        
         self.config = config
@@ -142,25 +140,60 @@ class VectorGridConverter(object):
 
         return ranges, types, value_types    
 
-    def to_grid_array(self, hp_dict):
-        # transform Sobol-like grid
+    def to_vector(self, hp_dict, normalize=True):
+        if type(hp_dict) != dict:
+            raise TypeError("Only dictionary type can be converted.")
+        
+		# transform from dictionary to normalized vector
         arr = []
         for p in self.param_order:
             arr.append(hp_dict[p])
-        arr = self.to_norm_vector(arr, one_hot=False)
+        if normalize == True:
+            arr = self.to_norm_vector(arr, one_hot=False)
         return arr
 
+    def to_typed_list(self, arr):
+        typed_list = []
+        p_list = self.param_order
+        if len(p_list) != len(arr):
+            raise TypeError("Invalid hyperparameter vector: {}".format(arr))
+        for i in range(len(p_list)):
+            p = p_list[i]
+            t = self.config.get_type(p)
+            v = eval(t)(arr[i])
+            typed_list.append(v)
+        return typed_list
+		
+    def to_typed_dict(self, arr):
+        typed_dict = {}
+        p_list = self.param_order
+        if len(p_list) != len(arr):
+            raise TypeError("Invalid hyperparameter vector: {}".format(arr))
+			
+        for i in range(len(p_list)):
+            p = p_list[i]
+            t = self.config.get_type(p)
+            v = eval(t)(arr[i])
+            typed_dict[p] = v
+			
+        return typed_dict
+		
     def to_norm_vector(self, vector, ranges=None, types=None, one_hot=True):
+        t = OneHotVectorTransformer(self.config)
         if ranges == None or types == None:
             ranges, types, value_types = self.get_param_spec()
         
-        if isinstance(vector, np.ndarray):
-            vector = vector.tolist()        
+        if isinstance(vector, dict):
+            if one_hot == True:
+                e = t.transform(hpv_dict)
+                return np.array(e)
+            else:
+                vector = self.to_vector(vector)
         
+        vector = self.to_typed_list(vector)
         normalized = []
         if one_hot == True:
             # one-hot encoding
-            t = OneHotVectorTransformer(self.config)
             vector_dict = {}
             for i in range(len(vector)):
                 k = self.param_order[i]
@@ -189,6 +222,7 @@ class VectorGridConverter(object):
 
 
         return np.array(normalized)
+
 
     def get_nearby_index(self, candidates, hpv, params):
         vec = params

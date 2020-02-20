@@ -158,7 +158,7 @@ class ClassicHedgeStrategy(object):
 class BayesianHedgeStrategy(object):
     ''' An extension of GP-Hedge algorthm'''
     def __init__(self, arms, temperature, values, counts, 
-                    samples, choosers, 
+                    s_space, choosers, 
                     title="", 
                     unbiased_estimation=False,
                     reward_scaling=None):
@@ -170,7 +170,7 @@ class BayesianHedgeStrategy(object):
         self.temperature = temperature
         self.counts = counts
         self.values = values
-        self.samples = samples
+        self.search_space = s_space
         self.choosers = choosers
         self.epsilon = 0.0
         self.nominees = None
@@ -191,16 +191,16 @@ class BayesianHedgeStrategy(object):
         all_nominees = []
         
         for arm in self.arms:
-            samples = cp.copy(self.samples)
+            search_space = cp.copy(self.search_space)
             optimizer = arm['model']
             aquisition_func = arm['acq_func']
             chooser = self.choosers[optimizer]
             mean_value = 0.0 # default mean value.
             
-            next_index = chooser.next(samples, aquisition_func, use_interim_result)
+            next_index = chooser.next(search_space, aquisition_func, use_interim_result)
             if chooser.mean_value is not None:
                 mean_value = chooser.mean_value
-            test_error = samples.get_errors(next_index)
+            test_error = search_space.get_errors(next_index)
 
             all_nominees.append({
                 "optimizer": optimizer,

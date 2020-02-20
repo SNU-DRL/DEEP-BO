@@ -14,16 +14,14 @@ from ws.shared.read_cfg import *
 
 import hpo.bandit_config as bconf
 import hpo.bandit as bandit
-import hpo.batch_sim as batch
-import hpo.space_mgr as space
+
+from hpo.space_mgr import *
 
 ALL_OPT_MODELS = ['SOBOL', 'GP', 'RF', 'TPE', 'GP-NM', 'GP-HLE', 'RF-HLE', 'TPE-HLE']
 ACQ_FUNCS = ['RANDOM', 'EI', 'PI', 'UCB']
 DIV_SPECS = ['SEQ', 'RANDOM']
 ALL_MIXING_SPECS = ['HEDGE', 'BO-HEDGE', 'BO-HEDGE-T', 'BO-HEDGE-LE', 'BO-HEDGE-LET', 
                     'EG', 'EG-LE', 'GT', 'GT-LE', 'SKO']
-BATCH_SPECS = ['SYNC', 'ASYNC']
-    
 
 RUN_CONF_PATH = './run_conf/'
 
@@ -90,13 +88,13 @@ def validate_args(args):
 
 
 
-def execute(args, save_results=False):
+def run(args, save=True):
     try:
         
         run_cfg = args['run_config']
         space_set = run_cfg['search_space']
             
-        samples = None
+        space = None
 
         m = None        
 
@@ -106,29 +104,29 @@ def execute(args, save_results=False):
         if space_set['preevaluated']:
             if not check_lookup_existed(run_cfg['hp_config']):
                 raise ValueError('Pre-evaluated configuration not found: {}'.format(run_cfg['hp_config']))
-            debug("Create surrogate space by lookup table: {}".format(space_set))
+            debug("Creating surrogate space of {}...".format(space_set))
                 
-            samples = space.create_lookup_space(run_cfg['hp_config'], 
+            space = create_space_from_table(run_cfg['hp_config'], 
                                                 grid_order=space_set['order'])
-            m = bandit.create_emulator(samples, 
-                        args['exp_crt'], 
-                        args['exp_goal'], 
-                        args['exp_time'],
-                        goal_metric=args['goal_metric'],
-                        num_resume=args['rerun'],
-                        save_internal=args['save_internal'],
-                        run_config=run_cfg)
+            m = bandit.create_emulator(space, 
+                                        args['exp_crt'], 
+                                        args['exp_goal'], 
+                                        args['exp_time'],
+                                        goal_metric=args['goal_metric'],
+                                        num_resume=args['rerun'],
+                                        save_internal=args['save_internal'],
+                                        run_config=run_cfg)
         else:
             hp_cfg = args['hp_config']
             debug("Search space will be created as {}".format(space_set))
 
-            samples = space.create_surrogate_space(hp_cfg.get_dict(), space_set)
+            space = create_surrogate_space(hp_cfg.get_dict(), space_set)
 
 
             
             if valid.url(run_cfg['train_node']):
                 trainer_url = run_cfg['train_node']
-                m = bandit.create_runner(trainer_url, samples,
+                m = bandit.create_runner(trainer_url, space,
                             args['exp_crt'], 
                             args['exp_goal'], 
                             args['exp_time'],
@@ -141,35 +139,27 @@ def execute(args, save_results=False):
                             )
             else:
                 raise ValueError("Invalid train node: {}".format(run_cfg["train_node"]))
-        if args['mode'] == 'DIV' or args['mode'] == 'ADA':
-            result = m.mix(args['spec'], args['num_trials'], 
-                            save_results=save_results)
-        elif args['mode'] in ALL_OPT_MODELS:
-            result = m.all_in(args['mode'], args['spec'], args['num_trials'], 
-                                save_results=save_results)
-        else:
+
+        if not args['mode'] in ALL_OPT_MODELS + ['DIV']:
             raise ValueError('unsupported mode: {}'.format(args['mode']))
+        if not args['spec'] in ACQ_FUNCS + DIV_SPECS + ALL_MIXING_SPECS:
+            raise ValueError('unsupported spec: {}'.format(args['spec']))
+        result = m.play(args['mode'], args['spec'], args['num_trials'], 
+                        save=save)
+        m.print_best(result)
     except Exception as ex:
         warn('Exception raised during optimization: {}'.format(ex))     
     
-    if samples != None:
-        samples.save() 
+    if space != None:
+        space.save() 
     return result
+
 
 
 def main(args):
     try:
         valid_args = validate_args(args)
-        if valid_args['mode'].upper() == 'BATCH':
-            c = batch.get_simulator(valid_args['spec'].upper(), 
-                                    valid_args['run_config']['hp_config'],
-                                    valid_args['exp_crt'], 
-                                    valid_args['exp_goal'], 
-                                    valid_args['exp_time'], 
-                                    valid_args['run_config'])
-            results = c.run(valid_args['num_trials'], save_results=True)
-        else:
-            results = execute(valid_args, save_results=True)    
+        run(valid_args)    
     except Exception as ex:
         error(ex)
         traceback.print_exc()        
@@ -177,7 +167,7 @@ def main(args):
 
 if __name__ == "__main__":
     available_models = ALL_OPT_MODELS + ['DIV', 'ADA', 'BATCH']
-    all_specs = ACQ_FUNCS + DIV_SPECS + ALL_MIXING_SPECS + BATCH_SPECS
+    all_specs = ACQ_FUNCS + DIV_SPECS + ALL_MIXING_SPECS
     default_model = 'DIV'
     default_spec = 'SEQ'
     default_target_goal = 0.0

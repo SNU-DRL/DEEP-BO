@@ -87,7 +87,7 @@ class ParallelOptimizer(Worker):
                     
                     self.wait_until_done()
 
-                    result = self.get_current_result(job_id)
+                    result = self.get_repo(job_id)
                     for job in self.jobs:
                         if job['id'] == job_id:
                             job["result"] = result

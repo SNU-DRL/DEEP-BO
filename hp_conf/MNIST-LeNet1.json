@@ -2,7 +2,7 @@
     "dataset": "MNIST",
     "model": "LeNet-5",
     "config": { 
-        "max_epoch": 50, 
+        "max_epoch": 15, 
         "surrogate": "MNIST-LeNet1"
     },    
     "hyperparams": {

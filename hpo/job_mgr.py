@@ -36,7 +36,7 @@ class HPOJobManager(ManagerPrototype):
         super(HPOJobManager, self).__init__(type(self).__name__)
         self.jobs = self.get_hpo_jobs()
          
-        self.worker = SequentialOptimizer(run_cfg, hp_cfg, "s-opt_{}".format(port))
+        self.worker = SequentialOptimizer(run_cfg, hp_cfg, "tuner_{}".format(port))
         self.prefix = self.worker.get_id()
         self.device_id = self.worker.get_device_id()
         

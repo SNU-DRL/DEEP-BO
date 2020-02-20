@@ -5,7 +5,7 @@ from __future__ import print_function
 import numpy as np
 from ws.shared.logger import *
 
-class HPOResultFactory(object):
+class ResultsRepository(object):
     def __init__(self, goal_metric):
        
         self.result = {}
@@ -72,13 +72,9 @@ class HPOResultFactory(object):
     def update_trace(self, optimizer, acquistion_func):        
         self.result['select_trace'].append(optimizer + '_' + acquistion_func)
 
-    def feed_arm_selection(self, arm_selector):        
+    def feed_selection(self, arm_selector):        
         self.result['mean_arr'] = arm_selector.values
         self.result['count_arr'] = arm_selector.counts
-
-    def force_terminated(self):        
-        #self.result['force_terminate'] = True
-        pass
 
     def get_elapsed_time(self):        
         elapsed_time = 0
@@ -110,9 +106,9 @@ class HPOResultFactory(object):
         return time
 
 
-class BatchHPOResultFactory(HPOResultFactory):
+class BatchResultsRepository(ResultsRepository):
     def __init__(self):
-        return super(BatchHPOResultFactory, self).__init__('accuracy')
+        return super(BatchResultsRepository, self).__init__('accuracy')
 
     def update_batch_result(self, bandits):
         

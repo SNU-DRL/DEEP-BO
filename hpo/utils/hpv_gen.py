@@ -7,7 +7,7 @@ import time
 
 from ws.shared.logger import *
 from ws.shared.hp_cfg import HyperparameterConfiguration
-from hpo.utils.grid_gen import *
+from hpo.utils.sample_gen import *
 
 
 class HyperparameterVectorGenerator(object):
@@ -20,12 +20,15 @@ class HyperparameterVectorGenerator(object):
         self.spec = spec
         self.grid = np.array([])
         self.hpvs = np.array([])
+        self.schemata = np.array([])
         
     def get_param_vectors(self):
         return self.grid
 
     def get_hp_vectors(self):        
         return self.hpvs
+    def get_schemata(self):        
+        return self.schemata
 
     def generate(self):
         #debug("Sampling hyperparameter configurations...")
@@ -37,21 +40,26 @@ class HyperparameterVectorGenerator(object):
             if 'num_skips' in spec:
                 seed += spec['num_skips']
 
-            g = SobolSequenceGenerator(self.params, spec['num_samples'], seed)
+            if not 'mutation_ratio' in spec:
+                spec['mutation_ratio'] = .1 # default mutation ratio
+            g = SobolSequenceGenerator(self.config, spec['num_samples'], seed)
             
             if 'sample_method' in spec:
                 if spec['sample_method'] == 'uniform':
-                    g = UniformRandomGenerator(self.params, n_s, seed)
+                    g = UniformRandomGenerator(self.config, n_s, seed)
                 elif spec['sample_method'] == 'latin':
-                    g = LatinHypercubeGenerator(self.params, n_s, seed)
+                    g = LatinHypercubeGenerator(self.config, n_s, seed)
                 elif spec['sample_method'] == 'local':
-                    g = LocalSearchGenerator(self.params, self.config, n_s, 
+                    g = LocalSearchGenerator(self.config, n_s, 
                                              spec['best_candidate'], seed)
+                elif spec['sample_method'] == 'genetic':
+                    g = EvolutionaryGenerator(self.config, n_s, spec['current_best'],
+                                             spec['best_candidate'], seed, spec['mutation_ratio'])                                             
                 elif spec['sample_method'] != 'Sobol':
                     warn("Not supported sampling method: {}. We utilize Sobol sequences as default.".format(spec['sample_method']))
 
             self.grid = np.asarray(g.generate())
-            
+            self.schemata = g.get_schemata()
             # TODO:speeding up required
             self.hpvs = []
             for i in range(len(self.grid)):

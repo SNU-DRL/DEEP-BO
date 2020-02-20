@@ -14,14 +14,13 @@ import numpy as np
 
 from ws.shared.logger import *
 import ws.shared.hp_cfg as hconf
-from ws.shared.saver import ResultSaver, TempSaver
+from ws.shared.saver import *
 
-from hpo.sample_space import *
-import hpo.space_mgr as space
+from hpo.search_space import *
+from hpo.space_mgr import *
 
-from hpo.result import HPOResultFactory
+from hpo.results import ResultsRepository
 
-from hpo.utils.grid_gen import *
 from hpo.utils.measures import RankIntersectionMeasure
 from hpo.utils.converter import TimestringConverter
 
@@ -107,39 +106,37 @@ def create_runner(trainer_url, space,
 
 class HPOBanditMachine(object):
     ''' k-armed bandit machine of hyper-parameter optimization.'''
-    def __init__(self, samples, trainer, 
+    def __init__(self, s_space, trainer, 
                  run_mode, target_val, time_expired, run_config,
                  goal_metric,
                  num_resume=0, 
                  save_internal=False, 
                  calc_measure=False,
                  min_train_epoch=1,
-                 id="HPO"):
+                 id="HPOBanditMachine"):
 
         self.id = id
 
-        self.samples = samples
+        self.search_space = s_space
+        self.save_name = s_space.get_name()
         self.sample_thread = None
         self.trainer = trainer
-        self.save_name = samples.get_name()
 
         self.calc_measure = calc_measure
         
         self.target_goal = target_val
         self.goal_metric = goal_metric
         self.time_expired = TimestringConverter().convert(time_expired)
-        self.eval_time_model = None
 
         self.save_internal = save_internal
         
-        self.temp_saver = None
         self.num_resume = num_resume
         self.min_candidates = 100 # XXX:any number to be tested 
 
         self.stop_flag = False
 
-        self.working_result = None
-        self.total_results = None
+        self.repo = ResultsRepository(self.goal_metric)
+        self.current_results = None
         self.warm_up_time = None
         self.run_config = run_config
         self.min_train_epoch = min_train_epoch
@@ -164,52 +161,45 @@ class HPOBanditMachine(object):
 
         self.print_exception_trace = False
 
-        self.saver = ResultSaver(self.save_name, self.run_mode, self.target_goal,
-                                 self.time_expired, self.run_config, 
-                                 postfix=".{}".format(self.id))
 
-    def init_bandit(self, config=None):
+    def reset(self, config=None):
         if config is None:
             config = self.run_config
-        self.bandit = BanditConfigurator(self.samples, config)
-        self.samples.reset()
+        self.bandit = BanditConfigurator(self.search_space, config)
+        self.search_space.reset()
         self.trainer.reset()
-        self.working_result = None
+        self.repo = ResultsRepository(self.goal_metric)
         self.cur_runtime = 0.0
         
         self.eval_end_time = time.time()
 
-    def force_stop(self):
+    def stop(self):
         self.stop_flag = True
     
-    def estimate_eval_time(self, cand_index, model):
-        ''' Experimental feature. Not suggested to use now. '''        
-        import hpo.eval_time as eval_time
-        samples = self.samples
-        cand_est_times = None
+    def predict_time(self, cand_index, model, time_model):
+        ''' Experimental feature. This is not be suggested to use. '''        
+        import hpo.predict_time as pt
 
-        if self.eval_time_model and self.eval_time_model != "None":
-            et = eval_time.get_estimator(samples, self.eval_time_model)
+        et = pt.get_estimator(self.search_space, time_model)
             
-            if et is not None:
-                success, cand_est_times = et.estimate(samples.get_candidates(), 
-                                                    samples.get_completions())
-                if success:
-                    chooser = self.bandit.choosers[model]
-                    chooser.set_eval_time_penalty(cand_est_times)
+        success, cand_est_times = et.estimate(self.search_space.get_candidates(), 
+                                            self.search_space.get_completions())
+        if success:
+            chooser = self.bandit.choosers[model]
+            chooser.set_eval_time_penalty(cand_est_times)
 
-                if cand_est_times is not None:
-                    for i in range(len(samples.get_candidates())):
-                        if samples.get_candidates(i) == cand_index:
-                            return int(cand_est_times[i])
+        if cand_est_times is not None:
+            for i in range(len(self.search_space.get_candidates())):
+                if self.search_space.get_candidates(i) == cand_index:
+                    return int(cand_est_times[i])
         
         return None
 
-    def select_candidate(self, model, acq_func, samples=None):
-        if samples is None:
-            samples = self.samples
+    def choose(self, model, acq_func, search_space=None):
+        if search_space is None:
+            search_space = self.search_space
         ss = 1  # XXX:default steps of sampling
-        num_done = len(self.samples.get_completions())
+        num_done = len(search_space.get_completions())
         
         if "search_space" in self.run_config:
             if "resample_steps" in self.run_config['search_space']:
@@ -228,11 +218,11 @@ class HPOBanditMachine(object):
                 debug("HPO utilizes interim results to warm up")
         
         if self.sample_thread != None and self.sample_thread.is_alive():
-            while len(samples.get_candidates()) < self.min_candidates: # waiting until enough sample population
+            while len(search_space.get_candidates()) < self.min_candidates: # waiting until enough sample population
                 time.sleep(1)
-        debug("# of observations, candidates: {}, {}".format(len(samples.get_completions()),
-                                                        len(samples.get_candidates())))
-        next_index = chooser.next(samples, acq_func, use_interim_result)
+        debug("# of observations, candidates: {}, {}".format(len(search_space.get_completions()),
+                                                        len(search_space.get_candidates())))
+        next_index = chooser.next(search_space, acq_func, use_interim_result)
 
 
         if num_done > 0 and num_done % ss == 0:
@@ -243,16 +233,16 @@ class HPOBanditMachine(object):
                     debug("Under search space construction... ")
                 else:
                     debug("Incremental sampling performed asynchronously.")
-                    self.sample_thread = threading.Thread(target=self.transform_space, 
+                    self.sample_thread = threading.Thread(target=self.sample, 
                                                         args=(chooser.estimates,))
                     self.sample_thread.start()
             else:
                 # samples will be transformed sequentially                               
-                self.transform_space(chooser.estimates)
+                self.sample(chooser.estimates)
 
         # for measure information sharing effect
         if self.calc_measure:
-            mr = RankIntersectionMeasure(samples.get_errors())
+            mr = RankIntersectionMeasure(search_space.get_errors())
             if chooser.estimates:
                 metrics = mr.compare_all(chooser.estimates['candidates'],
                                          chooser.estimates['acq_funcs'])
@@ -261,45 +251,9 @@ class HPOBanditMachine(object):
         
         return next_index, opt_time, metrics
 
-    def transform_space(self, estimates):
-        s_t = time.time()
-        if not "search_space" in self.run_config:
-            return
-
-        if 'remove' in self.run_config['search_space']:
-            start_t = time.time()
-            ds = self.run_config['search_space']["remove"]
-            space.remove_samples(self.samples, ds, estimates)
-            debug("Removed with {} ({:.1f} sec)".format(ds, time.time() - start_t))
-
-        if 'intensify' in self.run_config['search_space']:
-            if estimates == None:
-                warn("No estimation available to intensify.")
-            else:             
-                start_t = time.time()
-                # intensify # of promissing samples using estimated values
-                cands = np.array(estimates['candidates']) # has index
-                est_values = np.array(estimates['acq_funcs']) # estimated performance by acquistion function
-                ns = self.run_config['search_space']['intensify']
-                top_k = est_values.argsort()[-1*ns:][::-1]
-                
-                for k in cands[top_k]:
-                    cand = self.samples.get_hpv_dict(k)
-                    space.intensify_samples(self.samples, 1, cand)
-                debug("{} samples intensified. ({:.1f} sec)".format(ns, time.time() - start_t))
-
-        if 'add' in self.run_config['search_space']:
-            start_t = time.time()
-            ns = self.run_config['search_space']["add"]                                
-            space.append_samples(self.samples, ns)
-            debug("{} samples added ({:.1f} sec)".format(ns, time.time() - start_t))
-        
-        debug("Current # of candidates: {} ({:.1f} sec)".format(len(self.samples.get_candidates()), 
-                                                                time.time() - s_t))        
-
-    def evaluate(self, cand_index, model, samples=None):
-        if samples is None:
-            samples = self.samples
+    def evaluate(self, cand_index, model, search_space=None):
+        if search_space is None:
+            search_space = self.search_space
         
         eval_start_time = time.time()
         exec_time = 0.0
@@ -312,11 +266,11 @@ class HPOBanditMachine(object):
         
         # set initial error for avoiding duplicate
         interim_error, cur_iter = self.trainer.get_interim_error(cand_index, 0)
-        self.samples.update_error(cand_index, test_error, cur_iter)
+        search_space.update_error(cand_index, test_error, cur_iter)
         
         train_result = self.trainer.train(cand_index, 
                                           estimates=chooser.estimates,
-                                          space=samples)
+                                          space=search_space)
 
         if train_result == None or not 'test_error' in train_result:
             train_result = {}
@@ -339,8 +293,7 @@ class HPOBanditMachine(object):
     def pull(self, model, acq_func, result_repo, select_opt_time=0):
         exception_raised = False
         try:
-            next_index, opt_time, metrics = self.select_candidate(
-                model, acq_func)
+            next_index, opt_time, metrics = self.choose(model, acq_func)
         
         except KeyboardInterrupt:
             self.stop_flag = True
@@ -350,16 +303,13 @@ class HPOBanditMachine(object):
                  "To avoid stopping, it selects the candidate randomly.")
             model = 'SOBOL'
             acq_func = 'RANDOM'
-            next_index, opt_time, metrics = self.select_candidate(
-                model, acq_func)
+            next_index, opt_time, metrics = self.choose(model, acq_func)
             exception_raised = True
 
         total_opt_time = select_opt_time + opt_time
         # XXX: To solve time mismatch problem   
         if self.eval_end_time != None:
             total_opt_time = time.time() - self.eval_end_time 
-        # estimate an evaluation time of the next candidate
-        #est_eval_time = self.estimate_eval_time(next_index, model)
         
         # evaluate the candidate
         eval_result = self.evaluate(next_index, model)
@@ -384,7 +334,7 @@ class HPOBanditMachine(object):
                            train_epoch=train_epoch,
                            test_acc=test_acc)
         self.cur_runtime += (total_opt_time + exec_time)
-        self.samples.update_error(next_index, test_error, train_epoch)
+        self.search_space.update_error(next_index, test_error, train_epoch)
         
         optional = {
             'exception_raised': exception_raised,
@@ -397,111 +347,35 @@ class HPOBanditMachine(object):
         elif self.goal_metric == "error":
             return test_error, optional
 
-    def all_in(self, model, acq_func, num_trials, save_results=True):
-        ''' executing a specific arm in an exploitative manner '''
-        self.temp_saver = TempSaver(self.samples.get_name(),
-                                    model, acq_func, num_trials, self.run_config)
+    def play(self, mode, spec, num_runs, save=True):
 
-        if self.num_resume > 0:
-            self.total_results, start_idx = self.saver.load(
-                model, acq_func, self.num_resume)
-        else:
-            self.total_results, start_idx = self.temp_saver.restore()
-        
-        est_records = {}
-        for i in range(start_idx, num_trials):
-            trial_start_time = time.time()
-            self.init_bandit()
-            wr = self.get_working_result()
-            best_val = None
-            est_records[str(i)] = []
-            for j in range(NUM_MAX_ITERATIONS):
-
-                curr_val, opt_log = self.pull(model, acq_func, wr)
-                if self.stop_flag == True:
-                    return self.total_results
-                if self.save_internal == True:
-                    est_records[str(i)].append(opt_log)
-
-                if best_val == None:
-                    best_val = curr_val
-                if curr_val == None:
-                    continue
-                if self.goal_metric == "accuracy" and best_val < curr_val:
-                    best_val = curr_val
-                elif self.goal_metric == "error" and best_val > curr_val:
-                    best_val = curr_val
-                if self.run_mode == 'GOAL':
-                    if self.goal_metric == "accuracy" and best_val >= self.target_goal:
-                        break
-                    elif self.goal_metric == "error" and best_val <= self.target_goal:
-                        break
-                elif self.run_mode == 'TIME':
-                    duration = wr.get_elapsed_time()
-                    #debug("current time: {} - {}".format(duration, self.time_expired))
-                    if duration >= self.time_expired:
-                        break
-                    elif time.time() - trial_start_time >= self.time_expired:
-                        debug("Trial time mismatch: {}".format(self.time_expired - duration))
-                        break
-                
-                if num_trials == 1:
-                    self.total_results[i] = wr.get_current_status()
-                    self.temp_saver.save(self.total_results)
-
-            trial_sim_time = time.time() - trial_start_time
-            log("{} found best {} {} at run #{}. ({:.1f} sec)".format(self.id, 
-                                                                      self.goal_metric, 
-                                                                      best_val, 
-                                                                      i, 
-                                                                      trial_sim_time))            
-            if self.goal_metric == "accuracy" and best_val < self.target_goal:
-                wr.force_terminated()
-            elif self.goal_metric == "error" and best_val > self.target_goal:
-                wr.force_terminated()
-
-            if self.sample_thread != None and self.sample_thread.is_alive():
-                self.sample_thread.join()
-                self.sample_thread = None
-
-            self.total_results[i] = wr.get_current_status()
-            self.temp_saver.save(self.total_results)
-            self.working_result = None
+        temp_saver = TemporaryHistorySaver(self.save_name,
+                                            mode, spec, num_runs, 
+                                            self.run_config)
+        saver = None
+        if save == True:
+            saver = HistorySaver(self.save_name, self.run_mode, self.target_goal,
+                                    self.time_expired, self.run_config, 
+                                    postfix=".{}".format(self.id))            
+        # For in-depth analysis
+        internal_records = None
             
-        if save_results is True:
-            if self.save_internal == True:
-                est_records = est_records
-            else:
-                est_records = None
-            self.saver.save(model, acq_func,num_trials, 
-                            self.total_results, est_records)
+        if self.save_internal:
+            internal_records = {}
 
-        self.temp_saver.remove()
-        self.print_best_config()
-
-        return self.total_results
-
-    def mix(self, strategy, num_trials, save_results=True):
-        ''' executing the bandit with many arms by given mixing strategy '''
-        model = 'DIV'
-        self.temp_saver = TempSaver(self.samples.get_name(),
-                                    model, strategy, num_trials, self.run_config)
-
+		# restore prior history
         if self.num_resume > 0:
-            self.total_results, start_idx = self.saver.load(
-                model, strategy, self.num_resume)
+            self.current_results, start_idx = saver.load(mode, spec, self.num_resume)
         else:
-            self.total_results, start_idx = self.temp_saver.restore()
+            self.current_results, start_idx = temp_saver.restore()
 
-        est_records = {}
-        for i in range(start_idx, num_trials):            
-            trial_start_time = time.time()
-            self.init_bandit()
-            arm = self.bandit.get_arm(strategy)
-            wr = self.get_working_result()
-            best_val = None
+        for i in range(start_idx, num_runs): # loop for multiple runs           
+            start_time = time.time()
+            self.reset()
+            incumbent = None
 
-            est_records[str(i)] = []
+            if internal_records:
+                internal_records[str(i)] = []
 
             for j in range(NUM_MAX_ITERATIONS):
                 iter_start_time = time.time()
@@ -509,102 +383,100 @@ class HPOBanditMachine(object):
                 if self.warm_up_time != None:
                     if self.warm_up_time < self.cur_runtime:
                         use_interim_result = False
-                model, acq_func, _ = arm.select(j, use_interim_result)
+						
+                if mode == 'DIV':
+                    arms = self.bandit.get_arms(spec)
+                    mode, spec, _ = arms.select(j, use_interim_result)
 
-                curr_val, opt_log = self.pull(model, acq_func, wr, 
-                                             time.time() - iter_start_time)
-                if self.stop_flag == True:
-                    return self.total_results
+                prepare_time = time.time() - iter_start_time
+                curr_val, opt_log = self.pull(mode, spec, self.repo, prepare_time)
+                if mode == 'DIV':
+                    arms.update(j, curr_val, opt_log)
                 
                 if opt_log['exception_raised']:
-                    model = 'SOBOL'
-                    acq_func = 'RANDOM'
+                    mode = 'SOBOL'
+                    spec = 'RANDOM'
+                self.repo.update_trace(mode, spec)
 
-                wr.update_trace(model, acq_func)
-                arm.update(j, curr_val, opt_log)
+                if self.stop_flag == True:
+                    return self.current_results
                 
-                if self.save_internal == True:
-                    est_records[str(i)].append(opt_log)
+                if internal_records:
+                    internal_records[str(i)].append(opt_log)
 
-                if best_val == None:
-                    best_val = curr_val
-                if curr_val == None:
+                if num_runs == 1:
+                    self.current_results[i] = self.repo.get_current_status()
+                    temp_saver.save(self.current_results)
+                # incumbent update
+                if curr_val == None: # in case of error, skip belows
                     continue
-                if self.goal_metric == "accuracy" and best_val < curr_val:
-                    best_val = curr_val
-                elif self.goal_metric == "error" and best_val > curr_val:
-                    best_val = curr_val
-
-                if self.run_mode == 'GOAL':
-                    if self.goal_metric == "accuracy" and best_val >= self.target_goal:
-                        break
-                    elif self.goal_metric == "error" and best_val <= self.target_goal:
-                        break
-                elif self.run_mode == 'TIME':
-                    duration = wr.get_elapsed_time()
-                    #debug("current time: {} - {}".format(duration, self.time_expired))
-                    if duration >= self.time_expired:
-                        break
-                    elif time.time() - trial_start_time >= self.time_expired:
-                        debug("Trial time mismatch: {}".format(self.time_expired - duration))
-                        break
                 
-                if num_trials == 1:
-                    self.total_results[i] = wr.get_current_status()
-                    self.temp_saver.save(self.total_results)
+                if incumbent == None:
+                    incumbent = curr_val
+                elif self.goal_metric == "accuracy" and incumbent < curr_val:
+                    incumbent = curr_val
+                elif self.goal_metric == "error" and incumbent > curr_val:
+                    incumbent = curr_val
 
+                # stopping criteria check
+                if self.check_stop(incumbent, start_time):
+                    if mode == 'DIV':
+                        self.repo.feed_selection(arms)  
+                    break
 
-            trial_sim_time = time.time() - trial_start_time
-            log("Best {} {:.4f} at run #{}. (wall-clock time: {:.1f} secs)".format(self.goal_metric, 
+            wall_time = time.time() - start_time
+            log("Best {} {:.4f} at run #{}. (wall time: {:.1f} secs)".format(self.goal_metric, 
                                                              best_val, 
                                                              i, 
-                                                             trial_sim_time))
-            if self.goal_metric == "accuracy" and best_val < self.target_goal:
-                wr.force_terminated()
-            elif self.goal_metric == "error" and best_val > self.target_goal:
-                wr.force_terminated()
+                                                             wall_time))
 
             if self.sample_thread != None and self.sample_thread.is_alive():
                 self.sample_thread.join()
                 self.sample_thread = None
 
-            wr.feed_arm_selection(arm)
-            self.total_results[i] = wr.get_current_status()
-            self.working_result = None # reset working result
-            self.temp_saver.save(self.total_results)
+            self.current_results[i] = self.repo.get_current_status()
+            temp_saver.save(self.current_results)
+            self.search_space.archive(i)
 
-        if save_results is True:
-            if self.save_internal == True:
-                est_records = est_records
-            else:
-                est_records = None
-            self.saver.save('DIV', strategy,
-                            num_trials, self.total_results, est_records)
+        if saver:
+            saver.save(mode, spec, num_runs, self.current_results, internal_records)
+        temp_saver.remove()
 
-        self.temp_saver.remove()
-        self.print_best_config()
+        return self.current_results
 
-        return self.total_results
+    def check_stop(self, best_val, start_time):
+        if self.run_mode == 'GOAL':
+            if self.goal_metric == "accuracy" and best_val >= self.target_goal:
+                return True
+            elif self.goal_metric == "error" and best_val <= self.target_goal:
+                return True
+        elif self.run_mode == 'TIME':
+            duration = self.repo.get_elapsed_time()
+            #debug("current time: {} - {}".format(duration, self.time_expired))
+            if duration >= self.time_expired:
+                return True
+            elif time.time() - start_time >= self.time_expired:
+                debug("Trial time mismatch: {}".format(self.time_expired - duration))
+                return True         
+        return False
 
-    def get_current_results(self):
+    def get_results(self):
         results = []
-        if self.total_results:
-            results += self.total_results
+        if self.current_results:
+            results += self.current_results
 
-        if self.working_result != None:
-            results.append(self.working_result.get_current_status())
-
+        results.append(self.get_repo().get_current_status())
         return results
 
-    def get_working_result(self):
-        if self.working_result == None:
-            self.working_result = HPOResultFactory(self.goal_metric) 
-        return self.working_result
+    def get_repo(self):
+        if self.repo == None:
+            self.repo = ResultsRepository(self.goal_metric) 
+        return self.repo
 
-    def print_best_config(self):
-        for k in self.total_results.keys():
+    def print_best(self, results):
+        for k in results.keys():
             try:
-                result = self.total_results[k]
+                result = results[k]
                 
                 error_min_index = 0
                 cur_best_err = None
@@ -620,9 +492,63 @@ class HPOBanditMachine(object):
                 
                 best_model_index = result['model_idx'][error_min_index]
                 best_error = result['error'][error_min_index]
-                best_hpv = self.samples.get_hpv_dict(best_model_index)
-                log("Best performance at run #{} by {} is {}.".format(k + 1, best_hpv, best_error))
+                best_hpv = self.search_space.get_hpv_dict(best_model_index)
+                log("Best performance at run #{} by {} is {}.".format(int(k)+1, best_hpv, best_error))
             except Exception as ex:
-                warn("Report error ar run #{}: {}".format(k, ex))
+                warn("Report error ar run #{}".format(k))
 
+    def sample(self, estimates):
+        s_t = time.time()
+        if not "search_space" in self.run_config:
+            return
+			
+        if 'remove' in self.run_config['search_space']:
+            start_t = time.time()
+            ds = self.run_config['search_space']["remove"]
+            remove_samples(self.search_space, ds, estimates)
+            debug("Removed with {} ({:.1f} sec)".format(ds, time.time() - start_t))
+			
+        if 'intensify' in self.run_config['search_space']:
+            if estimates == None:
+                warn("No estimation available to intensify samples.")
+            else:             
+                start_t = time.time()
+				
+                cands = np.array(estimates['candidates']) # has index
+                est_values = np.array(estimates['acq_funcs']) # estimated performance by acquistion function
+                ns = self.run_config['search_space']['intensify']
+                top_k = est_values.argsort()[-1*ns:][::-1]
+				
+                for k in cands[top_k]:
+                    cand = self.search_space.get_hpv_dict(k)
+                    intensify_samples(self.search_space, 1, cand)
+                debug("{} samples intensified. ({:.1f} sec)".format(ns, time.time() - start_t))
+				
+        if 'evolution' in self.run_config['search_space']:
+            if estimates == None:
+                warn("No estimation available to evolve samples.")
+            else:             
+                start_t = time.time()
+				
+                cands = np.array(estimates['candidates']) # has index
+                est_values = np.array(estimates['acq_funcs']) # estimated performance by acquistion function
+                ns = self.run_config['search_space']['evolution']
+                top_1 = est_values.argsort()[-1:][::-1]
+                i = self.search_space.get_incumbent()
+                cur_best = { "hpv": self.search_space.get_hpv(i), 
+                             "schema": self.search_space.get_schema(i) }
+                for k in cands[top_1]:
+                    cand = self.search_space.get_hpv_dict(k)
+                    evolve_samples(self.search_space, ns, cur_best, cand)
+                debug("{} samples evolved. ({:.1f} sec)".format(ns, time.time() - start_t))
+				
+        if 'add' in self.run_config['search_space']:
+            start_t = time.time()
+            ns = self.run_config['search_space']["add"]                                
+            append_samples(self.search_space, ns)
+            debug("{} samples added ({:.1f} sec)".format(ns, time.time() - start_t))
+			
+        cand_size = len(self.search_space.get_candidates())
+        debug("Current # of candidates: {} ({:.1f} sec)".format(cand_size, time.time() - s_t))
+		  
    

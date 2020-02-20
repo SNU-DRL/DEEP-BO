@@ -13,7 +13,7 @@ import hpo.choosers.hyperopt_chooser as hoc
 import hpo.choosers.random_chooser as RandomChooser
 
 from hpo.strategies import *
-from hpo.eval_time import * 
+from hpo.predict_time import * 
 
 from ws.shared.logger import *
 
@@ -69,9 +69,9 @@ def validate(config):
 
 class BanditConfigurator(object):
 
-    def __init__(self, samples, config, time_penalties=[]):
+    def __init__(self, s_space, config, time_penalties=[]):
         self.config = config
-        self.samples = samples
+        self.search_space = s_space
 
         self.time_acq_funcs = get_time_acq_funcs(time_penalties)
         self.choosers = self.init_choosers(config)
@@ -187,24 +187,24 @@ class BanditConfigurator(object):
             choosers['RF-HLE'] = rfc.init('.', rf_options)
 
         if 'TPE' in opts:
-            choosers['TPE'] = hoc.init(self.samples, "")
+            choosers['TPE'] = hoc.init(self.search_space, "")
 
         if 'TPE-LE' in opts:
             options = 'response_shaping=True,shaping_func=log_err'            
-            choosers['TPE-LE'] = hoc.init(self.samples, options)
+            choosers['TPE-LE'] = hoc.init(self.search_space, options)
 
         if 'TPE-HLE' in opts:
             options = 'response_shaping=True,shaping_func=hybrid_log'
-            choosers['TPE-HLE'] = hoc.init(self.samples, options)
+            choosers['TPE-HLE'] = hoc.init(self.search_space, options)
 
         return choosers
 
-    def get_arm(self, spec):
-        return ArmSelector(spec, self.config, self.samples, self.choosers)
+    def get_arms(self, spec):
+        return ArmSelector(spec, self.config, self.search_space, self.choosers)
          
 
 class ArmSelector(object):
-    def __init__(self, spec, config, samples, choosers):
+    def __init__(self, spec, config, search_space, choosers):
                 
         self.config = config
 
@@ -215,7 +215,7 @@ class ArmSelector(object):
         self.init_rewards()   
 
         self.spec = spec
-        self.samples = samples
+        self.search_space = search_space
         self.choosers = choosers
 
         self.strategy = self.register(spec)
@@ -311,7 +311,7 @@ class ArmSelector(object):
                 eta = self.config['eta']
             return BayesianHedgeStrategy(self.arms, eta, 
                                         self.values, self.counts, 
-                                        self.samples, self.choosers, 
+                                        self.search_space, self.choosers, 
                                         title=title)
         elif spec == 'BO-HEDGE-T':
             eta = 0.1
@@ -319,7 +319,7 @@ class ArmSelector(object):
                 eta = self.config['eta']
             return BayesianHedgeStrategy(self.arms, eta, 
                                         self.values, self.counts, 
-                                        self.samples, self.choosers, 
+                                        self.search_space, self.choosers, 
                                         title=title,
                                         unbiased_estimation=True)
         elif spec == 'BO-HEDGE-LE':
@@ -328,7 +328,7 @@ class ArmSelector(object):
                 eta = self.config['eta']
             return BayesianHedgeStrategy(self.arms, eta, 
                                         self.values, self.counts, 
-                                        self.samples, self.choosers, 
+                                        self.search_space, self.choosers, 
                                         title=title,
                                         reward_scaling="LOG_ERR")
         elif spec == 'BO-HEDGE-LET':
@@ -337,7 +337,7 @@ class ArmSelector(object):
                 eta = self.config['eta']
             return BayesianHedgeStrategy(self.arms, eta, 
                                         self.values, self.counts, 
-                                        self.samples, self.choosers, 
+                                        self.search_space, self.choosers, 
                                         title=title,
                                         unbiased_estimation=True,
                                         reward_scaling="LOG_ERR")                                                   

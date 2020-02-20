@@ -35,7 +35,7 @@ def create_master_server(hp_cfg,
     This API blocks the remained procedure unless a terminal signal enters.
  
     '''
-    from hpo.batch_mgr import ParallelHPOManager
+    from hpo.parallel.p_mgr import ParallelHPOManager
 
     global JOB_MANAGER
     global API_SERVER

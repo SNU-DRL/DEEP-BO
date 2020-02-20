@@ -10,7 +10,7 @@ from ws.shared.proto import ManagerPrototype
 
 import ws.shared.lookup as lookup
 from hpo.utils.hpv_gen import HyperparameterVectorGenerator
-from hpo.sample_space import *
+from hpo.search_space import *
 
 
 def connect_remote_space(space_url, cred):
@@ -21,7 +21,7 @@ def connect_remote_space(space_url, cred):
         warn("Fail to get remote samples: {}".format(ex))
         return None  
 
-def create_lookup_space(surrogate_name, grid_order=None):
+def create_space_from_table(surrogate_name, grid_order=None):
     
     l = lookup.load(surrogate_name, grid_order=grid_order)
     s = SurrogatesSpace(l)
@@ -88,12 +88,22 @@ def intensify_samples(space, num_samples, best_candidate):
     space.expand(hpvs)
 
 
+def evolve_samples(space, num_samples, current_best, best_candidate, mutation_ratio=.1):
+    space.space_setting['num_samples'] = num_samples
+    space.space_setting['sample_method'] = 'genetic'
+    space.space_setting['current_best'] = current_best
+    space.space_setting['best_candidate'] = best_candidate # XXX:should be normalized value
+    space.space_setting['mutation_ratio'] = mutation_ratio
+    hvg = HyperparameterVectorGenerator(space.get_hp_config(), space.space_setting)
+    hvg.generate()    
+    hpvs = hvg.get_hp_vectors()
+    schemata = hvg.get_schemata()
+    space.expand(hpvs, schemata)
 def remove_samples(space, method, estimates):
     if method == 'all_candidates':
         cands = space.get_candidates()
-        method = 'worst[{}]'.format(len(cands))
-        estimates = {'candidates': cands, 
-                    'acq_funcs': [0.0 for a in range(len(cands))] }
+        space.remove(cands)
+        return
     
     if estimates == None or not 'candidates' in estimates or not 'acq_funcs' in estimates:
         warn("Samples can not be removed without estimated values")
@@ -126,14 +136,12 @@ def remove_samples(space, method, estimates):
                 # find worst {number} items to delete
                 worst_k = est_values.argsort()[:number][::1]
 
-                for i in cands[worst_k]:
-                    space.remove(i)
+                space.remove(cands[worst_k])
             elif method_type == 'except_top':
                 # find top {number} items to be saved
                 top_k = est_values.argsort()[-1 * number:][::-1]
                 remains = np.setdiff1d(cands, cands[top_k]) # remained items
-                for i in remains:
-                    space.remove(i)
+                space.remove(remains)
             else:
                 raise ValueError("Invalid method type: {}".format(method))
 
@@ -142,10 +150,10 @@ def remove_samples(space, method, estimates):
 
 
 
-class SamplingSpaceManager(ManagerPrototype):
+class SearchSpaceManager(ManagerPrototype):
 
     def __init__(self, *args, **kwargs):
-        super(SamplingSpaceManager, self).__init__(type(self).__name__)
+        super(SearchSpaceManager, self).__init__(type(self).__name__)
         self.spaces = {} 
 
     def create(self, space_spec):
@@ -155,7 +163,7 @@ class SamplingSpaceManager(ManagerPrototype):
 
             if "grid_order" in space_spec:
                 grid_order = space_spec["grid_order"]
-            s = create_lookup_space(surrogate, grid_order)
+            s = create_space_from_table(surrogate, grid_order)
             cfg = surrogate
         else:
             if not "hp_config" in space_spec:
