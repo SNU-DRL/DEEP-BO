@@ -119,9 +119,10 @@ class HPOBanditMachine(object):
 
         self.search_space = s_space
         self.save_name = s_space.get_name()
+        
         self.sample_thread = None
         self.trainer = trainer
-
+        
         self.calc_measure = calc_measure
         
         self.target_goal = target_val
@@ -129,7 +130,7 @@ class HPOBanditMachine(object):
         self.time_expired = TimestringConverter().convert(time_expired)
 
         self.save_internal = save_internal
-        
+
         self.num_resume = num_resume
         self.min_candidates = 100 # XXX:any number to be tested 
 
@@ -179,9 +180,7 @@ class HPOBanditMachine(object):
     def predict_time(self, cand_index, model, time_model):
         ''' Experimental feature. This is not be suggested to use. '''        
         import hpo.predict_time as pt
-
         et = pt.get_estimator(self.search_space, time_model)
-            
         success, cand_est_times = et.estimate(self.search_space.get_candidates(), 
                                             self.search_space.get_completions())
         if success:
@@ -192,7 +191,6 @@ class HPOBanditMachine(object):
             for i in range(len(self.search_space.get_candidates())):
                 if self.search_space.get_candidates(i) == cand_index:
                     return int(cand_est_times[i])
-        
         return None
 
     def choose(self, model, acq_func, search_space=None):
@@ -237,7 +235,7 @@ class HPOBanditMachine(object):
                                                         args=(chooser.estimates,))
                     self.sample_thread.start()
             else:
-                # samples will be transformed sequentially                               
+                # samples will be generated sequentially                               
                 self.sample(chooser.estimates)
 
         # for measure information sharing effect
@@ -340,7 +338,7 @@ class HPOBanditMachine(object):
             'exception_raised': exception_raised,
         }
         if self.save_internal == True:
-            est_log["estimated_values"] = self.bandit.choosers[model].estimates
+            optional["estimated_values"] = self.bandit.choosers[model].estimates
 
         if self.goal_metric == "accuracy":
             return test_acc, optional
@@ -393,11 +391,11 @@ class HPOBanditMachine(object):
                     debug("Selecting next candidate with {}-{}".format(model, acq_func))
                 
                 prepare_time = time.time() - iter_start_time
-                y, opt_log = self.pull(model, acq_func, self.repo, prepare_time)
+                y, opt = self.pull(model, acq_func, self.repo, prepare_time)
                 if mode == 'DIV':
-                    arms.update(j, y, opt_log)
+                    arms.update(j, y, opt)
                
-                if opt_log['exception_raised']:
+                if opt['exception_raised']:
                     model = 'SOBOL'
                     acq_func = 'RANDOM'
                 self.repo.update_trace(model, acq_func)
@@ -406,7 +404,7 @@ class HPOBanditMachine(object):
                     return self.current_results
 
                 if internal_records:
-                    internal_records[str(i)].append(opt_log)
+                    internal_records[str(i)].append(opt)
 
                 if num_runs == 1:
                     self.current_results[i] = self.repo.get_current_status()
@@ -464,7 +462,7 @@ class HPOBanditMachine(object):
                 debug("Trial time mismatch: {}".format(self.time_expired - duration))
                 return True         
         return False
-
+        
     def get_results(self):
         results = []
         if self.current_results:
@@ -506,38 +504,38 @@ class HPOBanditMachine(object):
         s_t = time.time()
         if not "search_space" in self.run_config:
             return
-			
+
         if 'remove' in self.run_config['search_space']:
             start_t = time.time()
             ds = self.run_config['search_space']["remove"]
             remove_samples(self.search_space, ds, estimates)
             debug("Removed with {} ({:.1f} sec)".format(ds, time.time() - start_t))
-			
+
         if 'intensify' in self.run_config['search_space']:
             if estimates == None:
                 warn("No estimation available to intensify samples.")
             else:             
                 start_t = time.time()
-				
+                # intensify # of promissing samples using estimated values
                 cands = np.array(estimates['candidates']) # has index
                 est_values = np.array(estimates['acq_funcs']) # estimated performance by acquistion function
                 ns = self.run_config['search_space']['intensify']
                 top_k = est_values.argsort()[-1*ns:][::-1]
-				
+                
                 for k in cands[top_k]:
                     cand = self.search_space.get_hpv_dict(k)
                     intensify_samples(self.search_space, 1, cand)
                 debug("{} samples intensified. ({:.1f} sec)".format(ns, time.time() - start_t))
-				
-        if 'evolution' in self.run_config['search_space']:
+
+        if 'evolve' in self.run_config['search_space']:
             if estimates == None:
                 warn("No estimation available to evolve samples.")
             else:             
                 start_t = time.time()
-				
+                # evolving # of promissing samples using estimated values
                 cands = np.array(estimates['candidates']) # has index
                 est_values = np.array(estimates['acq_funcs']) # estimated performance by acquistion function
-                ns = self.run_config['search_space']['evolution']
+                ns = self.run_config['search_space']['evolve']
                 top_1 = est_values.argsort()[-1:][::-1]
                 i = self.search_space.get_incumbent()
                 cur_best = { "hpv": self.search_space.get_hpv(i), 
@@ -546,14 +544,14 @@ class HPOBanditMachine(object):
                     cand = self.search_space.get_hpv_dict(k)
                     evolve_samples(self.search_space, ns, cur_best, cand)
                 debug("{} samples evolved. ({:.1f} sec)".format(ns, time.time() - start_t))
-				
+
         if 'add' in self.run_config['search_space']:
             start_t = time.time()
             ns = self.run_config['search_space']["add"]                                
             append_samples(self.search_space, ns)
             debug("{} samples added ({:.1f} sec)".format(ns, time.time() - start_t))
-			
+
         cand_size = len(self.search_space.get_candidates())
-        debug("Current # of candidates: {} ({:.1f} sec)".format(cand_size, time.time() - s_t))
-		  
+        debug("Current # of candidates: {} ({:.1f} sec)".format(cand_size, time.time() - s_t))  
+
    
