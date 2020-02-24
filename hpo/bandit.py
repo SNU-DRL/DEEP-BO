@@ -357,18 +357,18 @@ class HPOBanditMachine(object):
             saver = HistorySaver(self.save_name, self.run_mode, self.target_goal,
                                     self.time_expired, self.run_config, 
                                     postfix=".{}".format(self.id))            
+        
         # For in-depth analysis
         internal_records = None
-            
         if self.save_internal:
             internal_records = {}
 
-		# restore prior history
+        # restore prior history
         if self.num_resume > 0:
             self.current_results, start_idx = saver.load(mode, spec, self.num_resume)
         else:
             self.current_results, start_idx = temp_saver.restore()
-
+        
         for i in range(start_idx, num_runs): # loop for multiple runs           
             start_time = time.time()
             self.reset()
@@ -377,46 +377,51 @@ class HPOBanditMachine(object):
             if internal_records:
                 internal_records[str(i)] = []
 
-            for j in range(NUM_MAX_ITERATIONS):
+            for j in range(NUM_MAX_ITERATIONS): # loop for each run
                 iter_start_time = time.time()
                 use_interim_result = True
                 if self.warm_up_time != None:
                     if self.warm_up_time < self.cur_runtime:
                         use_interim_result = False
-						
+
+                # Model selection
+                model = mode 
+                acq_func = spec               
                 if mode == 'DIV':
                     arms = self.bandit.get_arms(spec)
-                    mode, spec, _ = arms.select(j, use_interim_result)
-
-                prepare_time = time.time() - iter_start_time
-                curr_val, opt_log = self.pull(mode, spec, self.repo, prepare_time)
-                if mode == 'DIV':
-                    arms.update(j, curr_val, opt_log)
+                    model, acq_func, _ = arms.select(j, use_interim_result)
+                    debug("Selecting next candidate with {}-{}".format(model, acq_func))
                 
+                prepare_time = time.time() - iter_start_time
+                y, opt_log = self.pull(model, acq_func, self.repo, prepare_time)
+                if mode == 'DIV':
+                    arms.update(j, y, opt_log)
+               
                 if opt_log['exception_raised']:
-                    mode = 'SOBOL'
-                    spec = 'RANDOM'
-                self.repo.update_trace(mode, spec)
+                    model = 'SOBOL'
+                    acq_func = 'RANDOM'
+                self.repo.update_trace(model, acq_func)
 
                 if self.stop_flag == True:
                     return self.current_results
-                
+
                 if internal_records:
                     internal_records[str(i)].append(opt_log)
 
                 if num_runs == 1:
                     self.current_results[i] = self.repo.get_current_status()
                     temp_saver.save(self.current_results)
+
                 # incumbent update
-                if curr_val == None: # in case of error, skip belows
-                    continue
+                if y == None: # in case of error, skip belows
+                    continue                
                 
                 if incumbent == None:
-                    incumbent = curr_val
-                elif self.goal_metric == "accuracy" and incumbent < curr_val:
-                    incumbent = curr_val
-                elif self.goal_metric == "error" and incumbent > curr_val:
-                    incumbent = curr_val
+                    incumbent = y
+                elif self.goal_metric == "accuracy" and incumbent < y:
+                    incumbent = y
+                elif self.goal_metric == "error" and incumbent > y:
+                    incumbent = y
 
                 # stopping criteria check
                 if self.check_stop(incumbent, start_time):
