@@ -526,16 +526,20 @@ def draw_boxplot_strategies(results, threshold,
 def draw_trials_curve(results, arm, run_index,
                       x_unit='Hour', guidelines=[], g_best_acc=None,
                       xlim=None, ylim=None, title=None, save_name=None, 
-                      loc=3, width=10, height=6):
+                      loc=3, width=10, height=6, metric='Test error'):
     selected = anal.get_result(results, arm, run_index)
     x_time = anal.get_total_times(selected, x_unit)
     y_errors = selected['error']
-    
+    max_err = 1.0
     if g_best_acc != None:
         g_best_err = 1.0 - g_best_acc
-        y_errors = y_errors - g_best_err 
+        y_errors = []
+        for y in selected['error']:
+            if y != None:
+                y_errors.append(y - g_best_err)
+            else:
+                y_errors.append(max_err)  
 
-    max_err = 1.0
     line_best_errors = np.array(anal.get_best_errors(selected))
     if g_best_acc != None:
         line_best_errors = line_best_errors - g_best_err
@@ -586,17 +590,19 @@ def draw_trials_curve(results, arm, run_index,
                 else:
                     marker = 'o'
 
-        if arm in unlabeled_arms:
-            plot_func(
-                x_time[i], y_errors[i], 
-                color=color, linestyle='', alpha=opacity,
-                marker=marker, markersize=marker_size,
-                label=get_label(arm))
-            unlabeled_arms.remove(arm)
-        else:
-            plot_func(x_time[i], y_errors[i],
-                             color=color, linestyle='', alpha=opacity,
-                             marker=marker, markersize=marker_size)
+        x = x_time[i]
+        y = y_errors[i]
+        if y != None:
+            if arm in unlabeled_arms:
+                plot_func(x, y, 
+                    color=color, linestyle='', alpha=opacity,
+                    marker=marker, markersize=marker_size,
+                    label=get_label(arm))
+                unlabeled_arms.remove(arm)
+            else:
+                plot_func(x, y,
+                        color=color, linestyle='', alpha=opacity,
+                        marker=marker, markersize=marker_size)
 
     # line plot for best error
     plot_func([0] + x_time, line_best_errors, color='blue',
@@ -632,7 +638,7 @@ def draw_trials_curve(results, arm, run_index,
     if g_best_acc != None:
         plt.ylabel("Intermidiate regret", fontsize=15)
     else:
-        plt.ylabel("Test error", fontsize=15)
+        plt.ylabel(metric, fontsize=15)
     plt.xlabel(x_unit, size=15)
     plt.legend(loc=loc, prop={'size': 15})
 

@@ -94,7 +94,7 @@ class HyperparameterConfiguration(DictionaryToObject):
         self._dict = d
         super(HyperparameterConfiguration, self).__init__(d)
     
-    def get_param_list(self):
+    def get_param_names(self):
         if 'param_order' in self._dict:
             return self._dict['param_order']
         else:
@@ -104,74 +104,50 @@ class HyperparameterConfiguration(DictionaryToObject):
             return param_list
 
     def get_type(self, name):
-        t = None
-        hyperparams = self.hyperparams
-        if name in hyperparams.__dict__.keys():
-            hyperparam = getattr(hyperparams, name)
+        if name in self.hyperparams.__dict__.keys():
+            hyperparam = getattr(self.hyperparams, name)
             if hyperparam.type == 'unicode':
                 return "str"
             else:
                 return hyperparam.type
-        
-        return t
+        raise ValueError("Invalid hyperparameter name: {}".format(name))
 
     def get_value_type(self, name):
-        t = None
-        hyperparams = self.hyperparams
-        if name in hyperparams.__dict__.keys():
-            hyperparam = getattr(hyperparams, name)
+        if name in self.hyperparams.__dict__.keys():
+            hyperparam = getattr(self.hyperparams, name)
             return hyperparam.value_type
-        
-        return t
+        raise ValueError("Invalid hyperparameter name: {}".format(name))
 
     def get_range(self, name):
-        range = []
-        hyperparams = self.hyperparams
-        if name in hyperparams.__dict__.keys():
-            hyperparam = getattr(hyperparams, name)
-            range = hyperparam.range
+        if name in self.hyperparams.__dict__.keys():
+            hyperparam = getattr(self.hyperparams, name)
+            r = hyperparam.range
             
             if hasattr(hyperparam, 'power_of'):
                 base = hyperparam.power_of
-                range = []
+                r = []
                 for power in hyperparam.range:
-                    range.append(base**power)
+                    r.append(base**power)
 
             if hyperparam.type == 'unicode':
-                range = []
+                r = []
                 for item in hyperparam.range:
-                    range.append(item.encode('ascii', 'ignore'))
-                
-        return range
+                    r.append(item.encode('ascii', 'ignore'))
+            return r
+        else:
+            raise ValueError("Invalid hyperparameter name: {}".format(name))
 
+    def get_default_value(self, name):
+        if not name in self.hyperparams.__dict__.keys():
+            raise ValueError("Invalid hyperparameter name: {}".format(name))
+        hyperparam = getattr(self.hyperparams, name)
+        if hasattr(hyperparam, 'default'):
+            return hyperparam.default
+        else:
+            debug("No default value setting. Return a minimum value of the range.")
+            return self.get_range(name)[0]
+			
     def get_dict(self):
         return self._dict
 
-    def to_typed_list(self, arr):
-	
-        typed_list = []
-        p_list = self.get_param_list()
-        if len(p_list) != len(arr):
-            raise TypeError("Invalid hyperparameter vector: {}".format(arr))
 			
-        for i in range(len(p_list)):
-            p = p_list[i]
-            t = self.get_type(p)
-            v = eval(t)(arr[i])
-            typed_list.append(v)
-
-        return typed_list
-		
-    def to_typed_dict(self, arr):
-        typed_dict = {}
-        p_list = self.get_param_list()
-        if len(p_list) != len(arr):
-            raise TypeError("Invalid hyperparameter vector: {}".format(arr))
-			
-        for i in range(len(p_list)):
-            p = p_list[i]
-            t = self.get_type(p)
-            v = eval(t)(arr[i])
-            typed_dict[p] = v
-			
-        return typed_dict

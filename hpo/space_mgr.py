@@ -76,16 +76,19 @@ def append_samples(space, num_samples):
     space.expand(hpvs)
 
 
-def intensify_samples(space, num_samples, best_candidate):
+def intensify_samples(space, num_samples, best_candidate, num_gen):
  
     space.space_setting['num_samples'] = num_samples
     space.space_setting['sample_method'] = 'local'
     space.space_setting['best_candidate'] = best_candidate # XXX:should be normalized value
+    space.space_setting['generation'] = num_gen 
 
     hvg = HyperparameterVectorGenerator(space.get_hp_config(), space.space_setting)
     hvg.generate()    
     hpvs = hvg.get_hp_vectors()
-    space.expand(hpvs)
+    schemata = hvg.get_schemata()
+    gen_counts = hvg.get_generations()
+    space.expand(hpvs, schemata, gen_counts)
 
 
 def evolve_samples(space, num_samples, current_best, best_candidate, mutation_ratio=.1):
@@ -98,7 +101,8 @@ def evolve_samples(space, num_samples, current_best, best_candidate, mutation_ra
     hvg.generate()    
     hpvs = hvg.get_hp_vectors()
     schemata = hvg.get_schemata()
-    space.expand(hpvs, schemata)
+    gen_counts = hvg.get_generations()
+    space.expand(hpvs, schemata, gen_counts)
 def remove_samples(space, method, estimates):
     if method == 'all_candidates':
         cands = space.get_candidates()

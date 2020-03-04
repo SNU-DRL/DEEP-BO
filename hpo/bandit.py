@@ -13,7 +13,7 @@ import threading
 import numpy as np
 
 from ws.shared.logger import *
-import ws.shared.hp_cfg as hconf
+from ws.shared.hp_cfg import HyperparameterConfiguration
 from ws.shared.saver import *
 
 from hpo.search_space import *
@@ -75,7 +75,7 @@ def create_runner(trainer_url, space,
         
         
         if isinstance(hp_config, dict):
-            hp_config = hconf.HyperparameterConfiguration(hp_config)
+            hp_config = HyperparameterConfiguration(hp_config)
 
         cred = ""
         if "credential" in run_config:
@@ -179,8 +179,8 @@ class HPOBanditMachine(object):
     
     def predict_time(self, cand_index, model, time_model):
         ''' Experimental feature. This is not be suggested to use. '''        
-        import hpo.predict_time as pt
-        et = pt.get_estimator(self.search_space, time_model)
+        from hpo.predict_time import get_estimator
+        et = get_estimator(self.search_space, time_model)
         success, cand_est_times = et.estimate(self.search_space.get_candidates(), 
                                             self.search_space.get_completions())
         if success:
@@ -410,6 +410,7 @@ class HPOBanditMachine(object):
                     self.current_results[i] = self.repo.get_current_status()
                     temp_saver.save(self.current_results)
 
+                self.update_history(num_runs)
                 # incumbent update
                 if y == None: # in case of error, skip belows
                     continue                
@@ -463,6 +464,8 @@ class HPOBanditMachine(object):
                 return True         
         return False
         
+    def update_history(self, num_run):
+        self.search_space.update_history(num_run)
     def get_results(self):
         results = []
         if self.current_results:
@@ -524,7 +527,8 @@ class HPOBanditMachine(object):
                 
                 for k in cands[top_k]:
                     cand = self.search_space.get_hpv_dict(k)
-                    intensify_samples(self.search_space, 1, cand)
+                    num_gen = self.search_space.get_generation(k)
+                    intensify_samples(self.search_space, 1, cand, num_gen)
                 debug("{} samples intensified. ({:.1f} sec)".format(ns, time.time() - start_t))
 
         if 'evolve' in self.run_config['search_space']:
@@ -539,7 +543,9 @@ class HPOBanditMachine(object):
                 top_1 = est_values.argsort()[-1:][::-1]
                 i = self.search_space.get_incumbent()
                 cur_best = { "hpv": self.search_space.get_hpv(i), 
-                             "schema": self.search_space.get_schema(i) }
+                             "schema": self.search_space.get_schema(i),
+                             "gen": self.search_space.get_generation(i)
+                            }
                 for k in cands[top_1]:
                     cand = self.search_space.get_hpv_dict(k)
                     evolve_samples(self.search_space, ns, cur_best, cand)

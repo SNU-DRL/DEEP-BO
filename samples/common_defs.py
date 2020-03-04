@@ -13,7 +13,7 @@ try:
 	from hyperopt import hp
 	from hyperopt.pyll.stochastic import sample
 except ImportError:
-	print "In order to achieve operational capability, this programme requires hyperopt to be installed (pip install hyperopt), unless you make get_params() use something else."
+	print("In order to achieve operational capability, this programme requires hyperopt to be installed (pip install hyperopt), unless you make get_params() use something else.") 
 	
 #	
 

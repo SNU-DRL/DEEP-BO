@@ -90,7 +90,7 @@ class HyperOptSearchSpaceConfig(object):
         if type(config) == dict:
             config = HyperparameterConfiguration(config)
         self.config = config
-        self.hyperparams = self.config.get_param_list()
+        self.hyperparams = self.config.get_param_names()
 
     def get_hyperopt_space(self):
         space = {}

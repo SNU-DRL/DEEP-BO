@@ -41,7 +41,7 @@ class OneHotVectorTransformer(object):
 
     def transform(self, hpv):
         encoded = []
-        for param in self.config.get_param_list():
+        for param in self.config.get_param_names():
             vt = self.config.get_value_type(param)
             t = self.config.get_type(param)            
             r = self.config.get_range(param)
@@ -127,7 +127,7 @@ class RepresentationConverter(object):
 
     def __init__(self, config):        
         self.config = config
-        self.param_order = config.get_param_list()
+        self.param_order = config.get_param_names()
 
     def get_param_spec(self):
         value_types = []

@@ -17,10 +17,10 @@ class TrainingJobFactory(object):
         self.worker = worker
 
     def create(self, dataset, model, hpv, cfg):
-        job_id = "{}-{}-{}{}".format(self.worker.get_id(), 
+        job_id = "{}-{}-{}-{}".format(self.worker.get_id(), 
                                      self.worker.get_device_id(), 
                                      time.strftime('%Y%m%d',time.localtime()),
-                                     len(self.jobs))
+                                     time.strftime('%H%M%S',time.localtime()))
 
         job = {
             "job_id" : job_id, 

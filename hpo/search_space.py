@@ -1,14 +1,14 @@
-import numpy as np
 import os
 import copy
 import json
 import time
+import numpy as np
+import pandas as pd
+
 from ws.shared.logger import *
 from ws.shared.hp_cfg import HyperparameterConfiguration
 
 from hpo.utils.converter import *
-from hpo.utils.grid_gen import *
-
 from hpo.connectors.remote_space import RemoteParameterSpaceConnector
 
 
@@ -45,6 +45,12 @@ class ParameterSpace(object):
             completions = np.where(self.train_epochs == max_epochs)[0]
             return completions
 
+    def get_incumbent(self):
+
+        min_i = np.argmin(self.get_errors("completions"))
+        i = self.completions[min_i]
+        return i
+
     def get_search_order(self, sample_index):
         if sample_index in self.completions:
             search_order = self.completions.tolist()
@@ -70,7 +76,7 @@ class ParameterSpace(object):
 
     def get_errors(self, type_or_id="completions"):
         if type_or_id == "completions":
-            c = self.get_completions()
+            c = self.completions
             return self.observed_errors[c]
         elif type_or_id == "all":
             return self.observed_errors
@@ -85,15 +91,12 @@ class ParameterSpace(object):
                                     [ 0 for i in range(len(indices))], axis=0) 
         return indices        
 
-    def remove(self, sample_index):
+    def remove(self, indices):
         # check index in candidates or completions
-        if not sample_index in self.completions:
-            if not sample_index in self.candidates:
-                debug('{} is not in candidate list'.format(sample_index))
-            else:
-                self.candidates = np.setdiff1d(self.candidates, sample_index)
-        else:
-            debug('Completed sample id {} can not be removed.'.format(sample_index))
+        diff = np.setdiff1d(indices, self.candidates)
+        if len(diff) > 0:
+            debug('Some samples are not listed on candidates: {}'.format(diff))
+        self.candidates = np.setdiff1d(self.candidates, indices)
 
 
 class HyperParameterSpace(ParameterSpace):
@@ -103,15 +106,24 @@ class HyperParameterSpace(ParameterSpace):
 
         self.name = name
         self.hp_config = HyperparameterConfiguration(hp_config_dict)
-
+        self.converter = RepresentationConverter(self.hp_config)
         self.space_setting = space_setting
         self.prior_history = None
         if 'prior_history' in space_setting:
             self.prior_history = space_setting['prior_history']
+
+        self.resampled = False
+        if 'resample_steps' in space_setting:
+            if space_setting['resample_steps'] > 0:
+                self.resampled = True
+
         self.priors = []
+        self.backups = {} # XXX: it may take large size memory
 
         self.hp_vectors = copy.copy(hpv_list)
         self.initial_hpv = hpv_list
+        self.schemata = np.zeros(np.array(hpv_list).shape)
+        self.gen_counts = np.zeros(len(hpv_list)) # generation counts for evolutionary sampling
 
         super(HyperParameterSpace, self).__init__(self.one_hot_encode(self.hp_vectors))
 
@@ -133,31 +145,57 @@ class HyperParameterSpace(ParameterSpace):
 
             except Exception as ex:
                 warn("Use of prior history failed: {}".format(ex))
-
-    def save(self, save_type='npz'):
-        # save hyperparameter vectors
-        space = {}
+   
+    def archive(self, run_index):
         
+        if run_index == 0:
+            k_hpv = "hpv"
+            k_schemata = "schemata"
+            k_gen_count = "gen_count"
+        else:
+            k_hpv = "hpv{}".format(run_index)
+            k_schemata = "schemata{}".format(run_index)
+            k_gen_count = "gen_count{}".format(run_index)
+        
+        if self.resampled == True:
+            self.backups[k_hpv] = np.array(copy.copy(self.hp_vectors))
+            self.backups[k_schemata] = np.array(copy.copy(self.schemata))
+            self.backups[k_gen_count] = np.array(copy.copy(self.gen_counts))  
+
+    def update_history(self, run_index, folder='temp/'):
+        # FIXME: below works stupidly because it refreshs from scratch.
+        # save current experiment to csv format
+        hpv_dict_list = []
+        for c in self.completions:
+            h = self.get_hpv_dict(c)
+            e = self.get_errors(c)
+            h['_error_'] = e
+            hpv_dict_list.append(h)
+
+        # create dictionary type results
+        if len(hpv_dict_list) > 0:
+            df = pd.DataFrame.from_dict(hpv_dict_list)
+            path = "{}{}-{}.csv".format(folder, self.name, run_index)
+            csv = df.to_csv(path, index=False)
+            debug("Current progress updated at {}".format(path))
+
+    def save(self):
+        # save hyperparameter vectors & schemata when no backup available
+        if not "hpv" in self.backups:
+            self.backups["hpv"] = np.array(copy.copy(self.hp_vectors))
+
+        if not "schemata" in self.backups:
+            self.backups["schemata"] = np.array(copy.copy(self.schemata))        
+        
+        if not "gen_count" in self.backups:
+            self.backups["gen_count"] = np.array(copy.copy(self.gen_counts))
+
         try:
             if not os.path.isdir("./spaces/"):
                 os.mkdir("./spaces/")
-            space['name'] = self.name
-            if save_type == 'json':
-                file_name = "spaces/{}.json".format(self.name)
 
-                if type(self.hp_vectors) == list:
-                    space['hpv'] = self.hp_vectors
-                else:
-                    space['hpv'] = self.hp_vectors.tolist()
-
-                with open(file_name, 'w') as json_file:
-                    json_file.write(json.dumps(space))
-                
-            elif save_type == 'npz':
-                file_name = "spaces/{}.npz".format(self.name)
-                np.savez_compressed(file_name, hpv=np.array(self.hp_vectors))
-            else:
-                raise ValueError("Unsupported save format: {}".format(save_type))
+            file_name = "spaces/{}.npz".format(self.name)
+            np.savez_compressed(file_name, **self.backups)
             debug("{} saved properly.".format(file_name))
         except Exception as ex:
             warn("Unable to save {}: {}".format(file_name, ex))
@@ -189,12 +227,11 @@ class HyperParameterSpace(ParameterSpace):
         return hp_vectors
 
     def preset(self):
-        
         try:
             for k in self.priors:
                 c = self.priors[k]
                 if 'hyperparams' in c:
-                    hpv = self.hp_config.to_typed_list(c['hyperparams'])
+                    hpv = self.converter.to_typed_list(c['hyperparams'])
                     indices = self.expand(hpv) # XXX: expand() returns array
                     self.update_error(indices[0], c['observed_error'], c['train_epoch'])
 
@@ -240,6 +277,20 @@ class HyperParameterSpace(ParameterSpace):
     def get_hp_config(self):
         return self.hp_config
 
+    def get_schema(self, index):
+        if len(self.schemata) <= index:
+            raise ValueError("Invalid index: {}".format(index))
+
+        return self.schemata[index]
+
+    def get_generation(self, index):
+        if len(self.gen_counts) < index:
+            raise ValueError("Invalid index: {}".format(index))
+        return self.gen_counts[index]
+
+    def get_hpv_dim(self):
+        return len(self.hp_vectors[0])
+
     def get_params_dim(self):
         return self.param_vectors.shape[1]
 
@@ -259,10 +310,13 @@ class HyperParameterSpace(ParameterSpace):
             return self.param_vectors[type_or_index]
  
     def get_hp_vectors(self):
-            return self.hp_vectors # XXX:return array value
+        return self.hp_vectors # XXX:return array value
+
+    def get_hpv(self, index):
+        return self.hp_vectors[index]
 
     def get_hpv_dict(self, index):
-        params = self.hp_config.get_param_list()
+        params = self.hp_config.get_param_names()
         args = self.hp_vectors[index]
         hpv = {}
         for i in range(len(params)):
@@ -270,9 +324,16 @@ class HyperParameterSpace(ParameterSpace):
             hpv[p] = args[i]
         return hpv # XXX:return dictionary value
 
-    def expand(self, hpv):
-        # TODO:check hpv is valid. 
-        
+    def set_schema(self, index, schema):
+        if len(schema) != self.get_hpv_dim():
+            raise ValueError("Invalid schema dimension.")
+
+        if len(self.schemata) <= index:
+            raise ValueError("Invalid index: {}".format(index))
+        # TODO:validate input
+        self.schemata[index] = schema
+
+    def expand(self, hpv, schemata=[], gen_counts=[]):
         # check dimensions
         hpv_list = hpv
         dim = len(np.array(hpv).shape)
@@ -281,43 +342,39 @@ class HyperParameterSpace(ParameterSpace):
         elif dim != 2:
             raise TypeError("Invalid hyperparameter vector")
 
-        # XXX:assumed that hpv consisted with valid values.
-        self.hp_vectors = np.append(self.hp_vectors, hpv_list, axis=0)
-
-        cvt = VectorGridConverter(self.hp_config)
+        # XXX:assumed that hpv_list are consisted with valid hyperparameter vectors.
+        conv = RepresentationConverter(self.hp_config)
         param_list = []
         vec_indices = []
-        vec_index = len(self.param_vectors) # get new model index
-        for hpv in hpv_list:
-            param_vec = cvt.to_norm_vector(hpv)            
-            param_list.append(param_vec)
+        vec_index = len(self.param_vectors) # starts with the last model index
+        for h in hpv_list:
+            param_list.append(conv.to_norm_vector(h))
             vec_indices.append(vec_index)
             vec_index += 1
         self.param_vectors = np.append(self.param_vectors, param_list, axis=0)
+        self.hp_vectors = np.append(self.hp_vectors, hpv_list, axis=0)
+        if len(gen_counts) == 0:
+            gen_counts = np.zeros(len(hpv_list))
+        if len(schemata) == 0:
+            schemata = np.zeros(np.array(hpv_list).shape)
         
-        #debug("Search space expanded: {}".format(len(self.hp_vectors))) 
+        if len(hpv_list) != len(schemata):
+            raise ValueError("Invalid schemata: {}".format(schemta))
+        elif len(schemata) != len(gen_counts):
+            raise ValueError("Size mismatch: schema {} != generation {}".format(schemata.shape, gen_counts.shape))
+        
+        self.schemata = np.append(self.schemata, schemata, axis=0)
+        self.gen_counts = np.append(self.gen_counts, gen_counts, axis=0)
+        
         return super(HyperParameterSpace, self).expand(vec_indices)
-
-    def remove(self, sample_index):
-        # remove item in self.hp_vectors and self.param_vectors
-        if len(self.hp_vectors) > sample_index:
-            # XXX:below makes that the index will be reset
-            # FIXME:however, the size of those vectors can be largely increased.
-            #self.hp_vectors = np.delete(self.hp_vectors, sample_index)
-            #self.param_vectors = np.delete(self.param_vectors, sample_index)
-
-            return super(HyperParameterSpace, self).remove(sample_index)
-        else:
-            warn("Index {} can not be removed.".format(sample_index))
 
     def one_hot_encode(self, hpv_list):
         # TODO:below loop can be faster using parallelization.
-        params = []
-        for i in range(len(hpv_list)):
-            t = OneHotVectorTransformer(self.hp_config)
-            e = t.transform(self.get_hpv_dict(i))
-            params.append(np.asarray(e))
-        return np.asarray(params) 
+        encoded = []
+        for hpv in hpv_list:
+            e = self.converter.to_norm_vector(hpv)
+            encoded.append(np.asarray(e))
+        return np.asarray(encoded) 
 
 
 class SurrogatesSpace(HyperParameterSpace):
@@ -325,7 +382,6 @@ class SurrogatesSpace(HyperParameterSpace):
     def __init__(self, lookup):
 
         hpv_list = lookup.get_all_hyperparam_vectors()
-
         super(SurrogatesSpace, self).__init__(lookup.data_type,                                               
                                               lookup.hp_config.get_dict(),
                                               hpv_list)
@@ -359,9 +415,8 @@ class SurrogatesSpace(HyperParameterSpace):
             return self.exec_times
 
     def expand(self, hpv):
-        # return approximated index instead of newly created index
-        cvt = VectorGridConverter(self.hp_config)
-        idx, err_distance = cvt.get_nearby_index(self.get_candidates(), self.hp_vectors, hpv)
+        # return approximated index instead of newly created index        
+        idx, err_distance = self.converter.get_nearby_index(self.get_candidates(), self.hp_vectors, hpv)
 
         debug("Distance btw selection and surrogate: {}".format(err_distance))
         return idx
@@ -395,7 +450,6 @@ class RemoteParameterSpace(ParameterSpace):
 
     def get_hp_vectors(self):
             return self.space.get_hp_vectors()
-
 
     # For history
     def get_candidates(self, use_interim=True):

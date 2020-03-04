@@ -11,7 +11,7 @@ import json
 
 from ws.shared.logger import *
 
-class ResultSaver(object):
+class HistorySaver(object):
     def __init__(self, data_type, run_mode, 
                 target_goal, time_expired, config, 
                 path='./results/', postfix=""):
@@ -24,7 +24,7 @@ class ResultSaver(object):
         self.config = config
         self.postfix = postfix
 
-    def save(self, name1, name2, trials, results, est_records=None):
+    def save(self, name1, name2, trials, results, internals=None):
     
         directory = self.path + str(self.data_type)
 
@@ -54,9 +54,9 @@ class ResultSaver(object):
         with open(file_path + '.json', 'w') as json_file:
             json_file.write(json.dumps(results))
 
-        if est_records is not None:
+        if internals is not None:
             with gzip.open(file_path + '.pkl.gz', 'wb') as pkl_gz:
-                pickle.dump(est_records, pkl_gz)
+                pickle.dump(internals, pkl_gz)
 
     def load(self, optimizer, aquisition_func, num_trials):
         
@@ -83,7 +83,7 @@ class ResultSaver(object):
             return {}, 0
 
 
-class BatchResultSaver(object):
+class ParallelHistorySaver(object):
     
     def __init__(self, data_type, run_mode, 
                 target_goal, time_expired, config, 
@@ -100,8 +100,7 @@ class BatchResultSaver(object):
             postfix = ""
         self.postfix = postfix
 
-    def save(self, sync_type, trials, results,
-                path='./results/'):
+    def save(self, sync_type, trials, results, path='./results/'):
 
         directory = path + str(self.data_type)
 
@@ -132,7 +131,7 @@ class BatchResultSaver(object):
             json_file.write(json.dumps(results))    
 
 
-class TempSaver(object):
+class TemporaryHistorySaver(object):
     
     def __init__(self, data_type, optimizer, 
                  aquisition_func, num_trials, config,

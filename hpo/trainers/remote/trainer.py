@@ -167,7 +167,7 @@ class RemoteTrainer(TrainerPrototype):
     def train(self, cand_index, estimates=None, space=None):
         hpv = {}
         cfg = {'cand_index' : cand_index}
-        param_names = self.hp_config.get_param_list()
+        param_names = self.hp_config.get_param_names()
         hpv_d = self.space.get_hpv_dict(cand_index)
           
         early_terminated = False

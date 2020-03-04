@@ -14,7 +14,7 @@ class GridGenerator(object):
     def __init__(self, config, num_samples, seed):
         self.seed = seed
         self.config = config
-        self.params = config.get_param_list()
+        self.params = config.get_param_names()
         self.num_dim = len(self.params)
         self.num_samples = num_samples
 
@@ -24,7 +24,7 @@ class GridGenerator(object):
         try:
             # Type forcing
             for k in candidate:
-                if not k in self.config.get_param_list():
+                if not k in self.config.get_param_names():
                     raise ValueError("{} is not in {}".format(k, self.params))
                 v = candidate[k]
                 t = eval(self.config.get_type(k))
@@ -48,6 +48,9 @@ class GridGenerator(object):
     def get_schemata(self):
         '''return empty schemata'''
         return np.array(np.zeros((self.num_samples, self.num_dim)))
+    def get_generations(self):
+        '''return all zeros'''
+        return np.array(np.zeros(self.num_samples))
 
     def generate(self):
         ''' returns M * N normalized vectors '''
@@ -93,12 +96,14 @@ class EvolutionaryGenerator(GridGenerator):
         # current_best is {"hpv":[], "schema": []}
         self.converter = RepresentationConverter(config)
         self.male = current_best['hpv']
+        self.generation = current_best['gen'] + 1 # set offsprings' generation
         self.m_schema = [ int(f) for f in current_best['schema'] ] # type forcing
         self.female = self.converter.to_vector(best_candidate, False)
         debug("Incumbent genotype: {}, phenotype: {}".format(self.male, self.m_schema))
         debug("Candidate genotype: {}".format(self.female))
         self.mutation_ratio = m_ratio
         self.schemata = []
+        self.generations = []
         super(EvolutionaryGenerator, self).__init__(config, num_samples, seed)
 
     def generate(self):
@@ -112,10 +117,13 @@ class EvolutionaryGenerator(GridGenerator):
             g = self.converter.to_norm_vector(m['hpv'], one_hot=False)
             evol_grid.append(g)
             self.schemata.append(m['schema'])
+            self.generations.append(m['gen'])
         return np.array(evol_grid)
     
     def get_schemata(self):
         return np.array(self.schemata)
+    def get_generations(self):
+        return np.array(self.generations)
 
     def get_random_mask(self):
         schemeta = []
@@ -146,13 +154,13 @@ class EvolutionaryGenerator(GridGenerator):
             hpv_dict = self.converter.to_typed_dict(o_hpv)
             self.validate(hpv_dict)
             
-            child = {"hpv": o_hpv, "schema": o_schema }
+            child = {"hpv": o_hpv, "schema": o_schema,"gen": self.generation }
             #debug("Child: {}".format(child))
             offsprings.append(child)
         return offsprings # contains {"hpv": [], "schema": []}
 
     def mutate(self, candidates, threshold):
-        ''' returns [{"hpv": [], "schema": []}, ] '''
+        ''' returns [{"hpv": [], "schema": [], "gen": 0}, ] '''
         
         mutated = []
         # candidates consist of {"hpv": [], "schema": []}
@@ -161,7 +169,7 @@ class EvolutionaryGenerator(GridGenerator):
                 n_i = random.randint(0, self.num_dim - 1) # choose param index
                 # mutate this candidate
                 hpv_dict = self.converter.to_typed_dict(cand['hpv'])
-                lsg = LocalSearchGenerator(self.config, 1, hpv_dict, self.seed)
+                lsg = LocalSearchGenerator(self.config, 1, hpv_dict, self.generation, self.seed)
                 hp_dict = lsg.perturb(n_i) # return dict type
                 r_schema = cand['schema']
                 # XOR operation in n_i
@@ -172,7 +180,7 @@ class EvolutionaryGenerator(GridGenerator):
                 else:
                     raise ValueError("Invalid schema: {}".format(r_schema))
                 m_cand = { "hpv": self.converter.to_vector(hp_dict, False), # XXX: hpv is normalized
-                           "schema": r_schema } 
+                           "schema": r_schema, "gen": self.generation } 
                 mutated.append(m_cand)
             else:
                 mutated.append(cand)
@@ -180,12 +188,15 @@ class EvolutionaryGenerator(GridGenerator):
 
 
 class LocalSearchGenerator(GridGenerator):
-    def __init__(self, config, num_samples, best_candidate, seed, sd=0.2):        
+    def __init__(self, config, num_samples, best_candidate, best_gen, seed, sd=0.2):        
                
         super(LocalSearchGenerator, self).__init__(config, num_samples, seed)
         self.candidate = self.validate(best_candidate) # XXX:validate requires __init__ first
         self.sd = sd
+        self.generation = best_gen + 1 # inherits from best_candidate
         self.converter = RepresentationConverter(config)
+        self.schemata = []
+        self.generations = []
  
     def generate(self):
         np.random.seed(self.seed)         
@@ -194,14 +205,22 @@ class LocalSearchGenerator(GridGenerator):
         conv = RepresentationConverter(self.config)
         try:
             for i in range(self.num_samples):            
+                schema = np.zeros(self.num_dim)            
                 n_i = random.randint(0, self.num_dim - 1) # choose param index
+                schema[n_i] = 1
                 nc = self.perturb(n_i)                            
                 nc2 = self.converter.to_vector(nc)  
                 nc_list.append(nc2)
+                self.schemata.append(schema)
+                self.generations.append(self.generation)
         except Exception as ex:
             warn("Local search sampling failed:{}".format(ex))
         finally:
             return np.array(nc_list)
+    def get_schemata(self):
+        return self.schemata
+    def get_generations(self):
+        return self.generations
 
     def perturb(self, i):
         ''' returns perturbed dictionary ''' 

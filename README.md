@@ -29,12 +29,13 @@ If you are use of any material in this repository, we ask to cite:
 
 ### Prerequisite
 
-While this project supports on both python 2.x and python 3.x, but it has been tested in Python 2.7.x on Linux.
+While this project had been developed to support both python 2.x and python 3.x, the use of python 3.x is preferred because the maintenance period for python 2.x is over.
+Also, this project has been tested on both Linux and Windows. 
+If you want to run on Windows, we strongly suggest to use Linux Subsystem for Linux.
 Before installing it with your existing project, we strongly suggest that creating new virtual environment is preferred by using [Anaconda](https://www.anaconda.com/download/).
-Even though the maintenance period for python 2.x is over, we still recommend creating this environment based on python 2.x.
 
 ```bash
-    conda create -n hpo python=2.7
+    conda create -n hpo python=3.6
 ```
 
 After creating the above environment, activate this environment as follows:
@@ -63,13 +64,17 @@ DEEP-BO requires the following packages:
   * hyperopt
   * pyDOE
 
+* For visualization (for web viewers)
+  * matplotlib
+  * jupyter notebook
+  * hiplot
 It is better to install using conda than pip to avoid dependency conflicts but conda manges some limitted packages.
 Therefore, if you are working in a conda environment as I suggested, install them seperately as follows:
 
 ```bash
 (hpo)device:path$ pip install future validators flask-restful requests httplib2 pyYAML
-(hpo)device:path$ conda install pandas numpy scipy scikit-learn
-(hpo)device:path$ pip install hyperopt pyDOE
+(hpo)device:path$ conda install -c conda-forge pandas numpy scipy scikit-learn notebook
+(hpo)device:path$ pip install hyperopt pyDOE matplotlib hiplot
 ```
 
 Optionally, you can speed up the gradient calculation in GP when installing the weave package as follows:

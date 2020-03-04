@@ -16,11 +16,12 @@ class HyperparameterVectorGenerator(object):
             self.config = HyperparameterConfiguration(config)
         else:
             self.config = config
-        self.params = self.config.get_param_list()
+        self.params = self.config.get_param_names()
         self.spec = spec
         self.grid = np.array([])
         self.hpvs = np.array([])
         self.schemata = np.array([])
+        self.generations = np.array([])
         
     def get_param_vectors(self):
         return self.grid
@@ -29,6 +30,8 @@ class HyperparameterVectorGenerator(object):
         return self.hpvs
     def get_schemata(self):        
         return self.schemata
+    def get_generations(self):
+        return self.generations
 
     def generate(self):
         #debug("Sampling hyperparameter configurations...")
@@ -51,7 +54,7 @@ class HyperparameterVectorGenerator(object):
                     g = LatinHypercubeGenerator(self.config, n_s, seed)
                 elif spec['sample_method'] == 'local':
                     g = LocalSearchGenerator(self.config, n_s, 
-                                             spec['best_candidate'], seed)
+                                             spec['best_candidate'], spec['generation'], seed)
                 elif spec['sample_method'] == 'genetic':
                     g = EvolutionaryGenerator(self.config, n_s, spec['current_best'],
                                              spec['best_candidate'], seed, spec['mutation_ratio'])                                             
@@ -60,6 +63,7 @@ class HyperparameterVectorGenerator(object):
 
             self.grid = np.asarray(g.generate())
             self.schemata = g.get_schemata()
+            self.generations = g.get_generations()
             # TODO:speeding up required
             self.hpvs = []
             for i in range(len(self.grid)):

@@ -17,10 +17,10 @@ class HPOJobFactory(object):
 
     def create(self, jr):
         job = {}
-        job['job_id'] = "{}-{}-{}{}".format(self.worker.get_id(), 
+        job['job_id'] = "{}-{}-{}-{}".format(self.worker.get_id(), 
                                         self.worker.get_device_id(), 
                                         time.strftime('%Y%m%d',time.localtime()),
-                                        self.n_jobs)
+                                        time.strftime('%H%M%S',time.localtime()))
         job['created'] = time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime())
         job['status'] = "created"
         job['result'] = None

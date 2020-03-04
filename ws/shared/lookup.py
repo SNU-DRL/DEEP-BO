@@ -52,7 +52,7 @@ class LookupDataLoader(object):
         
         self.begin_index = 1
         self.num_epochs = num_epochs
-        self.num_hyperparams = len(hp_cfg.get_param_list())
+        self.num_hyperparams = len(hp_cfg.get_param_names())
 
     def get_all_hyperparam_vectors(self):
         start_index = self.begin_index

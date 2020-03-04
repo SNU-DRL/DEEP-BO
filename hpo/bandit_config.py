@@ -13,10 +13,9 @@ import hpo.choosers.hyperopt_chooser as hoc
 import hpo.choosers.random_chooser as RandomChooser
 
 from hpo.strategies import *
-from hpo.predict_time import * 
 
 from ws.shared.logger import *
-
+from hpo.predict_time import get_time_acq_funcs
 
 def read(cfg_file_name, path='run_conf/'):
     try:
