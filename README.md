@@ -14,13 +14,18 @@ If you are use of any material in this repository, we ask to cite:
 
 ```
 
-@article{cho2019deep,
-  title={DEEP-BO for Hyperparameter Optimization of Deep Networks},
-  author={Cho, Hyunghun and Kim, Yongjin and Lee, Eunjung and Choi, Daeyoung and Lee, Yongjae and Rhee, Wonjong},
-  journal={arXiv preprint arXiv:1905.09680},
-  year={2019}
-}
-
+@ARTICLE{9037259,
+author={H. {Cho} and Y. {Kim} and E. {Lee} and D. {Choi} and Y. {Lee} and W. {Rhee}},
+journal={IEEE Access},
+title={Basic Enhancement Strategies When Using Bayesian Optimization for Hyperparameter Tuning of Deep Neural Networks},
+year={2020},
+volume={},
+number={},
+pages={1-1},
+keywords={Deep neural networks;hyperparameter optimization;Bayesian optimization;diversification;early termination;parallelization;cost function transformation},
+doi={10.1109/ACCESS.2020.2981072},
+ISSN={2169-3536},
+month={},}
 ```
 
 -------
