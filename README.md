@@ -57,8 +57,8 @@ DEEP-BO requires the following packages:
 * For DEEP-BO (especially for tuner node and HPO runner)
   * pandas
   * scikit-learn
-    * numpy
-    * scipy
+  * numpy
+  * scipy
   * hyperopt
   * pyDOE
 
@@ -75,7 +75,7 @@ Therefore, if you are working in a conda environment as I suggested, install the
 (hpo)device:path$ pip install hyperopt pyDOE matplotlib hiplot
 ```
 
-Optionally, you can speed up the gradient calculation in GP when installing the weave package as follows:
+Optionally, the gradient calculation in GP can be sped up when installing the weave package as follows:
 ```bash
 (hpo)device:path$ conda install -c conda-forge weave
 ```
