@@ -76,29 +76,34 @@ class RFChooser:
         
         candidates = samples.get_candidates(use_interim)
         completions = samples.get_completions(use_interim)
+        errs = samples.get_errors("completions")
         # Grab out the relevant sets.
         
         # Don't bother using fancy RF stuff at first.
-        if completions.shape[0] < 2:
+        if len(errs) == 0:
+            return int(candidates[0]) # return the first candidate         
+        elif completions.shape[0] < 2:
             return int(random.choice(candidates))
 
         # Grab out the relevant sets.        
-        cand = samples.get_param_vectors("candidates", use_interim)
+        cand_vec = samples.get_param_vectors("candidates", use_interim)
 
-        comp = samples.get_param_vectors("completions", use_interim)        
-        errs = samples.get_errors("completions")
+        comp_vec = samples.get_param_vectors("completions", use_interim)        
+        
         try:
             none_indices = np.argwhere(np.isnan(np.array(errs, dtype=np.float64))).flatten()
             
             if len(none_indices) > 0:
                 debug("Failed evaluations: {}".format(none_indices))
                 errs = np.delete(errs, none_indices)            
-                comp = np.delete(comp, none_indices, 0) # last 0 is very important!
+                comp_vec = np.delete(comp_vec, none_indices, 0) # last 0 is very important!
                 #debug("NaN results deleted: {}, {}".format(comp.shape, errs.shape))
         except Exception as ex:
             #warn(ex)
             pass
         #debug("[RF] shape of completions: {}, cands: {}, errs: {}".format(comp.shape, cand.shape, errs.shape))
+        if len(errs) == 0:
+            raise ValueError("No actual errors available")
 
         if self.response_shaping is True:
             # transform errors to log10(errors) for enhancing optimization performance
@@ -114,9 +119,9 @@ class RFChooser:
                 
         #debug("errors: {}".format(errs))  
 
-        self.rf.fit(comp, errs) 
+        self.rf.fit(comp_vec, errs) 
 
-        func_m, func_v = self.rf.predict(cand)
+        func_m, func_v = self.rf.predict(cand_vec)
 
         # Current best.
         best = np.min(errs)

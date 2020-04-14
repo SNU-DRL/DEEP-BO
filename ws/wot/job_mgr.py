@@ -6,7 +6,7 @@ from future.utils import iteritems
 
 from ws.shared.logger import * 
 from ws.shared.proto import ManagerPrototype 
-import ws.shared.lookup as lookup
+
 
 from ws.wot.workers.surrogates import SurrogateEvaluator
 
@@ -93,6 +93,7 @@ class TrainingJobManager(ManagerPrototype):
             
             worker = None
             if self.use_surrogate and "surrogate" in cfg:
+                import ws.shared.lookup as lookup
                 s = cfg['surrogate']
                 l = lookup.load(s)
                 ffr = None
@@ -199,7 +200,7 @@ class TrainingJobManager(ManagerPrototype):
 
     def update_result(self, cur_iter, cur_loss, run_time, 
                       iter_unit='epoch',
-                      loss_type='error rate'):
+                      loss_type='error_rate'):
         t = self.work_item
         if t['worker'].get_cur_status() == 'processing':
             job_id = t['job_id']

@@ -8,7 +8,6 @@ import pandas as pd
 from ws.shared.logger import *
 from ws.shared.hp_cfg import HyperparameterConfiguration
 
-from hpo.utils.converter import *
 from hpo.connectors.remote_space import RemoteParameterSpaceConnector
 
 
@@ -106,7 +105,7 @@ class HyperParameterSpace(ParameterSpace):
 
         self.name = name
         self.hp_config = HyperparameterConfiguration(hp_config_dict)
-        self.converter = RepresentationConverter(self.hp_config)
+        
         self.space_setting = space_setting
         self.prior_history = None
         if 'prior_history' in space_setting:
@@ -135,10 +134,13 @@ class HyperParameterSpace(ParameterSpace):
         if self.prior_history != None:
             try:
                 if len(self.priors) == 0:
-                    hp_vectors = self.load('spaces', self.prior_history)
-                    if len(hp_vectors) == 0:
-                        raise IOError("No space information retrieved: {}".format(self.prior_history))
-                    self.priors = self.extract_prior(hp_vectors, 'results', self.prior_history)
+                    if self.prior_history.lower().endswith('.csv'):
+                        self.priors = self.load_prior_from_table(self.prior_history)
+                    else:
+                        hp_vectors = self.load('spaces', self.prior_history)
+                        if len(hp_vectors) == 0:
+                            raise IOError("No space information retrieved: {}".format(self.prior_history))
+                        self.priors = self.extract_prior(hp_vectors, 'results', self.prior_history)
                 
                 self.preset()
                 debug("The # of prior observations: {}".format(len(self.completions)))
@@ -231,7 +233,7 @@ class HyperParameterSpace(ParameterSpace):
             for k in self.priors:
                 c = self.priors[k]
                 if 'hyperparams' in c:
-                    hpv = self.converter.to_typed_list(c['hyperparams'])
+                    hpv = self.hp_config.convert("arr", "list", c['hyperparams'])
                     indices = self.expand(hpv) # XXX: expand() returns array
                     self.update_error(indices[0], c['observed_error'], c['train_epoch'])
 
@@ -266,6 +268,24 @@ class HyperParameterSpace(ParameterSpace):
                         else:
                             raise ValueError("Invalid prior result format: {}".format(result_file))
                             
+        return completions
+    def load_prior_from_table(self, csv_file, csv_dir='temp/'):
+        completions = {}
+        csv_path = csv_dir + csv_file
+        try:            
+            hist = pd.read_csv(csv_path)
+            hp_params = self.hp_config.get_param_names()
+            errors = hist['_error_'].tolist()
+            for i in range(len(errors)):
+                hp_vector = hist[hp_params].iloc[i].tolist()
+                completions[i] = {
+                    "hyperparams": hp_vector,
+                    "observed_error": errors[i],
+                    "train_epoch": 0 # XXX:zero is intended to be identificable
+                } 
+        except Exception as ex:
+            warn("Exception on loading prior history from table: {}".format(ex))
+            raise ValueError("Invalid prior table file: {}".format(csv_path))
         return completions
 
     def get_size(self):
@@ -315,13 +335,19 @@ class HyperParameterSpace(ParameterSpace):
     def get_hpv(self, index):
         return self.hp_vectors[index]
 
-    def get_hpv_dict(self, index):
-        params = self.hp_config.get_param_names()
-        args = self.hp_vectors[index]
-        hpv = {}
-        for i in range(len(params)):
-            p = params[i]
-            hpv[p] = args[i]
+    def get_hpv_dict(self, index, k=0):
+        hpv_list = self.hp_vectors
+        if k == 0:
+            if 'hpv' in self.backups: 
+                hpv_list = self.backups['hpv']
+        else:
+            key = 'hpv{}'.format(k)
+            if key in self.backups:
+                hpv_list = self.backups[key]
+            else:
+                error("No backup of hyperparamter vectors: {}".format(k))
+        hp_arr = hpv_list[index]
+        hpv = self.hp_config.convert('arr', 'dict', hp_arr)
         return hpv # XXX:return dictionary value
 
     def set_schema(self, index, schema):
@@ -343,12 +369,11 @@ class HyperParameterSpace(ParameterSpace):
             raise TypeError("Invalid hyperparameter vector")
 
         # XXX:assumed that hpv_list are consisted with valid hyperparameter vectors.
-        conv = RepresentationConverter(self.hp_config)
         param_list = []
         vec_indices = []
         vec_index = len(self.param_vectors) # starts with the last model index
         for h in hpv_list:
-            param_list.append(conv.to_norm_vector(h))
+            param_list.append(self.hp_config.convert('arr', 'one_hot', h))
             vec_indices.append(vec_index)
             vec_index += 1
         self.param_vectors = np.append(self.param_vectors, param_list, axis=0)
@@ -372,7 +397,7 @@ class HyperParameterSpace(ParameterSpace):
         # TODO:below loop can be faster using parallelization.
         encoded = []
         for hpv in hpv_list:
-            e = self.converter.to_norm_vector(hpv)
+            e = self.hp_config.convert('arr', 'one_hot', hpv)
             encoded.append(np.asarray(e))
         return np.asarray(encoded) 
 
@@ -416,9 +441,11 @@ class SurrogatesSpace(HyperParameterSpace):
 
     def expand(self, hpv):
         # return approximated index instead of newly created index        
-        idx, err_distance = self.converter.get_nearby_index(self.get_candidates(), self.hp_vectors, hpv)
+        idx, dist = self.hp_config.get_nearby_index(self.get_candidates(), 
+                                                    self.hp_vectors, 
+                                                    hpv)
 
-        debug("Distance btw selection and surrogate: {}".format(err_distance))
+        debug("Distance btw selection and surrogate: {}".format(dist))
         return idx
 
 

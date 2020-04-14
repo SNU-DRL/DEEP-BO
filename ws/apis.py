@@ -164,7 +164,7 @@ def update_current_loss(cur_iters,
                         cur_loss, 
                         run_time,
                         iter_unit='epoch',
-                        loss_type='error rate'):
+                        loss_type='error_rate'):
     ''' Report the current loss of training task
     
     Arguments:
@@ -174,7 +174,7 @@ def update_current_loss(cur_iters,
 
     Keyword arguments:
         iter_unit {str} -- the iteration unit. "step" or "epoch" is valid (default "epoch")
-        loss_type {str} -- the type of loss. if 'error rate', accuracy can be introduced by simple transformation. (default 'error rate')
+        loss_type {str} -- the type of loss. if 'error_rate', accuracy can be introduced by simple transformation. (default 'error_rate')
     
     '''    
     global JOB_MANAGER

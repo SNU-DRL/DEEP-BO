@@ -8,105 +8,10 @@ from ws.shared.logger import *
 import argparse
 import validators as valid
 
-from samples.keras_cb import *
-from samples.load_dataset import load_data    
-
-RESOURCE_ID = 'cpu0'
-
-@objective_function
-def optimize_mnist_lenet1(config, fail_err=0.9, **kwargs):
-    from samples.classify_lenet1_keras import KerasClassificationWorker
-    global RESOURCE_ID
-    
-    start_time = time.time()
-    max_epoch = 15
-    
-    if "max_iters" in kwargs:
-        if "iter_unit" in kwargs and kwargs["iter_unit"] == "epoch":
-            max_epoch = kwargs["max_iters"]    
-
-    history = TestAccuracyCallback()
-    log("Training with {}".format(config))
-    dataset = load_data('mnist')
-    worker = KerasClassificationWorker(dataset, run_id='{}'.format(RESOURCE_ID))
-    res = worker.compute(config=config, 
-                         budget=max_epoch, 
-                         working_directory='./{}/'.format(RESOURCE_ID), 
-                         history=history)
-    elapsed_time = time.time() - start_time
-    report_result(res, elapsed_time)
-
-
-@objective_function
-def optimize_kin8nm_mlp(config, **kwargs):
-    from samples.regress_mlp_keras import KerasRegressionWorker
-    global RESOURCE_ID
-
-    start_time = time.time()
-    max_epoch = 27
-    if "max_iters" in kwargs:
-        if "iter_unit" in kwargs and kwargs["iter_unit"] == "epoch":
-            max_epoch = kwargs["max_iters"]    
-
-    history = RMSELossCallback()
-    debug("Training with {}".format(config))
-    dataset = load_data('kin8nm')
-    worker = KerasRegressionWorker(dataset, run_id='{}'.format(RESOURCE_ID))
-    res = worker.compute(config=convert_config(config), 
-                         budget=max_epoch, 
-                         working_directory='./{}/'.format(RESOURCE_ID), 
-                         history=history)
-    elapsed_time = time.time() - start_time
-    report_result(res, elapsed_time)
-
-
-@objective_function
-def optimize_surrogate_model_mlp(config, **kwargs):
-    from samples.regress_mlp_keras import KerasRegressionWorker
-    global RESOURCE_ID
-    start_time = time.time()
-    max_epoch = 100
-    if "max_iters" in kwargs:
-        if "iter_unit" in kwargs and kwargs["iter_unit"] == "epoch":
-            max_epoch = kwargs["max_iters"]    
-    history = RMSELossCallback()
-    debug("Training with {}".format(config))
-    dataset = load_data('MNIST-LeNet1')
-    worker = KerasRegressionWorker(dataset, run_id='{}'.format(RESOURCE_ID))
-    res = worker.compute(config=convert_config(config), 
-                         budget=max_epoch, 
-                         working_directory='./{}/'.format(RESOURCE_ID), 
-                         history=history)
-    elapsed_time = time.time() - start_time
-    report_result(res, elapsed_time)
-def report_result(res, elapsed_time):
-    # update final result
-    try:
-        update_current_loss(res['cur_iter'], 
-                            res['cur_loss'], 
-                            elapsed_time, 
-                            iter_unit=res['iter_unit'],
-                            loss_type=res['loss_type'])
-        if 'info' in res:
-            log("Training finished :{}".format(res['info']))
-    except Exception as ex:
-        warn("Final result updated failed: {}".format(ex))
-
-
-def convert_config(config):
-    config['shuffle'] = bool(config['shuffle'])
-    for n in range(1, config['n_layers'] + 1):        
-        reg = config['layer_{}_reg'.format(n)]
-        extras = {'name' : reg }
-        if reg == 'dropout':
-            extras['rate'] = config['dropout_rate_{}'.format(n)]
-        config['layer_{}_extras'.format(n)] = extras
-
-    return config
+from samples.targets import * # load object functions
 
 
 def main(run_config):    
-    global RESOURCE_ID
     os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
     try:
@@ -140,11 +45,14 @@ def main(run_config):
         resource_type = "cpu"
         if "resource_type" in run_config:
             resource_type = run_config["resource_type"]  
+        os.environ['CUDA_DEVICE_ORDER'] = "PCI_BUS_ID"
         if resource_type == "gpu":            
             # Set using single GPU only
-            os.environ['CUDA_DEVICE_ORDER'] = "PCI_BUS_ID"
             os.environ['CUDA_VISIBLE_DEVICES'] = str(run_config["resource_id"])
-            RESOURCE_ID = "{}{}".format(resource_type, run_config["resource_id"])
+        else: 
+            os.environ['CUDA_VISIBLE_DEVICES'] = '-1' # visible CPU only
+        r_id = "{}{}".format(resource_type, run_config["resource_id"])
+        get_resource().set_id(r_id) # to indentify the worker's resource
 
         credential = None
         if "credential" in run_config:

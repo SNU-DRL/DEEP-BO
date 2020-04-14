@@ -22,7 +22,7 @@ from hpo.space_mgr import *
 from hpo.results import ResultsRepository
 
 from hpo.utils.measures import RankIntersectionMeasure
-from hpo.utils.converter import TimestringConverter
+from ws.shared.converter import TimestringConverter
 
 from hpo.bandit_config import BanditConfigurator
 
@@ -299,7 +299,7 @@ class HPOBanditMachine(object):
         except:
             warn("Exception occurred in the estimation processing. " +
                  "To avoid stopping, it selects the candidate randomly.")
-            model = 'SOBOL'
+            model = 'NONE'
             acq_func = 'RANDOM'
             next_index, opt_time, metrics = self.choose(model, acq_func)
             exception_raised = True
@@ -336,6 +336,7 @@ class HPOBanditMachine(object):
         
         optional = {
             'exception_raised': exception_raised,
+            'exec_time': exec_time
         }
         if self.save_internal == True:
             optional["estimated_values"] = self.bandit.choosers[model].estimates
@@ -371,6 +372,9 @@ class HPOBanditMachine(object):
             start_time = time.time()
             self.reset()
             incumbent = None
+            arms = None
+            if mode == 'DIV':
+                arms = self.bandit.get_arms(spec)  
 
             if internal_records:
                 internal_records[str(i)] = []
@@ -383,20 +387,20 @@ class HPOBanditMachine(object):
                         use_interim_result = False
 
                 # Model selection
-                model = mode 
-                acq_func = spec               
-                if mode == 'DIV':
+                if arms:
                     arms = self.bandit.get_arms(spec)
                     model, acq_func, _ = arms.select(j, use_interim_result)
                     debug("Selecting next candidate with {}-{}".format(model, acq_func))
-                
+                else:
+                    model = mode
+                    acq_func = spec
                 prepare_time = time.time() - iter_start_time
                 y, opt = self.pull(model, acq_func, self.repo, prepare_time)
-                if mode == 'DIV':
+                if arms:
                     arms.update(j, y, opt)
                
                 if opt['exception_raised']:
-                    model = 'SOBOL'
+                    model = 'NONE'
                     acq_func = 'RANDOM'
                 self.repo.update_trace(model, acq_func)
 
@@ -498,7 +502,7 @@ class HPOBanditMachine(object):
                 
                 best_model_index = result['model_idx'][error_min_index]
                 best_error = result['error'][error_min_index]
-                best_hpv = self.search_space.get_hpv_dict(best_model_index)
+                best_hpv = self.search_space.get_hpv_dict(best_model_index, int(k))
                 log("Best performance at run #{} by {} is {}.".format(int(k)+1, best_hpv, best_error))
             except Exception as ex:
                 warn("Report error ar run #{}".format(k))
@@ -508,6 +512,9 @@ class HPOBanditMachine(object):
         if not "search_space" in self.run_config:
             return
 
+        if estimates == None:
+            warn("No estimation available to modify samples.")
+            return
         if 'remove' in self.run_config['search_space']:
             start_t = time.time()
             ds = self.run_config['search_space']["remove"]
@@ -515,41 +522,35 @@ class HPOBanditMachine(object):
             debug("Removed with {} ({:.1f} sec)".format(ds, time.time() - start_t))
 
         if 'intensify' in self.run_config['search_space']:
-            if estimates == None:
-                warn("No estimation available to intensify samples.")
-            else:             
-                start_t = time.time()
+            start_t = time.time()
                 # intensify # of promissing samples using estimated values
-                cands = np.array(estimates['candidates']) # has index
-                est_values = np.array(estimates['acq_funcs']) # estimated performance by acquistion function
-                ns = self.run_config['search_space']['intensify']
-                top_k = est_values.argsort()[-1*ns:][::-1]
+            cands = np.array(estimates['candidates']) # has index
+            est_values = np.array(estimates['acq_funcs']) # estimated performance by acquistion function
+            ns = self.run_config['search_space']['intensify']
+            top_k = est_values.argsort()[-1*ns:][::-1]
                 
-                for k in cands[top_k]:
-                    cand = self.search_space.get_hpv_dict(k)
-                    num_gen = self.search_space.get_generation(k)
-                    intensify_samples(self.search_space, 1, cand, num_gen)
-                debug("{} samples intensified. ({:.1f} sec)".format(ns, time.time() - start_t))
+            for k in cands[top_k]:
+                cand = self.search_space.get_hpv_dict(k)
+                num_gen = self.search_space.get_generation(k)
+                intensify_samples(self.search_space, 1, cand, num_gen)
+            debug("{} samples intensified. ({:.1f} sec)".format(ns, time.time() - start_t))
 
         if 'evolve' in self.run_config['search_space']:
-            if estimates == None:
-                warn("No estimation available to evolve samples.")
-            else:             
-                start_t = time.time()
-                # evolving # of promissing samples using estimated values
-                cands = np.array(estimates['candidates']) # has index
-                est_values = np.array(estimates['acq_funcs']) # estimated performance by acquistion function
-                ns = self.run_config['search_space']['evolve']
-                top_1 = est_values.argsort()[-1:][::-1]
-                i = self.search_space.get_incumbent()
-                cur_best = { "hpv": self.search_space.get_hpv(i), 
-                             "schema": self.search_space.get_schema(i),
-                             "gen": self.search_space.get_generation(i)
-                            }
-                for k in cands[top_1]:
-                    cand = self.search_space.get_hpv_dict(k)
-                    evolve_samples(self.search_space, ns, cur_best, cand)
-                debug("{} samples evolved. ({:.1f} sec)".format(ns, time.time() - start_t))
+            start_t = time.time()
+            # evolving # of promissing samples using estimated values
+            cands = np.array(estimates['candidates']) # has index
+            est_values = np.array(estimates['acq_funcs']) # estimated performance by acquistion function
+            ns = self.run_config['search_space']['evolve']
+            top_1 = est_values.argsort()[-1:][::-1]
+            i = self.search_space.get_incumbent()
+            cur_best = { "hpv": self.search_space.get_hpv(i), 
+                            "schema": self.search_space.get_schema(i),
+                            "gen": self.search_space.get_generation(i)
+                        }
+            for k in cands[top_1]:
+                cand = self.search_space.get_hpv_dict(k)
+                evolve_samples(self.search_space, ns, cur_best, cand)
+            debug("{} samples evolved. ({:.1f} sec)".format(ns, time.time() - start_t))
 
         if 'add' in self.run_config['search_space']:
             start_t = time.time()

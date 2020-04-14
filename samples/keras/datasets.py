@@ -9,7 +9,9 @@ from sklearn.model_selection import train_test_split
 def load_data(name):
     if name == "kin8nm":
         return get_kin8nm_data('./data/kin8nm')
-    elif name == 'mnist':
+    elif name == 'protein':
+        return get_protein_data('./data/protein/protein_structure.csv')
+    elif name == 'MNIST':
         return get_mnist_data()
     elif name == 'MNIST-LeNet1':
         x_labels = ['conv1', 'pool1', 'conv2', 'pool2', 'fc1', 'filter_size', 'l_rate',
@@ -97,6 +99,34 @@ def get_kin8nm_data(path):
 
 def get_surrogates_data(path, x_labels, y_label):
     try:
+        full_set = pd.read_csv(path)
+        train, test = train_test_split(full_set, test_size=0.2)
+        train, valid = train_test_split(train, test_size=0.2)
+        
+        x_train = train[x_labels].values
+        y_train = train[y_label].values
+        x_valid = valid[x_labels].values
+        y_valid = valid[y_label].values
+        x_test = test[x_labels].values
+        y_test = test[y_label].values
+        
+        data = { 
+                'x_train': x_train, 'y_train': y_train,
+                'x_valid': x_valid, 'y_valid': y_valid, 
+                'x_test': x_test, 'y_test': y_test 
+        }
+
+    except Exception as ex:
+        print("Data loading failed: {}".format(ex))
+        raise ValueError("Data files not found: {}".format(path))
+    
+    return data
+
+
+def get_protein_data(path):
+    try:
+        y_label = 'RMSD'
+        x_labels = ['F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'F8', 'F9']
         full_set = pd.read_csv(path)
         train, test = train_test_split(full_set, test_size=0.2)
         train, valid = train_test_split(train, test_size=0.2)

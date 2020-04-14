@@ -3,12 +3,13 @@ import numpy as np
 import pandas as pd
 import random
 import copy
+from itertools import combinations
 from itertools import combinations_with_replacement as cwr
 
 from ws.shared.logger import *
 
 from hpo.utils.sobol_lib import i4_sobol_generate
-from hpo.utils.converter import *
+from ws.shared.converter import OneHotVectorTransformer
 
 class GridGenerator(object):
     def __init__(self, config, num_samples, seed):
@@ -94,11 +95,10 @@ class LatinHypercubeGenerator(GridGenerator):
 class EvolutionaryGenerator(GridGenerator):
     def __init__(self, config, num_samples, current_best, best_candidate, seed, m_ratio=.1):
         # current_best is {"hpv":[], "schema": []}
-        self.converter = RepresentationConverter(config)
         self.male = current_best['hpv']
         self.generation = current_best['gen'] + 1 # set offsprings' generation
         self.m_schema = [ int(f) for f in current_best['schema'] ] # type forcing
-        self.female = self.converter.to_vector(best_candidate, False)
+        self.female = config.convert("dict", "arr", best_candidate)
         debug("Incumbent genotype: {}, phenotype: {}".format(self.male, self.m_schema))
         debug("Candidate genotype: {}".format(self.female))
         self.mutation_ratio = m_ratio
@@ -110,14 +110,28 @@ class EvolutionaryGenerator(GridGenerator):
         random.seed(self.seed)
         evol_grid = []
         self.schemata = []
-        offsprings = self.cross_over(self.num_samples)
-        mutated = self.mutate(offsprings, self.mutation_ratio)
-        for m in mutated:
+        candidates = []
+        n_dim = len(self.male)
+        candidates = self.cross_over_full(self.num_samples)
+        n_remains = self.num_samples - len(candidates)
+        offsprings = []
+        if n_remains <= 0:
+            for cand in candidates:
+                if np.random.rand() <= self.mutation_ratio:
+                    offsprings.append(self.mutate(cand))
+                else:
+                    offsprings.append(cand)
+        else:
             # XXX:normalized vector will be used
-            g = self.converter.to_norm_vector(m['hpv'], one_hot=False)
+            offsprings = candidates
+            for n in range(n_remains):
+                m = random.sample(candidates, 1)[0]
+                offsprings.append(self.mutate(m))
+        for o in offsprings:            
+            g = self.config.convert('arr', 'norm_arr', o['hpv'])
             evol_grid.append(g)
-            self.schemata.append(m['schema'])
-            self.generations.append(m['gen'])
+            self.schemata.append(o['schema'])
+            self.generations.append(o['gen'])
         return np.array(evol_grid)
     
     def get_schemata(self):
@@ -151,40 +165,74 @@ class EvolutionaryGenerator(GridGenerator):
                 else:
                     raise ValueError("Invalid child schema: {}".format(o_schema))
             # validate new parameter
-            hpv_dict = self.converter.to_typed_dict(o_hpv)
+            hpv_dict = self.config.convert("arr", "dict", o_hpv)
             self.validate(hpv_dict)
             
             child = {"hpv": o_hpv, "schema": o_schema,"gen": self.generation }
-            #debug("Child: {}".format(child))
+            offsprings.append(child)
+        return offsprings # contains {"hpv": [], "schema": []}
+    def cross_over_full(self, num_child):
+        offsprings = []
+        o_schemata = self.create_schemata(num_child) 
+        n_offsprings = len(o_schemata)
+        if n_offsprings < num_child:
+            debug("The # of possible offsprings is less then {}: {}".format(num_child, n_offsprings))
+        else:
+            o_schemata = random.sample(o_schemata, num_child)       
+        for o_schema in o_schemata:
+            o_hpv = [] # child hyperparam vector
+            for i in range(len(o_schema)):
+                bit = o_schema[i]
+                if bit == 0: # inherit from male
+                    o_hpv.append(self.male[i])
+                elif bit == 1: # inherit from female
+                    o_hpv.append(self.female[i])
+                else:
+                    raise ValueError("Invalid child schema: {}".format(o_schema))
+            hpv_dict = self.config.convert("arr", "dict", o_hpv)
+            self.validate(hpv_dict)
+            child = {"hpv": o_hpv, "schema": o_schema,"gen": self.generation }
             offsprings.append(child)
         return offsprings # contains {"hpv": [], "schema": []}
 
-    def mutate(self, candidates, threshold):
-        ''' returns [{"hpv": [], "schema": [], "gen": 0}, ] '''
+    def create_schemata(self, num_child):
+        o_schemata = [] 
+        n_params = len(self.m_schema)
         
-        mutated = []
+        for i in range(1, n_params):
+            for c in self.create_schema_list(n_params, i):
+                o_schemata.append(c)
+                if len(o_schemata) >= num_child:
+                    return o_schemata
+        return o_schemata
         # candidates consist of {"hpv": [], "schema": []}
-        for cand in candidates:
-            if np.random.rand() <= threshold:
-                n_i = random.randint(0, self.num_dim - 1) # choose param index
+    def create_schema_list(self, n_p, n_on):
+        arr = []
+        combi = combinations([ i for i in range(n_p)], n_on)
+        for c in combi:
+            a = [0 for i in range(n_p)]
+            for i in c:
+                a[i] = 1
+            arr.append(a)
+        return arr
+    def mutate(self, cand):
+        n_i = random.randint(0, self.num_dim - 1) # choose param index
                 # mutate this candidate
-                hpv_dict = self.converter.to_typed_dict(cand['hpv'])
-                lsg = LocalSearchGenerator(self.config, 1, hpv_dict, self.generation, self.seed)
-                hp_dict = lsg.perturb(n_i) # return dict type
-                r_schema = cand['schema']
+        hpv_dict = self.config.convert("arr", "dict", cand['hpv'])
+        lsg = LocalSearchGenerator(self.config, 1, hpv_dict, self.generation, self.seed)
+        hp_dict = lsg.perturb(n_i) # return dict type
+        r_schema = cand['schema']
                 # XOR operation in n_i
-                if r_schema[n_i] == 1:
-                    r_schema[n_i] = 0
-                elif r_schema[n_i] == 0:
-                    r_schema[n_i] = 1
-                else:
-                    raise ValueError("Invalid schema: {}".format(r_schema))
-                m_cand = { "hpv": self.converter.to_vector(hp_dict, False), # XXX: hpv is normalized
-                           "schema": r_schema, "gen": self.generation } 
-                mutated.append(m_cand)
-            else:
-                mutated.append(cand)
-        return mutated
+        if r_schema[n_i] == 1:
+            r_schema[n_i] = 0
+        elif r_schema[n_i] == 0:
+            r_schema[n_i] = 1
+        else:
+            raise ValueError("Invalid schema: {}".format(r_schema))
+        m_cand = { "hpv": self.config.convert("dict", "arr", hp_dict), 
+                "schema": r_schema, "gen": self.generation } 
+        return m_cand
+        
 
 
 class LocalSearchGenerator(GridGenerator):
@@ -194,7 +242,6 @@ class LocalSearchGenerator(GridGenerator):
         self.candidate = self.validate(best_candidate) # XXX:validate requires __init__ first
         self.sd = sd
         self.generation = best_gen + 1 # inherits from best_candidate
-        self.converter = RepresentationConverter(config)
         self.schemata = []
         self.generations = []
  
@@ -202,14 +249,13 @@ class LocalSearchGenerator(GridGenerator):
         np.random.seed(self.seed)         
         nc_list = []
         
-        conv = RepresentationConverter(self.config)
         try:
             for i in range(self.num_samples):            
                 schema = np.zeros(self.num_dim)            
                 n_i = random.randint(0, self.num_dim - 1) # choose param index
                 schema[n_i] = 1
                 nc = self.perturb(n_i)                            
-                nc2 = self.converter.to_vector(nc)  
+                nc2 = self.config.convert("dict", "norm_arr", nc)  
                 nc_list.append(nc2)
                 self.schemata.append(schema)
                 self.generations.append(self.generation)

@@ -26,10 +26,9 @@ class SequentialStrategy(object):
         idx = step % self.num_arms
         return idx
 
-    def update(self, arm_index, curr_acc, estimates):
-        self.counts[arm_index] = self.counts[arm_index] + 1
-        pass
-
+    def update(self, arm_index, curr_acc, opt):
+        self.counts[arm_index] += 1
+        self.values[arm_index] = float(self.counts[arm_index]) / float(sum(self.counts))
 
 class SequentialKnockOutStrategy(object):
     def __init__(self, num_arms, values, counts, iters_round, title):
@@ -88,7 +87,7 @@ class SequentialKnockOutStrategy(object):
 
         return idx
 
-    def update(self, arm_index, curr_acc, estimates):
+    def update(self, arm_index, curr_acc, opt):
         self.counts[arm_index] = self.counts[arm_index] + 1
         self.prev_arm_values[arm_index] = curr_acc
 
@@ -96,7 +95,6 @@ class SequentialKnockOutStrategy(object):
         cur_ranks = rankdata(self.prev_arm_values)
         self.rank_sums += cur_ranks
 
-        pass
 
 
 class RandomStrategy(object):
@@ -112,8 +110,9 @@ class RandomStrategy(object):
         
         return idx
 
-    def update(self, arm_index, curr_acc, estimates):
-        self.counts[arm_index] = self.counts[arm_index] + 1
+    def update(self, arm_index, curr_acc, opt):
+        self.counts[arm_index] += 1
+        self.values[arm_index] = float(self.counts[arm_index]) / float(sum(self.counts))
                     
 
 class ClassicHedgeStrategy(object):
@@ -147,7 +146,7 @@ class ClassicHedgeStrategy(object):
         probs = [math.exp(v * self.temperature) / z for v in self.values]
         return self.categorical_draw(probs)
 
-    def update(self, chosen_arm, curr_acc, estimates):
+    def update(self, chosen_arm, curr_acc, opt):
         reward = curr_acc # TODO:reward design required              
         self.counts[chosen_arm] = self.counts[chosen_arm] + 1                
         value = self.values[chosen_arm]
@@ -226,7 +225,7 @@ class BayesianHedgeStrategy(object):
         
         return arm_index
 
-    def update(self, arm_index, curr_acc, estimates):
+    def update(self, arm_index, curr_acc, opt):
         
         self.counts[arm_index] = self.counts[arm_index] + 1 
 
@@ -317,7 +316,7 @@ class EpsilonGreedyStrategy(object):
                             
         return idx
 
-    def update(self, arm_index, curr_acc, estimates):
+    def update(self, arm_index, curr_acc, opt):
         acc = self.scale_acc(curr_acc)
         reward = (acc - self.values[arm_index])
         if self.counts[arm_index] > 0:  
@@ -416,10 +415,10 @@ class GreedyTimeStrategy(object):
                             
         return idx
 
-    def update(self, arm_index, curr_acc, estimates):
+    def update(self, arm_index, curr_acc, opt):
 
-        if 'exec_time' in estimates:            
-            self.cum_exec_time += estimates['exec_time']        
+        if 'exec_time' in opt:            
+            self.cum_exec_time += opt['exec_time']        
 
         acc = self.scale_acc(curr_acc)
         reward = (acc - self.values[arm_index])

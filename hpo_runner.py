@@ -17,7 +17,7 @@ import hpo.bandit as bandit
 
 from hpo.space_mgr import *
 
-ALL_OPT_MODELS = ['SOBOL', 'GP', 'RF', 'TPE', 'GP-NM', 'GP-HLE', 'RF-HLE', 'TPE-HLE']
+ALL_OPT_MODELS = ['NONE', 'GP', 'RF', 'TPE', 'GP-NM', 'GP-HLE', 'RF-HLE', 'TPE-HLE']
 ACQ_FUNCS = ['RANDOM', 'EI', 'PI', 'UCB']
 DIV_SPECS = ['SEQ', 'RANDOM']
 ALL_MIXING_SPECS = ['HEDGE', 'BO-HEDGE', 'BO-HEDGE-T', 'BO-HEDGE-LE', 'BO-HEDGE-LET', 

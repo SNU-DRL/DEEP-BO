@@ -11,17 +11,27 @@ from hpo.utils.sample_gen import *
 
 
 class HyperparameterVectorGenerator(object):
-    def __init__(self, config, spec):
+    def __init__(self, config, spec, use_default=False):
         if type(config) == dict:
             self.config = HyperparameterConfiguration(config)
         else:
             self.config = config
         self.params = self.config.get_param_names()
         self.spec = spec
-        self.grid = np.array([])
-        self.hpvs = np.array([])
-        self.schemata = np.array([])
-        self.generations = np.array([])
+        self.use_default = use_default
+        if use_default:
+            default = self.config.get_default_vector()
+            debug("Default value setting: {}".format(default))
+            norm_vec = self.config.convert("arr", "norm_arr", default)
+            self.grid = np.array([norm_vec])
+            self.hpvs = np.array([default])
+            self.schemata = np.zeros(self.hpvs.shape)
+            self.generations = np.array([0,])
+        else:
+            self.grid = np.array([])
+            self.hpvs = np.array([])
+            self.schemata = np.array([])
+            self.generations = np.array([])
         
     def get_param_vectors(self):
         return self.grid
@@ -61,66 +71,25 @@ class HyperparameterVectorGenerator(object):
                 elif spec['sample_method'] != 'Sobol':
                     warn("Not supported sampling method: {}. We utilize Sobol sequences as default.".format(spec['sample_method']))
 
-            self.grid = np.asarray(g.generate())
-            self.schemata = g.get_schemata()
-            self.generations = g.get_generations()
+            grid = g.generate()
+            schemata = g.get_schemata()
+            gen = g.get_generations()
             # TODO:speeding up required
-            self.hpvs = []
-            for i in range(len(self.grid)):
-                vec = self.grid[i]
-                hpv = []
-                for j in range(len(vec)):
-                    param_name = self.params[j]
-                    value = vec[j]
-                    hp_cfg = getattr(self.config.hyperparams, param_name)
-                    arg = self.to_param_value(hp_cfg, value)
-                    hpv.append(arg)
-                self.hpvs.append(hpv)
+            if self.use_default:
+                self.grid = np.concatenate((self.grid, grid))
+                self.schemata = np.concatenate((self.schemata, schemata))
+                self.generations = np.concatenate((self.generations, gen))
+            else:
+                self.grid = grid
+                self.schemata = schemata
+                self.generations = gen
+
+            self.hpvs = self.config.convert('grid', 'hpv_list', self.grid)
+            
 
         except Exception as ex:
             warn("Failed to generate space: {}".format(ex))
         finally:
             if len(self.grid) > 1:
                 debug("{} samples have been populated. ({:.1f} sec)".format(len(self.grid), time.time() - s_t))
-
-
-    def to_param_value(self, hp_cfg, value):
-        result = None
-        range_list = hp_cfg.range
-        range_list.sort()
-
-        if hp_cfg.value_type == "categorical" or hp_cfg.value_type == 'preordered':
-            size = len(range_list)
-            index = int(value * size)
-            if index == size: # handle terminal condition
-                index = size - 1 
-            result = range_list[index]
-        else:
-            max_value = max(range_list)
-            min_value = min(range_list)
-
-            if hp_cfg.type == 'int':
-                result = min_value + int(value * (max_value - min_value)) 
-                #XXX:to include max value
-                if value == 1.0:
-                    result = max_value
-                if hasattr(hp_cfg, 'power_of'):
-                    result = int(np.power(hp_cfg.power_of, result))
-
-            elif hp_cfg.type == 'float':
-                result = min_value + (value * (max_value - min_value)) 
-                #XXX:to include max value
-                if value == 1.0:
-                    result = max_value
-
-                if hasattr(hp_cfg, 'power_of'):
-                    result = np.power(hp_cfg.power_of, result)
-        
-        if hp_cfg.type == 'int':
-            result = int(result)
-        elif hp_cfg.type == 'bool':
-            result = bool(result)
-        elif hp_cfg.type == 'str':
-            result = str(result)
-        return result
 

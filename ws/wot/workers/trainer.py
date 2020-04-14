@@ -107,7 +107,7 @@ class Trainer(Worker):
                         default_result = {"cur_iter": 0, 
                                 "iter_unit": "epoch",
                                 "cur_loss": default_err,
-                                "loss_type": "error rate", 
+                                "loss_type": "error_rate", 
                                 "run_time": 0.0
                         }
                         return default_result
@@ -118,9 +118,9 @@ class Trainer(Worker):
 
     def add_result(self, cur_iter, cur_loss, run_time, 
                    iter_unit="epoch",
-                   loss_type="error rate"):
+                   loss_type="error_rate"):
         
-        if loss_type == "error rate":
+        if loss_type == "error_rate":
             cur_acc = 1.0 - cur_loss
         else:
             cur_acc = None
@@ -156,6 +156,7 @@ class Trainer(Worker):
                 return True
         else:
             return True 
+
     def execute(self):
         ''' Execute target function and append an intermidiate result per epoch to self.results.
         The result is a dictionary object which has following attributes: 

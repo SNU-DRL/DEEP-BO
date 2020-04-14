@@ -83,8 +83,8 @@ class BanditConfigurator(object):
         choosers = {}
 
         # Add default modeling methods
-        if not 'SOBOL' in opts:
-            opts.append('SOBOL')
+        if not 'NONE' in opts:
+            opts.append('NONE')
 
         if not 'GP-HLE' in opts:
             opts.append('GP-HLE')
@@ -162,8 +162,8 @@ class BanditConfigurator(object):
                 gp.add_time_acq_funcs(self.time_acq_funcs)
             choosers['GP-HLE'] = gp
 
-        if 'SOBOL' in opts:
-            choosers['SOBOL'] = RandomChooser.init('.', '')
+        if 'NONE' in opts:
+            choosers['NONE'] = RandomChooser.init('.', '')
 
         # for global RF options
         rf_options = "max_features=auto" + shaping_options
@@ -209,7 +209,7 @@ class ArmSelector(object):
 
         self.arms = self.get_arms(config)        
         self.num_arms = len(self.arms)
-        self.cur_arm_index = None
+        self.cur_arm_index = 0
 
         self.init_rewards()   
 
@@ -260,10 +260,10 @@ class ArmSelector(object):
             self.values.append(0.0)
             self.counts.append(0)   
 
-    def update(self, step, curr_acc, estimates):
+    def update(self, step, curr_acc, optional):
         '''reward update'''
-        if self.cur_arm_index is not None and step >= self.num_skip:
-            self.strategy.update(self.cur_arm_index, curr_acc, estimates)
+        if step >= self.num_skip:
+            self.strategy.update(self.cur_arm_index, curr_acc, optional)
             arm = self.arms[self.cur_arm_index]
             debug("At step {}, next candidate acquired using {}-{}.".format(
                 step, arm['model'], arm['acq_func']))

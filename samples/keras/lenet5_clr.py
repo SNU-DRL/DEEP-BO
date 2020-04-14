@@ -47,13 +47,36 @@ class KerasClassificationWorker(object):
 
         self.input_shape = dataset['input_shape']
 
-    def compute(self, config, budget, working_directory, history, *args, **kwargs):
+    def validate(self, config):
+        # validate hyperparameters and set default value if parameter is not set
+        if not 'c1_depth' in config:
+            config['c1_depth'] = 128
+        if not 'p1_size' in config:
+            config['p1_size'] = 2
+        if not 'c2_depth' in config:
+            config['c2_depth'] = 256
+        if not 'p2_size' in config:
+            config['p2_size'] = 2
+        if not 'window_size' in config:
+            config['window_size'] = 6
+        if not 'f1_width' in config:
+            config['f1_width'] = 512
+        if not 'learning_rate' in config:
+            config['learning_rate'] = 0.001                         
+        if not 'reg_param' in config:
+            config['reg_param'] = 0.1   
+        if not 'keep_prop_rate' in config:
+            config['keep_prop_rate'] = 0.5
+        return config   
+
+    def compute(self, config, budget, working_directory, epoch_cb, *args, **kwargs):
         """
         Simple example for a compute function using a LeNet like network.
         The input parameter "config" (dictionary) contains the sampled configurations passed by the bohb optimizer
         """
         start_time = time.time()
         model = Sequential()
+        config = self.validate(config)
 
         model.add(Conv2D(int(config['c1_depth']), kernel_size=(int(config['window_size']), int(config['window_size'])),
                          activation='relu',
@@ -87,7 +110,7 @@ class KerasClassificationWorker(object):
                   batch_size=self.batch_size,
                   epochs=int(budget),
                   verbose=0,
-                  callbacks=[history],
+                  callbacks=[epoch_cb],
                   validation_data=(self.x_test, self.y_test))
 
         train_score = model.evaluate(self.x_train, self.y_train, verbose=0)
@@ -95,11 +118,9 @@ class KerasClassificationWorker(object):
             self.x_validation, self.y_validation, verbose=0)
         test_score = model.evaluate(self.x_test, self.y_test, verbose=0)
         elapsed_time = time.time() - start_time
-        # import IPython; IPython.embed()
         return ({
-                # remember: HpBandSter always minimizes!
                 'cur_loss': 1 - test_score[1],
-                'loss_type': 'error rate',
+                'loss_type': 'error_rate',
 				'cur_iter' : int(budget),
 				'iter_unit': 'epoch',
                 'info': {'test accuracy': test_score[1],
@@ -154,8 +175,8 @@ if __name__ == "__main__":
     dataset = load_data('mnist')    
     worker = KerasClassificationWorker(dataset, run_id='0')
     cs = worker.get_configspace()
-    history = LossHistory()	
+    epoch_cb = LossHistory()	
     config = cs.sample_configuration().get_dictionary()
     print(config)
-    res = worker.compute(config=config, budget=10, working_directory='.', history=history)
+    res = worker.compute(config=config, budget=10, working_directory='.', epoch_cb=epoch_cb)
     print(res)

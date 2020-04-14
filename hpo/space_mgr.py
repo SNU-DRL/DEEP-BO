@@ -55,7 +55,10 @@ def create_surrogate_space(hp_cfg_dict, space_setting={}):
         prefix = "{}-{}".format(space_setting['sample_method'], space_setting['seed'])
     name = "{}-{}".format(prefix, time.strftime('%Y%m%dT%H%M%SZ',time.gmtime()))
 
-    hvg = HyperparameterVectorGenerator(hp_cfg_dict, space_setting)
+    with_default = False
+    if 'starts_from_default' in space_setting:
+        with_default = space_setting['starts_from_default']
+    hvg = HyperparameterVectorGenerator(hp_cfg_dict, space_setting, with_default)
     hvg.generate()
     s = HyperParameterSpace(name, hp_cfg_dict, hvg.get_hp_vectors(),
                            space_setting=space_setting)
@@ -102,7 +105,10 @@ def evolve_samples(space, num_samples, current_best, best_candidate, mutation_ra
     hpvs = hvg.get_hp_vectors()
     schemata = hvg.get_schemata()
     gen_counts = hvg.get_generations()
-    space.expand(hpvs, schemata, gen_counts)
+    if len(hpvs) > 0:
+        space.expand(hpvs, schemata, gen_counts)
+    else:
+        error("Evolution failed - #s: {}, #c: {}, #b: {}".format(num_samples, current_best, best_candidate))
 def remove_samples(space, method, estimates):
     if method == 'all_candidates':
         cands = space.get_candidates()

@@ -48,23 +48,25 @@ class HyperOptChooser(object):
             algo = rand.suggest
         elif acq_func != 'EI':
             debug("Unsupported acquisition function: {}".format(acq_func))
+        candidates = samples.get_candidates(use_interim) 
+        errs = samples.get_errors("completions")
+        if len(errs) == 0:
+            return candidates[0] # return the first candidate 
 
+        comp = samples.get_completions()
         helper = HyperoptTrialMaker(samples.get_hp_vectors(), 
                                     self.space_cfg, 
                                     self.response_shaping,
                                     self.shaping_func)
-        #history = objective.create_history(samples.get_completions())
-        t = helper.create_trials(samples.get_completions(), 
-                                samples.get_errors("all"))
         
-        #debug("Number of items in history: {}".format(len(samples.get_completions())))
+        t = helper.create_trials(comp, errs)
         num_iters = len(t.trials) + 1
         fmin(self.fake_evaluate, self.hyperopt_space, algo, num_iters,
                         trials=t, return_argmin=False) 
 
         hpv = self.get_last_hpv()
         idx = samples.expand(hpv)
-        return idx
+        return idx[0] # XXX:return the first single index
 
     def get_last_hpv(self):
         hpv = []
@@ -123,7 +125,7 @@ class HyperOptSearchSpaceConfig(object):
                 for c in setting.range:
                     if isinstance(c, str):
                         # XXX: To avoid binning error
-                        c = str_index #str(c)
+                        #c = str_index #str(c)                        
                         str_index += 1
                     options.append(c)
 
@@ -249,34 +251,34 @@ class HyperoptTrialMaker(object):
         if len(completed) > 0:
             trials = Trials()
             hist = self.create_history(completed)
-            index = 0
-            for c in completed:
-                if c == None or c >= len(losses):
-                    error("Index {} is invalid".format(c))
-                else:
-                    loss = losses[c]
-                    rval_specs = [None]
-                    new_id = index
-                    rval_results = [ ]
-                    rval_results.append(create_ok_result(loss, c))
-                    rval_miscs = [  ]
-                    rval_miscs.append(self.create_misc(index, hist))
+            #index = 0
+            #for c in completed:
+            for index in len(completed):
+                c = completed[index]
+                loss = losses[index]
+                rval_specs = [None]
+                new_id = index
+                rval_results = [ ]
+                rval_results.append(create_ok_result(loss, c))
+                rval_miscs = [  ]
+                rval_miscs.append(self.create_misc(index, hist))
                     
-                    hyperopt_trial = trials.new_trial_docs([new_id], rval_specs, rval_results, rval_miscs)[0]
-                    index += 1
-                    if self.response_shaping is True:
+                hopt_trial = trials.new_trial_docs([new_id], rval_specs, rval_results, rval_miscs)[0]
+
+                if self.response_shaping is True:
                         # transform log applied loss for enhancing optimization performance
                         #debug("before scaling: {}".format(loss))
-                        if self.shaping_func == "log_err":                        
-                            loss = apply_log_err(loss)
-                        elif self.shaping_func == "hybrid_log":
-                            loss = apply_hybrid_log(loss)
-                        else:
-                            debug("Invalid shaping function: {}".format(self.shaping_func))                    
-                    hyperopt_trial['result'] = {'loss': float(loss), 'status': STATUS_OK}
-                    hyperopt_trial['state'] = JOB_STATE_DONE
+                    if self.shaping_func == "log_err":                        
+                        loss = apply_log_err(loss)
+                    elif self.shaping_func == "hybrid_log":
+                        loss = apply_hybrid_log(loss)
+                    else:
+                        debug("Invalid shaping function: {}".format(self.shaping_func))
+                if loss != None:                    
+                    hopt_trial['result'] = {'loss': float(loss), 'status': STATUS_OK}
+                    hopt_trial['state'] = JOB_STATE_DONE
                     #debug("History appended: {}-{}".format(c, loss))
-                    trials.insert_trial_doc(hyperopt_trial)
+                    trials.insert_trial_doc(hopt_trial)
             trials.refresh()
             return trials
         else:        

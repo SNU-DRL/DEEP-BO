@@ -109,7 +109,7 @@ class RemoteTrainer(TrainerPrototype):
                             self.controller.stop(job_id)
                             break
                         elif time_out_count % 10 == 0:
-                            debug("No response during {:.0f} secs... Timeout count: {}/{}".format(no_response, 
+                            debug("No result update during {:.0f} secs... Timeout count: {}/{}".format(no_response, 
                                                                                 time_out_count, 
                                                                                 self.max_timeout))
                 
@@ -165,23 +165,11 @@ class RemoteTrainer(TrainerPrototype):
         return early_terminated
 
     def train(self, cand_index, estimates=None, space=None):
-        hpv = {}
+        
         cfg = {'cand_index' : cand_index}
         param_names = self.hp_config.get_param_names()
-        hpv_d = self.space.get_hpv_dict(cand_index)
-          
+        hpv = self.space.get_hpv_dict(cand_index)
         early_terminated = False
-        
-        # Type matching
-        for param in param_names:
-            value = hpv_d[param]
-            if self.hp_config.get_type(param) == 'bool':
-                value = bool(value)
-            elif self.hp_config.get_type(param) != 'str':
-                value = float(value)
-                if self.hp_config.get_type(param) == 'int':
-                    value = int(value)
-            hpv[param] = value
 
         if self.controller.validate():
             job_id = self.controller.create_job(hpv, cfg)

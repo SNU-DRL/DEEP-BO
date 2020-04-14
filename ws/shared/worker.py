@@ -8,6 +8,18 @@ import numpy as np
 
 from ws.shared.logger import *
 
+
+class WorkerResource:
+    def __init__(self):
+        self.id = 'cpu0' # default computing resource id
+
+    def get_id(self):
+        return self.id
+
+    def set_id(self, id):
+        self.id = id
+
+
 class Worker(object):
     def __init__(self, id=None):
         self.thread = None

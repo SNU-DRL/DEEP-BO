@@ -525,12 +525,13 @@ def draw_boxplot_strategies(results, threshold,
 
 def draw_trials_curve(results, arm, run_index,
                       x_unit='Hour', guidelines=[], g_best_acc=None,
-                      xlim=None, ylim=None, title=None, save_name=None, 
+                      xlim=None, ylim=None, title=None, save_name=None, max_err=None,
                       loc=3, width=10, height=6, metric='Test error'):
     selected = anal.get_result(results, arm, run_index)
     x_time = anal.get_total_times(selected, x_unit)
     y_errors = selected['error']
-    max_err = 1.0
+    if max_err == None:
+        max_err = y_errors[0]
     if g_best_acc != None:
         g_best_err = 1.0 - g_best_acc
         y_errors = []
@@ -611,7 +612,7 @@ def draw_trials_curve(results, arm, run_index,
     if title is not None:
         subplot.set_title(title)
     if ylim is None:
-        plt.ylim(ymax=1.0)
+        plt.ylim(ymax=max_err)
     else:
         plt.ylim(ylim)
     x_range = [0, 0]
@@ -661,10 +662,11 @@ def add_error_fill_line(x, y, yerr, color=None, linestyle='-',
     elif len(yerr) == 2:
         ymin, ymax = yerr
 
-    ymin = np.maximum(y_scale * 0.001, ymin)
-    ymax = np.minimum(y_scale * 1.0, ymax)
-    debug("ymin: {}".format(ymin[0]))
-    debug("ymax: {}".format(ymax[-1]))
+    if np.max(y) < 1.0:
+        ymin = np.maximum(y_scale * 0.001, ymin)
+        ymax = np.minimum(y_scale * 1.0, ymax)
+    #print("ymin: {}".format(ymin[0]))
+    #print("ymax: {}".format(ymax[-1]))
     ax.semilogy(x, y, color=color, linestyle=linestyle, label=label, marker=marker)
     ax.fill_between(x, ymax, ymin, color=color, alpha=alpha_fill)
 
@@ -675,7 +677,7 @@ def draw_best_error_curve(results, arms, repeats,
                           width=14, height=8, x_steps=1, plot_func='semilogy',
                           save_name=None, target_folder='.', y_scale=1,
                           x_ticks=None, y_ticks=None, sub_y_metric="test error",
-                          legend=None, l_order=None, style_format=None):
+                          legend=None, l_order=None, style_format=None, max_err=None):
 
     if type(arms) is not list:
         arms = [arms]
@@ -701,6 +703,8 @@ def draw_best_error_curve(results, arms, repeats,
             best_errors = []
             for i in range(repeats):
                 selected = anal.get_result(results, arm, i)
+                if max_err == None:
+                    max_err = selected['error'][0]
                 x_time = anal.get_total_times(selected, x_unit)
                 y_best_errors = np.array(anal.get_best_errors(selected)) * y_scale
                 best_errors.append({'x': x_time, 'y': y_best_errors.tolist() })
@@ -714,14 +718,14 @@ def draw_best_error_curve(results, arms, repeats,
             for best_error in best_errors:
                 if arm in unlabeled_arms:
                     pfunc([0] + best_error['x'], 
-                        ([1.0] + best_error['y']), 
+                        ([max_err] + best_error['y']), 
                         color=color, linestyle=linestyle, label=arm, marker=marker)
                     unlabeled_arms.remove(arm)
                 else:
-                    pfunc([0] + best_error['x'], ([1.0] + best_error['y']), color=color, linestyle=linestyle, marker=marker)
+                    pfunc([0] + best_error['x'], ([max_err] + best_error['y']), color=color, linestyle=linestyle, marker=marker)
         else:
             errors_by_interval = { }            
-            subplot.set_yscale('log')
+            #subplot.set_yscale('log')
             if plot_func == 'semilogy':
                 subplot.set_yscale('log')
             elif plot_func == 'loglog':
@@ -731,6 +735,8 @@ def draw_best_error_curve(results, arms, repeats,
             for i in range(repeats):
 
                 selected = anal.get_result(results, arm, i)
+                if max_err == None:
+                    max_err = selected['error'][0]
                 y_best_errors = np.array(anal.get_best_errors(selected)) * y_scale
                 t_times = anal.get_total_times(selected, x_unit)
                 t_max = int(max(t_times)) + 1
@@ -740,7 +746,7 @@ def draw_best_error_curve(results, arms, repeats,
                     debug("y_best_errors: {}".format(y_best_errors[0]))
 
                 t = 0
-                cur_best_err = 1.0 * y_scale
+                cur_best_err = max_err * y_scale
                 for j in range(len(t_times)):
                     
                     cur_time = t_times[j]
@@ -765,8 +771,10 @@ def draw_best_error_curve(results, arms, repeats,
             for i in range(0, t_max):
                 errors = errors_by_interval[i] 
 
-                y = np.append(y, np.mean(errors))
-                yerr = np.append(yerr, np.std(errors)/std_div)
+                y_ = np.mean(errors)
+                y = np.append(y, y_)
+                sd = np.std(errors)/std_div
+                yerr = np.append(yerr, sd)
                 x = np.append(x, i)
                 
             

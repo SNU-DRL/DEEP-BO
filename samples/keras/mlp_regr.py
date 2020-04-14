@@ -1,10 +1,12 @@
-from sklearn.preprocessing import StandardScaler, RobustScaler, MinMaxScaler, MaxAbsScaler
-from sklearn.metrics import mean_squared_error as MSE, mean_absolute_error as MAE
-from math import log, sqrt
 import time
 import os
 import logging
 import json
+
+from sklearn.preprocessing import StandardScaler, RobustScaler, MinMaxScaler, MaxAbsScaler
+from sklearn.metrics import mean_squared_error as MSE, mean_absolute_error as MAE
+from math import log, sqrt
+
 logging.basicConfig(level=logging.DEBUG)
 
 try:
@@ -77,10 +79,15 @@ def config_to_params(input_config):
 class KerasRegressionWorker(object):
     def __init__(self, dataset, **kwargs):
         self.data = dataset
+        self.loss_type = 'RMSE'
+        if 'loss_type' in kwargs:
+            self.loss_type = kwargs['loss_type']
+        if 'run_id' in kwargs:
+            self.run_id = kwargs['run_id']
         # super().__init__(**kwargs)
         pass
 
-    def compute(self, config, budget, working_directory, history, *args, **kwargs):
+    def compute(self, config, budget, working_directory, epoch_cb, *args, **kwargs):
         """
         Simple example for a compute function using a feed forward network.
         It is trained on the kin8nm dataset.
@@ -130,27 +137,32 @@ class KerasRegressionWorker(object):
                       batch_size=params['batch_size'],
                       shuffle=params['shuffle'],
                       validation_data=validation_data,
-                      callbacks=[early_stopping, history])
-
-        #p = model.predict(x_train_, batch_size=params['batch_size'])
-        #mse = MSE(y_train, p)
-        #rmse = sqrt(mse)
-        #mae = MAE(y_train, p)
-        # print("\n# training | RMSE: {:.4f}, MAE: {:.4f}".format(rmse, mae))
+                      callbacks=[early_stopping, epoch_cb])
 
         p = model.predict(x_test_, batch_size=params['batch_size'])
         mse = MSE(y_test, p)
         rmse = sqrt(mse)
         mae = MAE(y_test, p)
+        print("# {} | RMSE: {:.4f}, MAE: {:.4f}".format(self.run_id, rmse, mae))
+        
+        loss = None
+        if self.loss_type == 'MAE':
+            loss = mae
+        elif self.loss_type == 'MSE':
+            loss = mse
+        else:
+            # set default loss
+            loss = rmse
+            self.loss_type = 'RMSE' 
 
-        print("# Test | RMSE: {:.4f}, MAE: {:.4f}".format(rmse, mae))
-        return ({'cur_loss': rmse,
-                 'loss_type': 'rmse',
+        return ({'cur_loss': loss,
+                 'loss_type': self.loss_type,
                  'cur_iter': len(h.history['loss']),
                  'iter_unit': 'epoch',
                  'early_stop': model.stop_training,
                  'info': {
                      'params': params,
+                     'rmse': rmse,
                      'mae': mae}})
 
     @staticmethod
@@ -241,7 +253,7 @@ class KerasRegressionWorker(object):
 
 
 if __name__ == "__main__":
-    from load_dataset import load_data
+    from datasets import load_data
     
     class RMSELossCallback(keras.callbacks.Callback):
 
@@ -272,7 +284,7 @@ if __name__ == "__main__":
     config = cs.sample_configuration().get_dictionary()
     print("Configuration: {}".format(config))
     res = worker.compute(config=config, budget=27,
-                         history=history, working_directory='.', params=config)
+                         epoch_cb=history, working_directory='.', params=config)
     elapsed = time.time() - start_time
     prev_res = None
     save_file = "best_kin8nm_mlp.json"

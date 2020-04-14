@@ -40,6 +40,9 @@ class RandomChooser:
     def next(self, samples, af, use_interim=True):
 
         candidates = samples.get_candidates(use_interim)
+        errs = samples.get_errors("completions")
+        if len(errs) == 0:
+            return int(candidates[0]) # return the first candidate         
         next_index = int(candidates[int(np.floor(candidates.shape[0]*npr.rand()))])
         return next_index
 

@@ -149,11 +149,13 @@ def get_total_times(selected_result, unit='Minute'):
     return cum_total_time
 
 
-def get_best_errors(selected_result):
-    cur_best_error = 1.0
+def get_best_errors(selected_result, max_err=None):
+    cur_best_error = None
     best_errors  = []
 
     for err in selected_result['error']:
+        if cur_best_error == None:
+            cur_best_error = err
         if err == None:
             best_errors.append(cur_best_error) # XXX:None error handling
         elif cur_best_error > err:

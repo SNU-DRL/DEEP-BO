@@ -79,7 +79,8 @@ class MultiThresholdingETRTrainer(EarlyTerminateTrainer):
                 acc_thres = self.get_acc_threshold(acc_curve, start_index, end_index, self.early_drop_percentile)
                 debug("Termination check at {} epoch: {:.4f}".format(cur_epoch, cur_acc / acc_thres))
                 if cur_acc < acc_thres:
-                    debug("Early dropped as {}".format(cur_acc))                    
+                    cur_err = 1.0 - cur_acc
+                    debug("Early dropped as {}".format(cur_err))  # XXX:change to error                  
                     return True
                 else:
                     self.etr_checked = "early"
@@ -92,7 +93,8 @@ class MultiThresholdingETRTrainer(EarlyTerminateTrainer):
                 acc_thres = self.get_acc_threshold(acc_curve, start_index, end_index, self.late_drop_percentile)
                 debug("Termination check at {} epoch: {:.4f}".format(cur_epoch, cur_acc / acc_thres))
                 if cur_acc < acc_thres:
-                    debug("Late dropped as {}".format(cur_acc))
+                    cur_err = 1.0 - cur_acc
+                    debug("Late dropped as {}".format(cur_err)) # XXX:change to error
                     return True
                 else:
                     self.etr_checked = True

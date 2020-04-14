@@ -162,7 +162,9 @@ class GPChooser:
         cand_grid = samples.get_param_vectors("candidates", use_interim)
         
         # Don't bother using fancy GP stuff at first.
-        if len(errs) < 2:
+        if len(errs) == 0:
+            return int(candidates[0]) # return the first candidate 
+        elif len(errs) < 2:
             return int(random.choice(candidates))
 
         # Perform the real initialization.
