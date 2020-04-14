@@ -2,10 +2,10 @@
 
 credential : "********" # Auth password. Set to be same between hpo_runner and train_node
 
-hp_config: MNIST-LeNet1
+hp_config: CIFAR100-efficientnet
 hp_config_dir: ./hp_conf/
 
-eval_func: optimize_mnist_lenet1
+eval_func: tune_efficientnet_cifar100
 port: 6101 # Set the port number that is not used
 
 # if you have many computing devices (e.g., NVIDIA GPU cards) in a machine, 

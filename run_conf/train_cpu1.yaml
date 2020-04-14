@@ -2,11 +2,11 @@
 
 credential : "********" # Auth password
 
-hp_config: MNIST-LeNet1
+hp_config: protein-MLP
 hp_config_dir: ./hp_conf/
 
-eval_func: optimize_mnist_lenet1
-port: 6100
+eval_func: tune_protein_mlp
+port: 6101
 
 resource_type: cpu
 resource_id: 1

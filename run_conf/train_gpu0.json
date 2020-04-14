@@ -6,7 +6,7 @@
 
     "credential" : "********",
 
-    "eval_func": "optimize_mnist_lenet1",
+    "eval_func": "tune_mnist_lenet5",
     "resource_type" : "gpu",
     "resource_id" : 0,
 

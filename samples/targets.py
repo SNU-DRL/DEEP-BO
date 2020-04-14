@@ -90,32 +90,6 @@ def tune_protein_mlp(config, **kwargs):
     report_result(res, elapsed_time)
 
 
-''' Surrogates regression problem - internal use only '''
-@objective_function
-def tune_surrogates_mlp(config, **kwargs):
-    from samples.keras.mlp_regr import KerasRegressionWorker
-    from .keras.callbacks import RMSELossCallback
-    from .keras.datasets import load_data
-
-    start_time = time.time()
-    max_epoch = 100
-    if "max_iters" in kwargs:
-        if "iter_unit" in kwargs and kwargs["iter_unit"] == "epoch":
-            max_epoch = kwargs["max_iters"]    
-
-    rmse_cb = RMSELossCallback()
-
-    debug("Training with {}".format(config))
-    dataset = load_data('MNIST-LeNet1')
-    worker = KerasRegressionWorker(dataset, run_id='{}'.format(get_resource().get_id()))
-    res = worker.compute(config=convert_config(config), 
-                         budget=max_epoch, 
-                         working_directory='./{}/'.format(get_resource().get_id()), 
-                         epoch_cb=rmse_cb)
-    elapsed_time = time.time() - start_time
-    report_result(res, elapsed_time)
-
-
 def report_result(res, elapsed_time):
     try:
         update_current_loss(res['cur_iter'], 

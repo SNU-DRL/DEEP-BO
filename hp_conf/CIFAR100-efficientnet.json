@@ -1,0 +1,56 @@
+{
+    "dataset": "CIFAR100",
+    "model": "efficientnet",
+    "config": { 
+        "max_epoch": 90
+    },
+    "hyperparams": {
+        "batch_size": {
+            "type": "int",
+            "value_type": "preordered",
+            "default" : 32,
+            "range": [16, 32, 64, 128]            
+        },
+        "lr" : {
+            "type": "float",
+            "value_type": "continuous",
+            "default": 1e-2,
+            "range": [1e-4, 5e-2]
+        },
+        "weight_decay" : {
+            "type": "float",
+            "value_type": "continuous",
+            "default": 1e-4,
+            "range": [1e-6, 1e-4]
+        },
+
+        "optimizer": {
+            "type": "str",
+            "value_type": "categorical",
+            "default": "SGD", 
+            "range": [
+                "SGD",
+                "Adadelta",
+                "Adagrad",
+                "Adam",                
+                "AdamW",
+                "ASGD"
+            ]            
+        },
+        "model_type": {
+            "type": "str",
+            "value_type": "categorical",
+            "default": "b0", 
+            "range": [
+                "b0",
+                "b1",
+                "b2",
+                "b3",
+                "b4",
+                "b5",
+                "b6"
+            ]            
+        } 
+
+    }
+}

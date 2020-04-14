@@ -1,0 +1,9 @@
+# Master node run configuration sample
+
+credential : "********" # Auth password. Set to be same between hpo_runner and train_node
+
+hp_config: CIFAR100-efficientnet
+hp_config_dir: ./hp_conf/
+
+debug_mode: false # Set true to show debug messages
+port: 5000 # Set the port number
