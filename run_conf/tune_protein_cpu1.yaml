@@ -1,0 +1,14 @@
+# Train node configuration
+
+credential : "********" # Auth password. Set to be same between hpo_runner and train_node
+
+hp_config: protein-MLP   # The same hyperparameter configuration should be used between hpo_runner and train_node 
+hp_config_dir: ./hp_conf/
+
+exp_time: 3h
+num_trials: 3
+max_timeout: 50
+
+train_node: http://127.0.0.1:6101
+
+debug_mode: true # Set true to show debug messages

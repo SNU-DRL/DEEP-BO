@@ -1,0 +1,13 @@
+# Train node configuration
+
+credential : "********" # Auth password. Set to be same between hpo_runner and train_node
+
+hp_config: MNIST-LeNet1   # The same hyperparameter configuration should be used between hpo_runner and train_node 
+hp_config_dir: ./hp_conf/
+
+exp_time: 12h
+max_timeout: 50
+
+train_node: http://127.0.0.1:6100
+
+debug_mode: true # Set true to show debug messages

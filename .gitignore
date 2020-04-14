@@ -129,3 +129,4 @@ results/data2/benchmark/partial/*.json
 results/bm1/*.json
 results/bm1/bohb/
 results/*.csv
+spaces/*.npz

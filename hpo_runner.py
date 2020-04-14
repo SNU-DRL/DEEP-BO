@@ -52,8 +52,6 @@ def validate_args(args):
         raise ValueError('Invaild hyperparam config : {}'.format(hp_cfg_path))
 
     #debug("run configuration: {}".format(run_cfg))
-
-
     for attr, value in vars(args).items():
         if attr in run_cfg:
             valid[str(attr)] = run_cfg[str(attr)]
@@ -82,24 +80,20 @@ def validate_args(args):
     valid['hp_config'] = hp_cfg
     valid['run_config'] = run_cfg
 
+    if not 'train_node' in run_cfg:
+        raise ValueError("Invalid run configuration - No train_node definition")
            
     return valid
 
 
-
-
 def run(args, save=True):
     try:
-        
         run_cfg = args['run_config']
         space_set = run_cfg['search_space']
             
         space = None
-
-        m = None        
-
+        m = None    
         result = []
-            
             
         if space_set['preevaluated']:
             if not check_lookup_existed(run_cfg['hp_config']):
@@ -121,8 +115,6 @@ def run(args, save=True):
             debug("Search space will be created as {}".format(space_set))
 
             space = create_surrogate_space(hp_cfg.get_dict(), space_set)
-
-
             
             if valid.url(run_cfg['train_node']):
                 trainer_url = run_cfg['train_node']
@@ -153,7 +145,6 @@ def run(args, save=True):
     if space != None:
         space.save() 
     return result
-
 
 
 def main(args):
