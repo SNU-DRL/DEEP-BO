@@ -1,6 +1,6 @@
 # DEEP-BO for Hyperparameter Optimization of Deep Networks
 
-This repo contains code accompaning the paper, [DEEP-BO for Hyperparameter Optimization of Deep Networks](https://arxiv.org/abs/1905.09680)  
+This repo contains code accompaning the paper, [Basic Enhancement Strategies When Using Bayesian Optimization for Hyperparameter Tuning of Deep Neural Networks](https://ieeexplore.ieee.org/document/9037259/)  
 
 ## Abstract
 
@@ -82,10 +82,13 @@ Optionally, the gradient calculation in GP can be sped up when installing the we
 
 ### Deep learning packages for sample code
 
-If you want to run a sample code, following deep learning packages are required:
-
-* [tensorflow(-gpu)](https://www.tensorflow.org/install)
-* [keras(-gpu)](https://keras.io/#installation)
+If you want to run a [sample code](github.com/snu-adsl/DEEP-BO/tree/master/samples), following deep learning packages are required respectively:
+* For keras implementations
+  * [tensorflow(-gpu)](https://www.tensorflow.org/install)
+  * [keras(-gpu)](https://keras.io/#installation)
+* For pytorch implementation
+  * [pytorch, , torchvision](pytorch.org/get-started/locally/?source=Google&medium=PaidSearch&utm_campaign=1711784041&utm_adgroup=68039908078&utm_keyword=install%20pytorch&utm_offering=AI&utm_Product=PYTorch&gclid=CjwKCAjwvtX0BRAFEiwAGWJyZGmAYDWXuZMLuN-G2qFYvEb428fr3uOh5yaR2WAKgCZEe5nCke1f0BoCm08QAvD_BwE)
+  * mlconfig, tqdm 
 
 In case of CPU only, you can install above packages as follows:
 
