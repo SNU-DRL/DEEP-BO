@@ -76,7 +76,7 @@ Therefore, if you are working in a conda environment as I suggested, install the
 (hpo)device:path$ pip install hyperopt pyDOE matplotlib hiplot
 ```
 
-Optionally, the gradient calculation in GP can be sped up when installing the weave package as follows:
+When python2 is used, the gradient calculation in GP can be sped up when installing the weave package as follows:
 ```bash
 (hpo)device:path$ conda install -c conda-forge weave
 ```
