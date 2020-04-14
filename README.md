@@ -83,7 +83,7 @@ Optionally, the gradient calculation in GP can be sped up when installing the we
 
 ### Deep learning packages for sample code
 
-If you want to run a [sample code](github.com/snu-adsl/DEEP-BO/tree/master/samples), following deep learning packages are required respectively:
+If you want to optimize hyperparameters in a [sample code](github.com/snu-adsl/DEEP-BO/tree/master/samples), following deep learning packages are required respectively:
 * For keras implementations
   * [tensorflow(-gpu)](https://www.tensorflow.org/install)
   * [keras(-gpu)](https://keras.io/#installation)
