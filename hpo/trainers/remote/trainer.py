@@ -108,7 +108,7 @@ class RemoteTrainer(TrainerPrototype):
                             log("Force to stop {} because of no update during {:.0f} secs".format(job_id, no_response))
                             self.controller.stop(job_id)
                             break
-                        elif time_out_count % 10 == 0:
+                        elif time_out_count % 100 == 0:
                             debug("No result update during {:.0f} secs... Timeout count: {}/{}".format(no_response, 
                                                                                 time_out_count, 
                                                                                 self.max_timeout))

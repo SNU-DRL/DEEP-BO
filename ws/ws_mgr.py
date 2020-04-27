@@ -122,20 +122,24 @@ class WebServiceManager(ManagerPrototype):
 
 
     def run_service(self, port, debug_mode=False, threaded=False, with_process=False):
-        if with_process == True:
-            kwargs = { 
-                        'host': '0.0.0.0', 
-                        'port':port, 
-                        'debug' :debug_mode
-                    }
+        try:
+            if with_process == True:
+                kwargs = { 
+                            'host': '0.0.0.0', 
+                            'port':port, 
+                            'debug' :debug_mode
+                        }
                     
-            self.my_process = mp.Process(target=self.app.run, kwargs=kwargs)
-            self.my_process.start()
-            self.my_process.join()
-        else:
-            if debug_mode:
-                set_log_level('debug')
-            self.app.run(host='0.0.0.0', port=port, debug=debug_mode, threaded=threaded) 
+                self.my_process = mp.Process(target=self.app.run, kwargs=kwargs)
+                self.my_process.start()
+                self.my_process.join()
+            else:
+                if debug_mode:
+                    set_log_level('debug')
+                self.app.run(host='0.0.0.0', port=port, debug=debug_mode, threaded=threaded) 
+        except KeyboardInterrupt as ki:
+            pass
+
     
     def stop_service(self):
         if self.my_process != None:

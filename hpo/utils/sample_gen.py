@@ -282,9 +282,13 @@ class LocalSearchGenerator(GridGenerator):
 
         n_val = ovt.encode(vt, t, r, p_val)
         if vt == 'categorical': 
-            # choose any others                
-            ot_opts = np.delete(r, n_val.index(1.0), 0)
-            np_val = np.random.choice(ot_opts)
+            try:
+                # choose any others                
+                ot_opts = np.delete(r, n_val.index(1.0), 0)
+                np_val = np.random.choice(ot_opts)
+            except Exception as ex:
+                warn("No other options in {} to perturb:{}".format(hp_name, r))
+                np_val = np.random.choice(r)
         else:
             while True: # force to one exchange neighbourhood
                 r_val = np.random.normal(n_val, self.sd) # random draw from normal

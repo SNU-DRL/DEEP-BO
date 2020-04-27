@@ -433,10 +433,8 @@ class HPOBanditMachine(object):
                     break
 
             wall_time = time.time() - start_time
-            log("Best {} {:.4f} at run #{}. (wall time: {:.1f} secs)".format(self.goal_metric, 
-                                                             incumbent, 
-                                                             i, 
-                                                             wall_time))
+            log("Best {} at run #{} is {:.4f}. (wall time: {:.1f} secs)".format(self.goal_metric, 
+                                                             i, incumbent, wall_time))
 
             if self.sample_thread != None and self.sample_thread.is_alive():
                 self.sample_thread.join()
@@ -503,7 +501,7 @@ class HPOBanditMachine(object):
                 best_model_index = result['model_idx'][error_min_index]
                 best_error = result['error'][error_min_index]
                 best_hpv = self.search_space.get_hpv_dict(best_model_index, int(k))
-                log("Best performance at run #{} by {} is {}.".format(int(k)+1, best_hpv, best_error))
+                log("Best performance {} at run #{} is achieved by {}.".format(best_error, k, best_hpv))
             except Exception as ex:
                 warn("Report error ar run #{}".format(k))
 
@@ -513,50 +511,51 @@ class HPOBanditMachine(object):
             return
 
         if estimates == None:
-            warn("No estimation available to modify samples.")
-            return
-        if 'remove' in self.run_config['search_space']:
-            start_t = time.time()
-            ds = self.run_config['search_space']["remove"]
-            remove_samples(self.search_space, ds, estimates)
-            debug("Removed with {} ({:.1f} sec)".format(ds, time.time() - start_t))
+            debug("No estimation available to modify samples.")
+        else:
 
-        if 'intensify' in self.run_config['search_space']:
-            start_t = time.time()
+            if 'remove' in self.run_config['search_space']:
+                start_t = time.time()
+                ds = self.run_config['search_space']["remove"]
+                remove_samples(self.search_space, ds, estimates)
+                debug("Removed with {} ({:.1f} sec)".format(ds, time.time() - start_t))
+
+            if 'add' in self.run_config['search_space']:
+                start_t = time.time()
+                ns = self.run_config['search_space']["add"]                                
+                append_samples(self.search_space, ns)
+                debug("{} samples added ({:.1f} sec)".format(ns, time.time() - start_t))
+            if 'intensify' in self.run_config['search_space']:
+                start_t = time.time()
                 # intensify # of promissing samples using estimated values
-            cands = np.array(estimates['candidates']) # has index
-            est_values = np.array(estimates['acq_funcs']) # estimated performance by acquistion function
-            ns = self.run_config['search_space']['intensify']
-            top_k = est_values.argsort()[-1*ns:][::-1]
+                cands = np.array(estimates['candidates']) # has index
+                est_values = np.array(estimates['acq_funcs']) # estimated performance by acquistion function
+                ns = self.run_config['search_space']['intensify']
+                top_k = est_values.argsort()[-1*ns:][::-1]
                 
-            for k in cands[top_k]:
-                cand = self.search_space.get_hpv_dict(k)
-                num_gen = self.search_space.get_generation(k)
-                intensify_samples(self.search_space, 1, cand, num_gen)
-            debug("{} samples intensified. ({:.1f} sec)".format(ns, time.time() - start_t))
+                for k in cands[top_k]:
+                    cand = self.search_space.get_hpv_dict(k)
+                    num_gen = self.search_space.get_generation(k)
+                    intensify_samples(self.search_space, 1, cand, num_gen)
+                debug("{} samples intensified. ({:.1f} sec)".format(ns, time.time() - start_t))
 
-        if 'evolve' in self.run_config['search_space']:
-            start_t = time.time()
+            if 'evolve' in self.run_config['search_space']:
+                start_t = time.time()
             # evolving # of promissing samples using estimated values
-            cands = np.array(estimates['candidates']) # has index
-            est_values = np.array(estimates['acq_funcs']) # estimated performance by acquistion function
-            ns = self.run_config['search_space']['evolve']
-            top_1 = est_values.argsort()[-1:][::-1]
-            i = self.search_space.get_incumbent()
-            cur_best = { "hpv": self.search_space.get_hpv(i), 
-                            "schema": self.search_space.get_schema(i),
-                            "gen": self.search_space.get_generation(i)
-                        }
-            for k in cands[top_1]:
-                cand = self.search_space.get_hpv_dict(k)
-                evolve_samples(self.search_space, ns, cur_best, cand)
-            debug("{} samples evolved. ({:.1f} sec)".format(ns, time.time() - start_t))
+                cands = np.array(estimates['candidates']) # has index
+                est_values = np.array(estimates['acq_funcs']) # estimated performance by acquistion function
+                ns = self.run_config['search_space']['evolve']
+                top_1 = est_values.argsort()[-1:][::-1]
+                i = self.search_space.get_incumbent()
+                cur_best = { "hpv": self.search_space.get_hpv(i), 
+                                "schema": self.search_space.get_schema(i),
+                                "gen": self.search_space.get_generation(i)
+                            }
+                for k in cands[top_1]:
+                    cand = self.search_space.get_hpv_dict(k)
+                    evolve_samples(self.search_space, ns, cur_best, cand)
+                debug("{} samples evolved. ({:.1f} sec)".format(ns, time.time() - start_t))
 
-        if 'add' in self.run_config['search_space']:
-            start_t = time.time()
-            ns = self.run_config['search_space']["add"]                                
-            append_samples(self.search_space, ns)
-            debug("{} samples added ({:.1f} sec)".format(ns, time.time() - start_t))
 
         cand_size = len(self.search_space.get_candidates())
         debug("Current # of candidates: {} ({:.1f} sec)".format(cand_size, time.time() - s_t))  

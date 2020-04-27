@@ -1,13 +1,25 @@
-# Train node configuration
-
+# HPO runner configuration
+title: tune_mnist_lenet5
 credential : "********" # Auth password. Set to be same between hpo_runner and train_node
 
+
+# Hyperparameter space setting
 hp_config: MNIST-LeNet1   # The same hyperparameter configuration should be used between hpo_runner and train_node 
 hp_config_dir: ./hp_conf/
 
+
+# HPO run configuration
 exp_time: 12h
 max_timeout: 50
 
-train_node: http://127.0.0.1:6100
 
-debug_mode: true # Set true to show debug messages
+# Trainer setting
+eval_func: tune_mnist_lenet5 # See the code in train_node
+port: 6100
+resource_type: gpu
+resource_id: 0
+
+
+# Debugging setting
+debug_mode: true # Set true to enable debug messages
+tune_log: tune_mnist_lenet5.log

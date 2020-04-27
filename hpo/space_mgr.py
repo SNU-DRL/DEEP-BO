@@ -81,34 +81,42 @@ def append_samples(space, num_samples):
 
 def intensify_samples(space, num_samples, best_candidate, num_gen):
  
-    space.space_setting['num_samples'] = num_samples
-    space.space_setting['sample_method'] = 'local'
-    space.space_setting['best_candidate'] = best_candidate # XXX:should be normalized value
-    space.space_setting['generation'] = num_gen 
+    try:
+        space.space_setting['num_samples'] = num_samples
+        space.space_setting['sample_method'] = 'local'
+        space.space_setting['best_candidate'] = best_candidate # XXX:should be normalized value
+        space.space_setting['generation'] = num_gen 
 
-    hvg = HyperparameterVectorGenerator(space.get_hp_config(), space.space_setting)
-    hvg.generate()    
-    hpvs = hvg.get_hp_vectors()
-    schemata = hvg.get_schemata()
-    gen_counts = hvg.get_generations()
-    space.expand(hpvs, schemata, gen_counts)
+        hvg = HyperparameterVectorGenerator(space.get_hp_config(), space.space_setting)
+        hvg.generate()    
+        hpvs = hvg.get_hp_vectors()
+        schemata = hvg.get_schemata()
+        gen_counts = hvg.get_generations()
+        if len(hpvs) > 0:
+            space.expand(hpvs, schemata, gen_counts)
+    except Exception as ex:
+        warn("Exception raised on intensifying samples: {}".format(ex))
 
 
 def evolve_samples(space, num_samples, current_best, best_candidate, mutation_ratio=.1):
-    space.space_setting['num_samples'] = num_samples
-    space.space_setting['sample_method'] = 'genetic'
-    space.space_setting['current_best'] = current_best
-    space.space_setting['best_candidate'] = best_candidate # XXX:should be normalized value
-    space.space_setting['mutation_ratio'] = mutation_ratio
-    hvg = HyperparameterVectorGenerator(space.get_hp_config(), space.space_setting)
-    hvg.generate()    
-    hpvs = hvg.get_hp_vectors()
-    schemata = hvg.get_schemata()
-    gen_counts = hvg.get_generations()
-    if len(hpvs) > 0:
-        space.expand(hpvs, schemata, gen_counts)
-    else:
-        error("Evolution failed - #s: {}, #c: {}, #b: {}".format(num_samples, current_best, best_candidate))
+    try:
+        space.space_setting['num_samples'] = num_samples
+        space.space_setting['sample_method'] = 'genetic'
+        space.space_setting['current_best'] = current_best
+        space.space_setting['best_candidate'] = best_candidate # XXX:should be normalized value
+        space.space_setting['mutation_ratio'] = mutation_ratio
+
+        hvg = HyperparameterVectorGenerator(space.get_hp_config(), space.space_setting)
+        hvg.generate()    
+        hpvs = hvg.get_hp_vectors()
+        schemata = hvg.get_schemata()
+        gen_counts = hvg.get_generations()
+        if len(hpvs) > 0:
+            space.expand(hpvs, schemata, gen_counts)
+        else:
+            error("Evolution failed - #s: {}, #c: {}, #b: {}".format(num_samples, current_best, best_candidate))
+    except Exception as ex:
+        warn("Exception raised on evolving samples: {}".format(ex))     
 def remove_samples(space, method, estimates):
     if method == 'all_candidates':
         cands = space.get_candidates()

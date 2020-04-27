@@ -23,6 +23,15 @@ def main(run_config):
                     master_node += master_node[:-1]
             else:
                 raise ValueError("Invalid master URL: {}".format(run_config['master_node']))
+
+        log_file_name = 'train.log'
+        if 'train_log' in run_config:
+            log_file_name = run_config['train_log']
+        elif 'resource_type' in run_config and 'resource_id' in run_config:
+            log_file_name = "train_{}{}.log".format(run_config['resource_type'], run_config['resource_id'])
+
+        set_log_file(log_file_name)
+
         debug_mode = False
         if "debug_mode" in run_config:
             if run_config["debug_mode"]:
@@ -86,4 +95,4 @@ if __name__ == "__main__":
     run_cfg = read_run_config(args.run_config, args.rconf_dir)       
     
     main(run_cfg)
-    
+

@@ -335,17 +335,18 @@ class HyperParameterSpace(ParameterSpace):
     def get_hpv(self, index):
         return self.hp_vectors[index]
 
-    def get_hpv_dict(self, index, k=0):
+    def get_hpv_dict(self, index, k=None):
         hpv_list = self.hp_vectors
-        if k == 0:
-            if 'hpv' in self.backups: 
-                hpv_list = self.backups['hpv']
-        else:
-            key = 'hpv{}'.format(k)
-            if key in self.backups:
-                hpv_list = self.backups[key]
+        if k != None:
+            if k == 0:
+                if 'hpv' in self.backups: 
+                    hpv_list = self.backups['hpv']
             else:
-                error("No backup of hyperparamter vectors: {}".format(k))
+                key = 'hpv{}'.format(k)
+                if key in self.backups:
+                    hpv_list = self.backups[key]
+                else:
+                    error("No backup of hyperparamter vectors: {}".format(k))
         hp_arr = hpv_list[index]
         hpv = self.hp_config.convert('arr', 'dict', hp_arr)
         return hpv # XXX:return dictionary value
@@ -361,6 +362,8 @@ class HyperParameterSpace(ParameterSpace):
 
     def expand(self, hpv, schemata=[], gen_counts=[]):
         # check dimensions
+        if type(hpv) == dict:
+            hpv = self.hp_config.convert('dict', 'arr', hpv)
         hpv_list = hpv
         dim = len(np.array(hpv).shape)
         if dim == 1:

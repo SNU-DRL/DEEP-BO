@@ -1,14 +1,26 @@
-# Train node configuration
-
+# HPO runner configuration
+title: tune_protein_mlp
 credential : "********" # Auth password. Set to be same between hpo_runner and train_node
 
-hp_config: protein-MLP   # The same hyperparameter configuration should be used between hpo_runner and train_node 
+
+# Hyperparameter space setting
+hp_config: protein-MLP 
 hp_config_dir: ./hp_conf/
 
+
+# HPO run configuration
 exp_time: 3h
 num_trials: 3
 max_timeout: 50
 
-train_node: http://127.0.0.1:6101
 
-debug_mode: true # Set true to show debug messages
+# Trainer setting
+eval_func: tune_protein_mlp # See the code in train_node
+port: 6101
+resource_type: cpu
+resource_id: 1
+
+
+# Debugging setting
+debug_mode: true # Set true to enable debug messages
+tune_log: tune_protein_mlp.log

@@ -4,9 +4,12 @@ from __future__ import print_function
 
 import sys
 import os
+import time
 import argparse
+import subprocess
+import threading
 import traceback
-import validators as valid
+import validators as v
 
 from ws.shared.lookup import check_lookup_existed
 from ws.shared.logger import *
@@ -36,6 +39,9 @@ def validate_args(args):
         error("Invalid run configuration. see {}".format(args.rconf))
         raise ValueError('invaild run configuration.')    
     
+    if 'tune_log' in run_cfg:
+        set_log_file(run_cfg['tune_log'])
+
     if run_cfg['debug_mode']:          
         set_log_level('debug')
 
@@ -49,7 +55,7 @@ def validate_args(args):
    
     hp_cfg = read_hyperparam_config(hp_cfg_path)
     if hp_cfg is None:
-        raise ValueError('Invaild hyperparam config : {}'.format(hp_cfg_path))
+        raise ValueError('Invaild hyperparam config: {}'.format(hp_cfg_path))
 
     #debug("run configuration: {}".format(run_cfg))
     for attr, value in vars(args).items():
@@ -77,13 +83,23 @@ def validate_args(args):
         space_setting['preevaluated'] = False
     if not 'prior_history' in space_setting:
         space_setting['prior_history'] = None
+
     valid['hp_config'] = hp_cfg
     valid['run_config'] = run_cfg
 
-    if not 'train_node' in run_cfg:
-        raise ValueError("Invalid run configuration - No train_node definition")
            
     return valid
+
+
+def spawn_train_node(train_py, run_cfg):
+    try:
+        cmd = 'python {} {}'.format(train_py, run_cfg)
+        subprocess.call(cmd, shell=True)
+        time.sleep(1)
+    except KeyboardInterrupt as ki:
+        sys.exit(-1)
+    except Exception as ex:
+        print(ex)
 
 
 def run(args, save=True):
@@ -116,7 +132,7 @@ def run(args, save=True):
 
             space = create_surrogate_space(hp_cfg.get_dict(), space_set)
             
-            if valid.url(run_cfg['train_node']):
+            if v.url(run_cfg['train_node']):
                 trainer_url = run_cfg['train_node']
                 m = bandit.create_runner(trainer_url, space,
                             args['exp_crt'], 
@@ -150,6 +166,16 @@ def run(args, save=True):
 def main(args):
     try:
         valid_args = validate_args(args)
+        if valid_args['mode'].upper() == 'BATCH':
+            simulate(valid_args)
+            return
+        if not 'train_node' in valid_args['run_config']:
+            if 'port' in valid_args['run_config']:
+                train_addr = 'http://127.0.0.1:{}'.format(valid_args['run_config']['port'])            
+                valid_args['run_config']['train_node'] = train_addr
+            else:
+                print("Invalid run configuration!")
+                return
         run(valid_args)    
     except Exception as ex:
         error(ex)
@@ -163,6 +189,7 @@ if __name__ == "__main__":
     default_spec = 'SEQ'
     default_target_goal = 0.0
     default_goal_metric = 'error'
+    default_train_node = 'train_node.py'
     default_expired_time = '1d'
     default_early_term_rule = "DecaTercet"
         
@@ -214,7 +241,28 @@ if __name__ == "__main__":
 #                        help='[Experimental] Time penalty strategies for acquistion function.\n'+\
 #                        '{} are available. Default setting is {}'.format(time_penalties_modes, default_time_penalty))
  
+    parser.add_argument('-tn', '--train_node', default=default_train_node, type=str,
+                        help='train node script name. Default value is {}.'.format(default_train_node))                        
     parser.add_argument('run_config', type=str, default='debug', help='Run configuration name.')
 
     args = parser.parse_args()    
+    train_thread = None
+    if os.path.isfile(args.train_node) == True:
+        print("Launching the train node to be served...")
+        train_thread = threading.Thread(target=spawn_train_node, 
+                                        args=(args.train_node, args.run_config,)) 
+        train_thread.start()
+        time.sleep(5)
+    elif args.train_node.lower() == 'none':
+        print("Assuming that train node has been launched...")
+    else:
+        print("Invalid train node:{}".format(args.train_node))
+        sys.exit(-1)
+
     main(args)
+
+    if train_thread != None:
+        print("Press control+C to terminate the train node...")
+        sys.exit(0)
+
+

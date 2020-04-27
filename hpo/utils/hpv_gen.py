@@ -23,8 +23,9 @@ class HyperparameterVectorGenerator(object):
             default = self.config.get_default_vector()
             debug("Default value setting: {}".format(default))
             norm_vec = self.config.convert("arr", "norm_arr", default)
+            hpv = self.config.convert("arr", "list", default)
             self.grid = np.array([norm_vec])
-            self.hpvs = np.array([default])
+            self.hpvs = np.array([hpv])
             self.schemata = np.zeros(self.hpvs.shape)
             self.generations = np.array([0,])
         else:

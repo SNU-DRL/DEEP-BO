@@ -60,7 +60,7 @@ class RemoteTrainConnector(RemoteJobConnector):
     def create_job(self, hyperparams, config=None):
         try:
             #debug("RemoteTrainConnector tries to create a training job.")
-            job_desc = copy.copy(self.hp_config._dict)
+            job_desc = copy.copy(self.hp_config.get_dict())
             # update body by hyperparams
             for hp in hyperparams.keys():
                 value = hyperparams[hp]

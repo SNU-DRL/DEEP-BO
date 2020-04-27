@@ -164,6 +164,8 @@ class HyperparameterConfiguration(DictionaryToObject):
             return self.arr_to_norm_vec(value)
         elif source_type == 'arr' and target_type == 'list':
             return self.arr_to_list(value)
+        elif source_type == 'hopt_dict' and target_type == 'dict':
+            return self.replace_cat_number(value)
         elif source_type == 'arr' and target_type == 'dict':
             return self.arr_to_dict(value)
         elif target_type == 'one_hot':
@@ -277,10 +279,25 @@ class HyperparameterConfiguration(DictionaryToObject):
                 closest_dist = distance
                 nearby_idx = i.tolist()
         return nearby_idx, closest_dist
+    def replace_cat_number(self, param_values):
+        for param, setting in self.hyperparams.__dict__.items():
+            try:
+                if setting.type == "str":
+                    if setting.value_type == 'categorical':
+                        str_value = param_values[param]                        
+                        param_values[param] = str(str_value)
+                    else:
+                        warn("Unknown case: {} - {}".format(param, setting.value_type))
+            except Exception as ex:
+                warn("Error: {}".format(ex))
+
+        return param_values
+
     def unnormalize(self, param_name, norm_value):
         result = None
         hp_cfg = getattr(self.hyperparams, param_name)
         range_list = hp_cfg.range
+
         if hp_cfg.value_type == "categorical" or hp_cfg.value_type == 'preordered':
             size = len(range_list)
             index = int(norm_value * size)
@@ -290,18 +307,24 @@ class HyperparameterConfiguration(DictionaryToObject):
         else:
             max_value = max(range_list)
             min_value = min(range_list)
+
             if hp_cfg.type == 'int':
                 result = min_value + int(norm_value * (max_value - min_value)) 
+
                 if norm_value == 1.0:
                     result = max_value
                 if hasattr(hp_cfg, 'power_of'):
                     result = int(np.power(hp_cfg.power_of, result))
+
             elif hp_cfg.type == 'float':
                 result = min_value + (norm_value * (max_value - min_value)) 
+
                 if norm_value == 1.0:
                     result = max_value
+
                 if hasattr(hp_cfg, 'power_of'):
                     result = np.power(hp_cfg.power_of, result)
+
         if hp_cfg.type == 'int':
             result = int(result)
         elif hp_cfg.type == 'bool':
