@@ -91,11 +91,6 @@ If you want to optimize hyperparameters in a [sample code](github.com/snu-adsl/D
   * [pytorch, , torchvision](pytorch.org/get-started/locally/?source=Google&medium=PaidSearch&utm_campaign=1711784041&utm_adgroup=68039908078&utm_keyword=install%20pytorch&utm_offering=AI&utm_Product=PYTorch&gclid=CjwKCAjwvtX0BRAFEiwAGWJyZGmAYDWXuZMLuN-G2qFYvEb428fr3uOh5yaR2WAKgCZEe5nCke1f0BoCm08QAvD_BwE)
   * mlconfig, tqdm 
 
-In case of CPU only, you can install above packages as follows:
-
-```bash
-(hpo)device:path$ conda install tensorflow=1.15 keras
-```
 
 See the other details in the [guide](https://github.com/snu-adsl/DEEP-BO/wiki). 
 
