@@ -72,10 +72,10 @@ class RFChooser:
         # TODO: Set eval time penalty for acquisition
         pass
 
-    def next(self, samples, af, use_interim=True):        
+    def next(self, samples, af):        
         
-        candidates = samples.get_candidates(use_interim)
-        completions = samples.get_completions(use_interim)
+        candidates = samples.get_candidates() 
+        completions = samples.get_completions()
         errs = samples.get_errors("completions")
         # Grab out the relevant sets.
         
@@ -86,9 +86,9 @@ class RFChooser:
             return int(random.choice(candidates))
 
         # Grab out the relevant sets.        
-        cand_vec = samples.get_param_vectors("candidates", use_interim)
+        cand_vec = samples.get_param_vectors("candidates")
 
-        comp_vec = samples.get_param_vectors("completions", use_interim)        
+        comp_vec = samples.get_param_vectors("completions")        
         
         try:
             none_indices = np.argwhere(np.isnan(np.array(errs, dtype=np.float64))).flatten()

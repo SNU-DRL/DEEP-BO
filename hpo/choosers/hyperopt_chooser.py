@@ -41,13 +41,13 @@ class HyperOptChooser(object):
         # TODO:We can not apply the evaluation time penalty now. 
         pass
 
-    def next(self, samples, acq_func, use_interim=True):
+    def next(self, samples, acq_func):
         algo = tpe.suggest
         if acq_func == 'RANDOM':
             algo = rand.suggest
         elif acq_func != 'EI':
             debug("Unsupported acquisition function: {}".format(acq_func))
-        candidates = samples.get_candidates(use_interim) 
+        candidates = samples.get_candidates() 
         errs = samples.get_errors("completions")
         if len(errs) == 0:
             return int(candidates[0]) # return the first candidate 

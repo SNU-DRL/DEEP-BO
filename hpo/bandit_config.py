@@ -108,7 +108,7 @@ class BanditConfigurator(object):
             if 'alpha' in self.config:
                 shaping_options += ',alpha={}'.format(self.config['alpha'])
         
-        debug(shaping_options)
+        #debug(shaping_options)
         
         # for global GP options
         gp_options = 'noiseless=0' + shaping_options
@@ -265,22 +265,22 @@ class ArmSelector(object):
         if step >= self.num_skip:
             self.strategy.update(self.cur_arm_index, curr_acc, optional)
             arm = self.arms[self.cur_arm_index]
-            debug("At step {}, next candidate acquired using {}-{}.".format(
+            debug("At step {}, {}-{} selects the next configuration to evaluate.".format(
                 step, arm['model'], arm['acq_func']))
             if self.spec != 'SEQ' and self.spec != 'RANDOM':
                 debug("Adaptive selection ratio: {}, Current epsilon: {}".format(
                     [round(v, 2) for v in self.values], self.strategy.epsilon))                 
 
-    def select(self, step, use_interim_result=True):
+    def select(self, step):
         if step < self.num_skip:
             next_index = np.random.randint(0, self.num_arms)
-            debug('random sampling before step {} passes'.format(self.num_skip)) 
+            debug('Algorithm was selected randomly before step {} passes'.format(self.num_skip)) 
         else:
-            next_index = self.strategy.next(step, use_interim_result)
+            next_index = self.strategy.next(step)
         arm = self.arms[next_index]
         self.cur_arm_index = next_index
         
-        return arm['model'], arm['acq_func'], next_index
+        return arm['model'], arm['acq_func']
 
     def register(self, spec):        
         ''' register the diversification strategies '''

@@ -15,12 +15,13 @@ max_timeout: 50
 
 
 # Trainer setting
-eval_func: tune_protein_mlp # See the code in train_node
-port: 6101
-resource_type: cpu
-resource_id: 1
+train_node:
+    eval_func: tune_protein_mlp # See the code in train_node
+    port: 6101
+    resource_type: cpu
+    resource_id: 1
 
 
 # Debugging setting
 debug_mode: true # Set true to enable debug messages
-tune_log: tune_protein_mlp.log
+log: tune_protein_mlp.log

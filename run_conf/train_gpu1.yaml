@@ -5,12 +5,10 @@ credential : "********" # Auth password. Set to be same between hpo_runner and t
 hp_config: CIFAR100-efficientnet
 hp_config_dir: ./hp_conf/
 
-eval_func: tune_efficientnet_cifar100
-port: 6101 # Set the port number that is not used
-
-# if you have many computing devices (e.g., NVIDIA GPU cards) in a machine, 
-# the below options isolate the run environment using CUDA_VISIBLE_DEVICES.
-resource_type: gpu
-resource_id: 1
+train_node:
+    eval_func: tune_efficientnet_cifar100
+    port: 6101 # Set the port number that is not used
+    resource_type: gpu
+    resource_id: 1
 
 debug_mode: false # Set true to show debug messages

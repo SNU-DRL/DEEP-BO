@@ -22,6 +22,7 @@ class RemoteTrainer(TrainerPrototype):
         self.jobs = {}
         self.history = []
         self.response_time = time.time()
+        self.acc_scale = 1.0
 
         #debug("Run configuration: {}".format(kwargs))
         
@@ -57,16 +58,26 @@ class RemoteTrainer(TrainerPrototype):
         self.jobs = {}
         self.history = []
 
-    def stop_check(self, acc_curve, estimates):
+    def stop_check(self, acc_curve):
         # No termination at all
         return False
 
-    def get_acc_curve(self, loss_curve):
+    def set_acc_scale(self, loss_curve):        
+        max_loss = max(loss_curve)
+        if self.acc_scale < max_loss:
+            if self.acc_scale > 1.0:
+                warn("Scaling factor to transform loss to accuracy has set again")
+            debug("Scaling to transform loss to accuracy properly.")
+            while self.acc_scale < max_loss:
+                self.acc_scale = 10 * self.acc_scale
+            debug("Current accuracy scale: {}".format(self.acc_scale))
+    def flip_curve(self, loss_curve):
         acc_curve = []
         prev_acc = None
+        self.set_acc_scale(loss_curve)
         for loss in loss_curve:
             if loss != None:
-                acc = 1.0 - loss # FIXME: consider when loss is not error rate
+                acc = float(self.acc_scale - loss) / float(self.acc_scale)
                 prev_acc = acc
             else:
                 if prev_acc == None:
@@ -76,11 +87,18 @@ class RemoteTrainer(TrainerPrototype):
             acc_curve.append(acc)
         return acc_curve 
 
-    def wait_until_done(self, job_id, sample_index, estimates, space):
+    def get_acc_curves(self):
+        acc_curves = []
+        for i in range(len(self.history)):
+            acc_curve = self.flip_curve(self.history[i]["curve"])
+            acc_curves.append(acc_curve)
+        return acc_curves
+    def wait_until_done(self, job_id):
 
         prev_epoch = None
         time_out_count = 0
         early_terminated = False
+        run_index = self.jobs[job_id]['cand_index']
         
         while True: # XXX: infinite loop
             try:
@@ -90,7 +108,7 @@ class RemoteTrainer(TrainerPrototype):
                     cur_epoch = j['cur_iter']
                         
                     if prev_epoch != cur_epoch:
-                        space.update_error(sample_index, interim_err, cur_epoch)
+                        self.space.update_error(run_index, interim_err, cur_epoch)
                         debug("Interim error {} updated at {} epoch".format(interim_err, cur_epoch))                            
                         
                         time_out_count = 0 # XXX:reset time out count
@@ -105,21 +123,19 @@ class RemoteTrainer(TrainerPrototype):
                         
                         no_response = time.time() - self.response_time
                         if time_out_count > self.max_timeout:
-                            log("Force to stop {} because of no update during {:.0f} secs".format(job_id, no_response))
+                            log("Force to stop {} due to no update after {:.0f} secs".format(job_id, no_response))
                             self.controller.stop(job_id)
                             break
                         elif time_out_count % 100 == 0:
-                            debug("No result update during {:.0f} secs... Timeout count: {}/{}".format(no_response, 
-                                                                                time_out_count, 
-                                                                                self.max_timeout))
+                            debug("Current timeout count: {}/{}".format(time_out_count, self.max_timeout))
                 
                     prev_epoch = cur_epoch
                     
                     # Early termination check
                     if "lr" in j and len(j['lr']) > 0:
-                        acc_curve = self.get_acc_curve(j["lr"])
+                        acc_curve = self.flip_curve(j["lr"]) # XXX:loss curve to accuracy like curve
                         if self.min_train_epoch < len(acc_curve):
-                            if self.stop_check(acc_curve, estimates):                        
+                            if self.stop_check(acc_curve):                        
                                 self.controller.stop(job_id)
                                 early_terminated = True
                                 break
@@ -135,7 +151,7 @@ class RemoteTrainer(TrainerPrototype):
                 if str(ex) == 'timed out':
                     time_out_count += 1                    
                     if time_out_count < self.max_timeout:
-                        debug("Timeout! Retry {}/{}...".format(time_out_count, self.max_timeout))
+                        debug("Timeout occurs. Retry {}/{}...".format(time_out_count, self.max_timeout))
                         time.sleep(3)
                         continue
 
@@ -152,34 +168,40 @@ class RemoteTrainer(TrainerPrototype):
                 min_loss = j["cur_loss"]
                 cur_iter = j['cur_iter']
                 if "lr" in j:
+                    for k in range(len(j["lr"])):
+                        cur_loss = j['lr'][k]
+                        self.space.update_error(run_index, cur_loss, k+1)
                     min_index = self.get_min_loss_index(j["lr"])
                     if min_index != None:
                         min_loss = j["lr"][min_index]
-                        cur_iter = min_index # XXX: lr has 0 epoch performance
-
+                        if min_index < cur_iter:
+                            cur_iter = min_index + 1
                 # final best result report                
-                space.update_error(sample_index, min_loss, cur_iter)
-                debug("Training job finished! (id: {}, epoch:{}, loss: {})".format(sample_index, cur_iter, min_loss))
+                self.space.update_error(run_index, min_loss, cur_iter)
+                log("[{}] training finished. The best loss {} found at epoch {}.".format(run_index, min_loss, cur_iter))
             break
         
         return early_terminated
 
-    def train(self, cand_index, estimates=None, space=None):
+    def train(self, cand_index, train_epoch=None):
         
-        cfg = {'cand_index' : cand_index}
         param_names = self.hp_config.get_param_names()
         hpv = self.space.get_hpv_dict(cand_index)
         early_terminated = False
 
+        cfg = {'cand_index': cand_index}
+        if train_epoch == None:
+            train_epoch = self.max_train_epoch        
+        cfg['max_epoch'] = train_epoch
         if self.controller.validate():
             job_id = self.controller.create_job(hpv, cfg)
             if job_id is not None:                
                 if self.controller.start(job_id):
-                    debug("Training starts using {}".format(hpv))
+                    log("[{}] training networks with {} for {} epochs".format(cand_index, hpv, train_epoch))
 
                     self.jobs[job_id] = {"cand_index" : cand_index, "status" : "run"}
                     
-                    early_terminated = self.wait_until_done(job_id, cand_index, estimates, space)
+                    early_terminated = self.wait_until_done(job_id)
                     result = self.controller.get_job(job_id)
                    
                     self.jobs[job_id]["result"] = result
@@ -187,12 +209,7 @@ class RemoteTrainer(TrainerPrototype):
                     
                     loss_curve = result["lr"]
                     test_err = result['cur_loss']
-                    best_epoch = len(loss_curve) + 1
-                    train_epoch = len(loss_curve)
-                    
-                    # XXX: exceptional case handling - when timeout occurs, acc_curve increased largely.
-                    if self.max_train_epoch != None and train_epoch > self.max_train_epoch:
-                        train_epoch = self.max_train_epoch
+                    best_epoch = 0
                     
                     if loss_curve != None and len(loss_curve) > 0:
                         best_i = self.get_min_loss_index(loss_curve)
@@ -205,8 +222,8 @@ class RemoteTrainer(TrainerPrototype):
                                                measure='loss')
                                             
                     return {
-                        "test_error": test_err,
-                        "train_epoch": train_epoch,
+                        "error": test_err,
+                        "train_epoch": best_epoch,
                         "train_time" : result['run_time'], 
                         'early_terminated' : early_terminated
                     }  
@@ -216,9 +233,9 @@ class RemoteTrainer(TrainerPrototype):
                 error("Creating job failed")
             
         else:
-            error("Connection error: handshaking with trainer failed.")
+            error("Invalid train node setting: handshaking failed.")
         
-        raise ValueError("Remote training failed")       
+        raise ValueError("Connection to remote trainer failed")       
 
     def get_min_loss_index(self, loss_curve):
         best_i = None
@@ -264,16 +281,19 @@ class EarlyTerminateTrainer(RemoteTrainer):
         self.history = []
         self.early_terminated_history = []
         self.etr_checked = False
+        self.estimates = None
 
     def reset(self):
         # reset history
         self.history = []
         self.early_terminated_history = []
 
-    def train(self, cand_index, estimates=None, space=None):
+    def set_estimation(self, estimates):
+        self.estimates = estimates
+    def train(self, cand_index, train_epoch=None):
         self.etr_checked = False
         early_terminated = False
-        train_result = super(EarlyTerminateTrainer, self).train(cand_index, estimates, space)
+        train_result = super(EarlyTerminateTrainer, self).train(cand_index, train_epoch)
         if 'early_terminated' in train_result:
             early_terminated = train_result['early_terminated']
         self.early_terminated_history.append(early_terminated)

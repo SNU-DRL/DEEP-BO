@@ -126,7 +126,7 @@ class TrainingJobManager(ManagerPrototype):
                     "cand_index": cand_index, 
                     "hyperparams": hpv 
                 }
-                debug("Work item created properly.")
+                debug("{} created properly.".format(job_id))
             else:
                 debug("Invalid hyperparam vector: {}".format(hpv))
                 raise ValueError("Invalid hyperparameters")

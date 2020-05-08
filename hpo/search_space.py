@@ -18,7 +18,9 @@ class ParameterSpace(object):
         self.completions = np.arange(0)
         self.candidates = np.setdiff1d(np.arange(num_samples), self.completions)
         self.observed_errors = np.ones(num_samples)
+        self.loss_curves = {}
         self.train_epochs = np.zeros(num_samples)
+        self.min_train_epoch = None
         
     def reset(self):
         num_samples = len(self.param_vectors)
@@ -27,22 +29,21 @@ class ParameterSpace(object):
         self.observed_errors = np.ones(num_samples)
         self.train_epochs = np.zeros(num_samples)
         
-    def get_candidates(self, use_interim=True):
-        if use_interim:
-            return self.candidates
-        else:
-            max_epochs = np.max(self.train_epochs)
-            # select candidates by elements which have 0 of terminal record
-            candidates = np.where(self.train_epochs < max_epochs)[0]
-            return candidates
+        self.loss_curves = {}
+        self.min_train_epoch = None
 
-    def get_completions(self, use_interim=True):
-        if use_interim:
+    def set_min_train_epoch(self, epoch): # XXX:For truncate warm up results
+            # select candidates by elements which have 0 of terminal record
+        self.min_train_epoch = epoch
+    def get_candidates(self):
+        return self.candidates
+
+    def get_completions(self):
+        if self.min_train_epoch == None: 
             return self.completions
         else:
-            max_epochs = np.max(self.train_epochs)
-            completions = np.where(self.train_epochs == max_epochs)[0]
-            return completions
+           completions = np.where(self.train_epochs > self.min_train_epoch)[0]
+           return completions
 
     def get_incumbent(self):
 
@@ -72,11 +73,18 @@ class ParameterSpace(object):
 
         if num_epochs != None:
             self.train_epochs[sample_index] = num_epochs
+            if not sample_index in self.loss_curves:
+                self.loss_curves[sample_index] = {}    
+            self.loss_curves[sample_index][num_epochs] = test_error
 
     def get_errors(self, type_or_id="completions"):
         if type_or_id == "completions":
-            c = self.completions
-            return self.observed_errors[c]
+            c = self.get_completions()
+            try:
+                return self.observed_errors[c]
+            except Exception as ex:
+                debug("Exception on get errors: {}".format(ex))
+                return []
         elif type_or_id == "all":
             return self.observed_errors
         else:
@@ -94,7 +102,7 @@ class ParameterSpace(object):
         # check index in candidates or completions
         diff = np.setdiff1d(indices, self.candidates)
         if len(diff) > 0:
-            debug('Some samples are not listed on candidates: {}'.format(diff))
+            debug('{} points to be removed are not existed in {} candidates'.format(len(diff), len(self.candidates)))
         self.candidates = np.setdiff1d(self.candidates, indices)
 
 
@@ -106,7 +114,7 @@ class HyperParameterSpace(ParameterSpace):
         self.name = name
         self.hp_config = HyperparameterConfiguration(hp_config_dict)
         
-        self.space_setting = space_setting
+        self.spec = space_setting
         self.prior_history = None
         if 'prior_history' in space_setting:
             self.prior_history = space_setting['prior_history']
@@ -171,7 +179,9 @@ class HyperParameterSpace(ParameterSpace):
         for c in self.completions:
             h = self.get_hpv_dict(c)
             e = self.get_errors(c)
+            t = self.get_train_epoch(c)
             h['_error_'] = e
+            h['_epoch_'] = t
             hpv_dict_list.append(h)
 
         # create dictionary type results
@@ -276,12 +286,18 @@ class HyperParameterSpace(ParameterSpace):
             hist = pd.read_csv(csv_path)
             hp_params = self.hp_config.get_param_names()
             errors = hist['_error_'].tolist()
+            epochs = None
+            if '_epoch_' in hist:
+                epochs = hist['_epoch_'].tolist()
             for i in range(len(errors)):
                 hp_vector = hist[hp_params].iloc[i].tolist()
+                train_epoch = 0
+                if epochs != None:
+                    train_epoch = epochs[i]
                 completions[i] = {
                     "hyperparams": hp_vector,
                     "observed_error": errors[i],
-                    "train_epoch": 0 # XXX:zero is intended to be identificable
+                    "train_epoch": train_epoch 
                 } 
         except Exception as ex:
             warn("Exception on loading prior history from table: {}".format(ex))
@@ -314,14 +330,14 @@ class HyperParameterSpace(ParameterSpace):
     def get_params_dim(self):
         return self.param_vectors.shape[1]
 
-    def get_param_vectors(self, type_or_index='all', use_interim=False):
+    def get_param_vectors(self, type_or_index='all'): 
         if type(type_or_index) == str: 
             if type_or_index == "completions":
-                completions = self.get_completions(use_interim)
+                completions = self.get_completions() 
                 #debug("index of completions: {}".format(completions))
                 return self.param_vectors[completions, :]
             elif type_or_index == "candidates":
-                candidates = self.get_candidates(use_interim)
+                candidates = self.get_candidates()
                 #debug("index of candidates: {}".format(candidates))
                 return self.param_vectors[candidates, :]        
             elif type_or_index == 'all':
@@ -472,8 +488,8 @@ class RemoteParameterSpace(ParameterSpace):
     def get_hp_config(self):
         return self.space.hp_config
 
-    def get_param_vectors(self, type_or_index, use_interim=False):
-        return np.asarray(self.space.get_param_vectors(type_or_index, use_interim))
+    def get_param_vectors(self, type_or_index):
+        return np.asarray(self.space.get_param_vectors(type_or_index))
 
     def get_hpv_dict(self, index):
             return self.space.get_hpv_dict(index)
@@ -482,12 +498,12 @@ class RemoteParameterSpace(ParameterSpace):
             return self.space.get_hp_vectors()
 
     # For history
-    def get_candidates(self, use_interim=True):
-        self.candidates = np.asarray(self.space.get_candidates(use_interim))
+    def get_candidates(self):
+        self.candidates = np.asarray(self.space.get_candidates())
         return self.candidates
 
-    def get_completions(self, use_interim=True):
-        self.completions = np.asarray(self.space.get_completions(use_interim))
+    def get_completions(self):
+        self.completions = np.asarray(self.space.get_completions())
         return self.completions
 
     def update_error(self, sample_index, test_error, num_epochs=None):

@@ -16,7 +16,7 @@ class Grid(Resource):
         
         parser = reqparse.RequestParser()
         parser.add_argument("Authorization", location="headers") # for security reason
-        parser.add_argument("use_interim", type=bool, default=False)
+        
         args = parser.parse_args()
         
         if not self.sm.authorize(args['Authorization']):
@@ -39,7 +39,7 @@ class Grid(Resource):
         
         elif sample_id == 'candidates':
             candidates = []
-            for c_id in samples.get_candidates(args['use_interim']):
+            for c_id in samples.get_candidates(): 
                 grid = {"id": int(c_id)}
                 grid["values"] = []
                 for v in samples.get_param_vectors(int(c_id)).tolist():
@@ -50,7 +50,7 @@ class Grid(Resource):
 
         elif sample_id == 'completions':
             completions = []
-            for c_id in samples.get_completions(args['use_interim']):
+            for c_id in samples.get_completions():
                 grid = {"id": int(c_id)}
                 grid["values"] = []
                 for v in samples.get_param_vectors(int(c_id)).tolist():

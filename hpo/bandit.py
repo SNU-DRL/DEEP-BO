@@ -138,15 +138,23 @@ class HPOBanditMachine(object):
 
         self.repo = ResultsRepository(self.goal_metric)
         self.current_results = None
-        self.warm_up_time = None
+        self.warm_up_time = 0
+        self.warm_up_select = {} # XXX: dictionary for the selected configurations in warm-up phase
+        self.warm_up_revisit = 3 # XXX: number of best configurations from warm-up phase to be revisited
+        self.cur_runtime = 0.0 
         self.run_config = run_config
         self.min_train_epoch = min_train_epoch
+        self.max_train_epoch = None
         if self.run_config:
             if "min_train_epoch" in self.run_config:
                 self.min_train_epoch = self.run_config["min_train_epoch"]
 
+            if "max_train_epoch" in self.run_config:
+                self.max_train_epoch = self.run_config["max_train_epoch"]
             if "warm_up_time" in self.run_config:
-                self.warm_up_time = self.run_config["warm_up_time"]
+                self.warm_up_time = TimestringConverter().convert(self.run_config["warm_up_time"])
+            if "warm_up_revisit" in self.run_config:
+                self.warm_up_revisit = self.run_config['warm_up_revisit']
 
         self.run_mode = run_mode  # can be 'GOAL' or 'TIME'
         criterion = ""
@@ -158,7 +166,7 @@ class HPOBanditMachine(object):
             criterion = "near {}".format(time.asctime(term_time))
         elif run_mode == "GOAL":
             criterion = "when achieving {} {}".format(self.target_goal, goal_metric)
-        log("HPO will be ended {}".format(criterion))
+        log("This will be ended {}".format(criterion))
 
         self.print_exception_trace = False
 
@@ -171,6 +179,7 @@ class HPOBanditMachine(object):
         self.trainer.reset()
         self.repo = ResultsRepository(self.goal_metric)
         self.cur_runtime = 0.0
+        self.warm_up_select = {}
         
         self.eval_end_time = time.time()
 
@@ -189,15 +198,29 @@ class HPOBanditMachine(object):
 
         if cand_est_times is not None:
             for i in range(len(self.search_space.get_candidates())):
-                if self.search_space.get_candidates(i) == cand_index:
+                if self.search_space.get_candidates()[i] == cand_index:
                     return int(cand_est_times[i])
         return None
 
+    def choose_from_low_fidelity(self, space, n_rank):
+        try:
+            for k in self.warm_up_select.keys():                
+                err = space.get_errors(k)
+                if type(err) == list:
+                    err = err[0]                
+                s = self.warm_up_select[k]
+                if s['index'] != k: # validate key-value set
+                    raise ValueError("Invalid key-value pair in dictionary.")
+                s['error'] = err
+            sorted_list = sorted(self.warm_up_select.items(), key=lambda item: item[1]['error'] )
+            r = sorted_list[n_rank][1]
+            return r
+        except Exception as ex:
+            warn("Exception at choose_from_low_fidelity(): {}".format(ex))
     def choose(self, model, acq_func, search_space=None):
         if search_space is None:
             search_space = self.search_space
         ss = 1  # XXX:default steps of sampling
-        num_done = len(search_space.get_completions())
         
         if "search_space" in self.run_config:
             if "resample_steps" in self.run_config['search_space']:
@@ -205,38 +228,51 @@ class HPOBanditMachine(object):
 
         metrics = []
         chooser = self.bandit.choosers[model]
-        start_time = time.time()
         exception_raised = False
-        use_interim_result = True
-        if self.warm_up_time != None:
-            if self.warm_up_time < self.cur_runtime:
-                use_interim_result = False
-                debug("HPO does not utilize interim results")
-            else:
-                debug("HPO utilizes interim results to warm up")
         
         if self.sample_thread != None and self.sample_thread.is_alive():
             while len(search_space.get_candidates()) < self.min_candidates: # waiting until enough sample population
                 time.sleep(1)
-        debug("# of observations, candidates: {}, {}".format(len(search_space.get_completions()),
-                                                        len(search_space.get_candidates())))
-        next_index = chooser.next(search_space, acq_func, use_interim_result)
-
+        num_done = len(search_space.get_completions())
+        num_cand = len(search_space.get_candidates())
+        debug("# of observations, candidates: {}, {}".format(num_done, num_cand))
+        
+        next_index = chooser.next(search_space, acq_func)
+        est_values = chooser.estimates
+        if self.cur_runtime > self.warm_up_time:
+            self.search_space.set_min_train_epoch(self.min_train_epoch) 
+            if len(self.warm_up_select.keys()) < self.warm_up_revisit:
+                warn("Number of evaluations in warm-up phase ({}) is less than {}.".format(len(self.warm_up_select), self.warm_up_revisit))
+                self.warm_up_revisit = len(self.warm_up_select.keys())
+            n_compl = len(search_space.get_completions())            
+            if n_compl < self.warm_up_revisit:
+                debug("High-fidelity optimization: {}/{}".format(n_compl, self.warm_up_revisit))
+                pre_select = self.choose_from_low_fidelity(search_space, n_compl)
+                if pre_select != None:                    
+                    next_index = pre_select['index']
+                    model = pre_select['model']
+                    acq_func = pre_select['acq_func']
+                    est_values = None
+                    debug("Revisit {}th best configuration in warm-up phase: {}".format(n_compl+1, next_index))
+                else:
+                    warn("Restoring best candidate from warm-up phase failed.") 
+        else:
+            self.warm_up_select[next_index] = { "model": model, "acq_func": acq_func, "index": next_index }
 
         if num_done > 0 and num_done % ss == 0:
             if 'increment' in self.run_config['search_space'] and \
                 self.run_config['search_space']["increment"]:
                 # samples will be transformed in parallel
                 if self.sample_thread != None and self.sample_thread.is_alive():
-                    debug("Under search space construction... ")
+                    debug("Now on candidate sampling... ")
                 else:
                     debug("Incremental sampling performed asynchronously.")
                     self.sample_thread = threading.Thread(target=self.sample, 
-                                                        args=(chooser.estimates,))
+                                                          args=(est_values,))
                     self.sample_thread.start()
             else:
                 # samples will be generated sequentially                               
-                self.sample(chooser.estimates)
+                self.sample(est_values)
 
         # for measure information sharing effect
         if self.calc_measure:
@@ -245,53 +281,50 @@ class HPOBanditMachine(object):
                 metrics = mr.compare_all(chooser.estimates['candidates'],
                                          chooser.estimates['acq_funcs'])
 
-        opt_time = time.time() - start_time
         
-        return next_index, opt_time, metrics
+        return next_index, metrics
 
-    def evaluate(self, cand_index, model, search_space=None):
-        if search_space is None:
-            search_space = self.search_space
+    def evaluate(self, chooser, cand_index, train_epoch):
         
         eval_start_time = time.time()
         exec_time = 0.0
-        test_error = 1.0 # FIXME: base test error should be reasonable
         
-        chooser = self.bandit.choosers[model]
         early_terminated = False
+        interim_error, cur_iter = self.trainer.get_interim_error(cand_index, 0)
+        self.search_space.update_error(cand_index, interim_error)
         if chooser.response_shaping == True:
             self.trainer.set_response_shaping(chooser.shaping_func)
+        if chooser.estimates != None:
+            self.trainer.set_estimation(chooser.estimates)
         
-        # set initial error for avoiding duplicate
-        interim_error, cur_iter = self.trainer.get_interim_error(cand_index, 0)
-        search_space.update_error(cand_index, test_error, cur_iter)
-        
-        train_result = self.trainer.train(cand_index, 
-                                          estimates=chooser.estimates,
-                                          space=search_space)
+        train_result = self.trainer.train(cand_index, train_epoch)
 
-        if train_result == None or not 'test_error' in train_result:
+        if train_result == None or not 'error' in train_result:
             train_result = {}
             # return interim error for avoiding stopping
-            train_result['test_error'] = interim_error            
+            train_result['error'] = interim_error            
             train_result['early_terminated'] = True
+            test_error = interim_error
+        else:
+            test_error = train_result['error']
         
-        if not 'test_acc' in train_result:
-            if train_result['test_error'] == None:
-                train_result['test_acc'] = float("inf")
-            else:
-                train_result['test_acc'] = 1.0 - train_result['test_error']
+        train_result['model_idx'] = cand_index
 
         self.eval_end_time = time.time()
         if not 'exec_time' in train_result:
             train_result['exec_time'] = self.eval_end_time - eval_start_time
 
+        if 'train_epoch' in train_result:
+            train_epoch = train_result['train_epoch']
+        else:
+            train_result['train_epoch'] = train_epoch
         return train_result
 
-    def pull(self, model, acq_func, result_repo, select_opt_time=0):
+    def pull(self, model, acq_func, pre_time=0):
+        start_time = time.time()
         exception_raised = False
         try:
-            next_index, opt_time, metrics = self.choose(model, acq_func)
+            cand_index, metrics = self.choose(model, acq_func)
         
         except KeyboardInterrupt:
             self.stop_flag = True
@@ -301,50 +334,40 @@ class HPOBanditMachine(object):
                  "To avoid stopping, it selects the candidate randomly.")
             model = 'NONE'
             acq_func = 'RANDOM'
-            next_index, opt_time, metrics = self.choose(model, acq_func)
+            cand_index, metrics = self.choose(model, acq_func)            
             exception_raised = True
 
-        total_opt_time = select_opt_time + opt_time
+        opt_time = time.time() - start_time
+        total_opt_time = pre_time + opt_time
         # XXX: To solve time mismatch problem   
         if self.eval_end_time != None:
             total_opt_time = time.time() - self.eval_end_time 
         
         # evaluate the candidate
-        eval_result = self.evaluate(next_index, model)
-        test_error = eval_result['test_error']
 
-        if 'test_acc' in eval_result:
-            test_acc = eval_result['test_acc']           
-        elif metrics == 'accuracy' and test_error != None:
-            test_acc = 1.0 - test_error
+        if self.cur_runtime < self.warm_up_time:
+            train_epoch = self.min_train_epoch
         else:
-            test_acc = None
+            train_epoch = self.max_train_epoch
                  
+        debug("Evaluation will be performed with {} epochs".format(train_epoch))
+        chooser = self.bandit.choosers[model]
+        eval_result = self.evaluate(chooser, cand_index, train_epoch)
+        eval_result['opt_time'] = total_opt_time
         exec_time = eval_result['exec_time']
-        early_terminated = eval_result['early_terminated']
-        train_epoch = None
-        if 'train_epoch' in eval_result:
-            train_epoch = eval_result['train_epoch']
         
-        result_repo.append(next_index, test_error,
-                           total_opt_time, exec_time, 
-                           metrics=metrics, 
-                           train_epoch=train_epoch,
-                           test_acc=test_acc)
         self.cur_runtime += (total_opt_time + exec_time)
-        self.search_space.update_error(next_index, test_error, train_epoch)
+        self.repo.append(eval_result)
         
-        optional = {
+        opt_info = {
             'exception_raised': exception_raised,
             'exec_time': exec_time
         }
         if self.save_internal == True:
-            optional["estimated_values"] = self.bandit.choosers[model].estimates
+            opt_info["estimated_values"] = self.bandit.choosers[model].estimates
 
-        if self.goal_metric == "accuracy":
-            return test_acc, optional
-        elif self.goal_metric == "error":
-            return test_error, optional
+        return eval_result[self.goal_metric], opt_info
+
 
     def play(self, mode, spec, num_runs, save=True):
 
@@ -368,6 +391,8 @@ class HPOBanditMachine(object):
         else:
             self.current_results, start_idx = temp_saver.restore()
         
+        if start_idx > 0:
+            log("Temporary result of the prior execution is restored")
         for i in range(start_idx, num_runs): # loop for multiple runs           
             start_time = time.time()
             self.reset()
@@ -381,21 +406,17 @@ class HPOBanditMachine(object):
 
             for j in range(NUM_MAX_ITERATIONS): # loop for each run
                 iter_start_time = time.time()
-                use_interim_result = True
-                if self.warm_up_time != None:
-                    if self.warm_up_time < self.cur_runtime:
-                        use_interim_result = False
 
                 # Model selection
                 if arms:
                     arms = self.bandit.get_arms(spec)
-                    model, acq_func, _ = arms.select(j, use_interim_result)
+                    model, acq_func = arms.select(j) 
                     debug("Selecting next candidate with {}-{}".format(model, acq_func))
                 else:
                     model = mode
                     acq_func = spec
                 prepare_time = time.time() - iter_start_time
-                y, opt = self.pull(model, acq_func, self.repo, prepare_time)
+                y, opt = self.pull(model, acq_func, prepare_time)
                 if arms:
                     arms.update(j, y, opt)
                
@@ -446,6 +467,8 @@ class HPOBanditMachine(object):
 
         if saver:
             saver.save(mode, spec, num_runs, self.current_results, internal_records)
+        if start_idx == num_runs:
+            warn("No more extra runs.")
         temp_saver.remove()
 
         return self.current_results
@@ -518,13 +541,18 @@ class HPOBanditMachine(object):
                 start_t = time.time()
                 ds = self.run_config['search_space']["remove"]
                 remove_samples(self.search_space, ds, estimates)
-                debug("Removed with {} ({:.1f} sec)".format(ds, time.time() - start_t))
+                debug("Candidate(s) removed by {} ({:.1f} sec)".format(ds, time.time() - start_t))
 
             if 'add' in self.run_config['search_space']:
                 start_t = time.time()
+                space_setting = self.search_space.spec
+                if 'sample_method' in self.run_config['search_space']:
+                    space_setting['sample_method'] = self.run_config['search_space']['sample_method']
+                else:
+                    space_setting['sample_method'] = 'Sobol'
                 ns = self.run_config['search_space']["add"]                                
                 append_samples(self.search_space, ns)
-                debug("{} samples added ({:.1f} sec)".format(ns, time.time() - start_t))
+                debug("{} candidate(s) added ({:.1f} sec)".format(ns, time.time() - start_t))
             if 'intensify' in self.run_config['search_space']:
                 start_t = time.time()
                 # intensify # of promissing samples using estimated values
@@ -537,7 +565,7 @@ class HPOBanditMachine(object):
                     cand = self.search_space.get_hpv_dict(k)
                     num_gen = self.search_space.get_generation(k)
                     intensify_samples(self.search_space, 1, cand, num_gen)
-                debug("{} samples intensified. ({:.1f} sec)".format(ns, time.time() - start_t))
+                debug("{} candidate(s) intensified. ({:.1f} sec)".format(ns, time.time() - start_t))
 
             if 'evolve' in self.run_config['search_space']:
                 start_t = time.time()
@@ -547,14 +575,15 @@ class HPOBanditMachine(object):
                 ns = self.run_config['search_space']['evolve']
                 top_1 = est_values.argsort()[-1:][::-1]
                 i = self.search_space.get_incumbent()
-                cur_best = { "hpv": self.search_space.get_hpv(i), 
-                                "schema": self.search_space.get_schema(i),
-                                "gen": self.search_space.get_generation(i)
-                            }
+                cur_best = { 
+                            "hpv": self.search_space.get_hpv(i), 
+                            "schema": self.search_space.get_schema(i),
+                            "gen": self.search_space.get_generation(i)
+                        }
                 for k in cands[top_1]:
                     cand = self.search_space.get_hpv_dict(k)
                     evolve_samples(self.search_space, ns, cur_best, cand)
-                debug("{} samples evolved. ({:.1f} sec)".format(ns, time.time() - start_t))
+                debug("{} candidates evolved. ({:.1f} sec)".format(ns, time.time() - start_t))
 
 
         cand_size = len(self.search_space.get_candidates())

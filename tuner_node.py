@@ -22,12 +22,15 @@ def main(run_config):
 
         master_node = None
         if "master_node" in run_config:
-            if valid.url(run_config['master_node']):
-                master_node = run_config['master_node']
+            m_conf = run_config['master_node']
+            if not 'url' in m_conf:
+                raise ValueError("Invalid configuration. No URL information of master node")
+            if valid.url(m_conf['url']):
+                master_node = m_conf['url']
                 if master_node.endswith('/'):
                     master_node += master_node[:-1]
             else:
-                raise ValueError("Invalid master URL: {}".format(run_config['master_node']))
+                raise ValueError("Invalid master URL: {}".format(m_conf['url']))
 
         debug_mode = False
         if "debug_mode" in run_config:

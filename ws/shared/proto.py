@@ -58,7 +58,7 @@ class TrainerPrototype(object):
             "train_epoch": cur_epoch
         })
 
-    def train(self, cand_index, estimates=None, min_train_epoch=None, space=None):
+    def train(self, cand_index, train_epoch=None, estimates=None, space=None):
         raise NotImplementedError("This should return loss and duration.")
 
     def get_interim_error(self, model_index, cur_dur):

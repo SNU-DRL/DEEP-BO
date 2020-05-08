@@ -5,10 +5,12 @@ credential : "********" # Auth password
 hp_config: protein-MLP
 hp_config_dir: ./hp_conf/
 
-eval_func: tune_protein_mlp
-port: 6101
+train_node:
+    eval_func: tune_protein_mlp # See the code in train_node
+    port: 6101
+    resource_type: cpu
+    resource_id: 1
+    log: train_protein.log
 
-resource_type: cpu
-resource_id: 1
 
 debug_mode: true

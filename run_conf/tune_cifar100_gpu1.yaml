@@ -13,15 +13,16 @@ exp_time: 7d
 
 
 # Trainer setting
-# if you have many computing devices (e.g., NVIDIA GPU cards) in a machine, 
-# the below options isolate the run environment using CUDA_VISIBLE_DEVICES.
-resource_type: gpu
-resource_id: 1
-eval_func: tune_efficientnet_cifar100
-port: 6101 # Set the port number that is not used
+train_node:
+    # if you have many computing devices (e.g., NVIDIA GPU cards) in a machine, 
+    # the below options isolate the run environment using CUDA_VISIBLE_DEVICES.
+    resource_type: gpu
+    resource_id: 1
+    eval_func: tune_efficientnet_cifar100
+    port: 6101 # Set the port number that is not used
 
 
 # Debugging setting
 debug_mode: true # Set true to enable debug messages
-tune_log: tune_efficientnet_cifar100.log
+log: tune_efficientnet_cifar100.log
 

@@ -127,8 +127,8 @@ class GPChooser:
     def set_eval_time_penalty(self, est_eval_time):
         self.est_eval_time = est_eval_time
 
-    def get_observations(self, samples, use_interim, sample_size):
-        comp = np.array(samples.get_param_vectors("completions", use_interim))
+    def get_observations(self, samples, sample_size):
+        comp = np.array(samples.get_param_vectors("completions"))
         errs = np.array(samples.get_errors("completions"), dtype=np.float64)
 
         try:
@@ -155,11 +155,11 @@ class GPChooser:
         else:
             return comp, errs
 
-    def next(self, samples, af, use_interim=True):
-        comp_grid, errs = self.get_observations(samples, use_interim, self.max_obs)
+    def next(self, samples, af):
+        comp_grid, errs = self.get_observations(samples, self.max_obs)
 
-        candidates = samples.get_candidates(use_interim)
-        cand_grid = samples.get_param_vectors("candidates", use_interim)
+        candidates = samples.get_candidates() 
+        cand_grid = samples.get_param_vectors("candidates")
         
         # Don't bother using fancy GP stuff at first.
         if len(errs) == 0:

@@ -6,7 +6,7 @@ from ws.shared.read_cfg import *
 from ws.shared.logger import *
 
 import argparse
-import validators as valid
+import validators as v
 
 from samples.targets import * # load object functions
 
@@ -17,20 +17,17 @@ def main(run_config):
     try:
         master_node = None
         if "master_node" in run_config:
-            if valid.url(run_config['master_node']):
+            if type(run_config['master_node']) == dict and 'url' in run_config['master_node']:
+                master_node = run_config['master_node']['url']
+            elif type(run_config['master_node']) == str:
                 master_node = run_config['master_node']
+            if master_node != None and v.url(master_node):
                 if master_node.endswith('/'):
                     master_node += master_node[:-1]
             else:
-                raise ValueError("Invalid master URL: {}".format(run_config['master_node']))
+                raise ValueError("Invalid master URL: {}".format(master_node))
 
-        log_file_name = 'train.log'
-        if 'train_log' in run_config:
-            log_file_name = run_config['train_log']
-        elif 'resource_type' in run_config and 'resource_id' in run_config:
-            log_file_name = "train_{}{}.log".format(run_config['resource_type'], run_config['resource_id'])
 
-        set_log_file(log_file_name)
 
         debug_mode = False
         if "debug_mode" in run_config:
@@ -46,37 +43,50 @@ def main(run_config):
         hp_cfg_file = run_config["hp_config"]
         hp_cfg_path = '{}{}.json'.format(hp_config_dir, hp_cfg_file)
         hp_cfg = read_hyperparam_config(hp_cfg_path)
-
-        port = 6000
-        if "port" in run_config:
-            port = run_config["port"]
-        
         resource_type = "cpu"
-        if "resource_type" in run_config:
-            resource_type = run_config["resource_type"]  
-        os.environ['CUDA_DEVICE_ORDER'] = "PCI_BUS_ID"
-        if resource_type == "gpu":            
-            # Set using single GPU only
-            os.environ['CUDA_VISIBLE_DEVICES'] = str(run_config["resource_id"])
-        else: 
-            os.environ['CUDA_VISIBLE_DEVICES'] = '-1' # visible CPU only
-        r_id = "{}{}".format(resource_type, run_config["resource_id"])
-        get_resource().set_id(r_id) # to indentify the worker's resource
+        resource_id = ""
 
+        log_file_name = 'train.log'
         credential = None
         if "credential" in run_config:
             credential = run_config['credential']
         else:
             raise ValueError("No credential info in run configuration")
+        if not 'train_node' in run_config:
+            raise ValueError("No train node configuarion")
+        self_conf = run_config['train_node']
+        port = 6000
+        if "port" in self_conf:
+            port = self_conf["port"]
+        
+        if "resource_type" in self_conf:
+            resource_type = self_conf["resource_type"]  
+        os.environ['CUDA_DEVICE_ORDER'] = "PCI_BUS_ID"
+        if resource_type == "gpu":            
+            if "resource_id" in self_conf:
+                os.environ['CUDA_VISIBLE_DEVICES'] = str(self_conf["resource_id"])
+        else: 
+            os.environ['CUDA_VISIBLE_DEVICES'] = '-1' # visible CPU only
+        
+        if "resource_id" in self_conf:
+            resource_id = self_conf["resource_id"]
 
-        eval_func = eval(run_config["eval_func"])
-        log("Training DNN via {}...".format(run_config["eval_func"]))
+        if 'log' in self_conf:
+            log_file_name = self_conf['log']
+        else:
+            log_file_name = "train_{}{}.log".format(resource_type, resource_id)
+        set_log_file(log_file_name)
+        r_id = "{}{}".format(resource_type, resource_id)
+        get_resource().set_id(r_id) # to indentify the worker's resource
+
+        eval_func = eval(self_conf["eval_func"])
+        log("Evaluation will be performed via {}...".format(self_conf["eval_func"]))
 
         wait_train_request(eval_func, 
                            hp_cfg, 
                            debug_mode=debug_mode,
                            device_type=resource_type,
-                           device_index=run_config["resource_id"],
+                           device_index=resource_id,
                            master_node=master_node,
                            credential=credential, 
                            port=port)

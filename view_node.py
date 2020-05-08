@@ -56,7 +56,7 @@ def run_server(port):
         subprocess.call(args, shell=True)
         pass
     except KeyboardInterrupt as ki:
-        print("Server will be terminated by the kill request.")
+        print("View node is terminated properly.")
         sys.exit(-1)
     except Exception as ex:
         print(ex)         

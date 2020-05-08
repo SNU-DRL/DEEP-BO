@@ -6,6 +6,14 @@ import yaml
 def convert_config(config):
     config['shuffle'] = bool(config['shuffle'])
     for n in range(1, config['n_layers'] + 1):        
+        if "layer_neurons" in config: 
+            config['layer_{}_size'.format(n)] = config['layer_neurons']
+        if "activation" in config:
+            config["layer_{}_activation".format(n)] = config["activation"]
+        if "regularizer" in config:
+            config["layer_{}_reg".format(n)] = config["regularizer"]
+        if "dropout_rate" in config:
+            config["dropout_rate_{}".format(n)] = config["dropout_rate"]
         reg = config['layer_{}_reg'.format(n)]
         extras = {'name' : reg }
         if reg == 'dropout':

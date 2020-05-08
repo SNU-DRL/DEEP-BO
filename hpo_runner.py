@@ -39,8 +39,8 @@ def validate_args(args):
         error("Invalid run configuration. see {}".format(args.rconf))
         raise ValueError('invaild run configuration.')    
     
-    if 'tune_log' in run_cfg:
-        set_log_file(run_cfg['tune_log'])
+    if 'log' in run_cfg:
+        set_log_file(run_cfg['log'])
 
     if run_cfg['debug_mode']:          
         set_log_level('debug')
@@ -67,22 +67,22 @@ def validate_args(args):
     if not "early_term_rule" in run_cfg:
         run_cfg["early_term_rule"] = args.early_term_rule
 		
-    space_setting = {}
+    space_spec = {}
     if not 'search_space' in run_cfg:
-        run_cfg['search_space'] = space_setting
+        run_cfg['search_space'] = space_spec
     else:
-        space_setting = run_cfg['search_space']
+        space_spec = run_cfg['search_space']
 		
-    if not 'order' in space_setting:
-        space_setting['order'] = None
-    if not 'num_samples' in space_setting:
-        space_setting['num_samples'] = 20000
-    if not 'seed' in space_setting:
-        space_setting['seed'] = 1
-    if not 'preevaluated' in space_setting:
-        space_setting['preevaluated'] = False
-    if not 'prior_history' in space_setting:
-        space_setting['prior_history'] = None
+    if not 'order' in space_spec:
+        space_spec['order'] = None
+    if not 'num_samples' in space_spec:
+        space_spec['num_samples'] = 20000
+    if not 'seed' in space_spec:
+        space_spec['seed'] = 1
+    if not 'preevaluated' in space_spec:
+        space_spec['preevaluated'] = False
+    if not 'prior_history' in space_spec:
+        space_spec['prior_history'] = None
 
     valid['hp_config'] = hp_cfg
     valid['run_config'] = run_cfg
@@ -105,19 +105,19 @@ def spawn_train_node(train_py, run_cfg):
 def run(args, save=True):
     try:
         run_cfg = args['run_config']
-        space_set = run_cfg['search_space']
+        space_spec = run_cfg['search_space']
             
         space = None
         m = None    
         result = []
             
-        if space_set['preevaluated']:
+        if space_spec['preevaluated']:
             if not check_lookup_existed(run_cfg['hp_config']):
                 raise ValueError('Pre-evaluated configuration not found: {}'.format(run_cfg['hp_config']))
-            debug("Creating surrogate space of {}...".format(space_set))
+            debug("Creating surrogate space of {}...".format(space_spec))
                 
             space = create_space_from_table(run_cfg['hp_config'], 
-                                                grid_order=space_set['order'])
+                                                grid_order=space_spec['order'])
             m = bandit.create_emulator(space, 
                                         args['exp_crt'], 
                                         args['exp_goal'], 
@@ -128,12 +128,14 @@ def run(args, save=True):
                                         run_config=run_cfg)
         else:
             hp_cfg = args['hp_config']
-            debug("Search space will be created as {}".format(space_set))
+            debug("Search space will be created as {}".format(space_spec))
 
-            space = create_surrogate_space(hp_cfg.get_dict(), space_set)
-            
-            if v.url(run_cfg['train_node']):
+            space = create_surrogate_space(hp_cfg.get_dict(), space_spec)
+            if type(run_cfg['train_node']) == dict:
+                trainer_url = run_cfg['train_node']['url']
+            else:
                 trainer_url = run_cfg['train_node']
+            if v.url(trainer_url):  
                 m = bandit.create_runner(trainer_url, space,
                             args['exp_crt'], 
                             args['exp_goal'], 
@@ -146,7 +148,7 @@ def run(args, save=True):
 
                             )
             else:
-                raise ValueError("Invalid train node: {}".format(run_cfg["train_node"]))
+                raise ValueError("Invalid train node configuration: {}".format(run_cfg["train_node"]))
 
         if not args['mode'] in ALL_OPT_MODELS + ['DIV']:
             raise ValueError('unsupported mode: {}'.format(args['mode']))
@@ -162,20 +164,34 @@ def run(args, save=True):
         space.save() 
     return result
 
+def simulate(args, save=True):
+    from hpo.parallel.p_sim import get_simulator
+    c = get_simulator(args['spec'].upper(), 
+                      args['run_config']['hp_config'],
+                      args['exp_crt'], 
+                      args['exp_goal'], 
+                      args['exp_time'], 
+                      args['run_config'])
+    return c.run(args['num_trials'], save)
 
 def main(args):
     try:
-        valid_args = validate_args(args)
-        if valid_args['mode'].upper() == 'BATCH':
-            simulate(valid_args)
+        run_args = validate_args(args)
+        if run_args['mode'].upper() == 'BATCH':
+            simulate(run_args)
             return
-        if not 'train_node' in valid_args['run_config']:
-            if 'port' in valid_args['run_config']:
-                train_addr = 'http://127.0.0.1:{}'.format(valid_args['run_config']['port'])            
-                valid_args['run_config']['train_node'] = train_addr
-            else:
-                print("Invalid run configuration!")
-                return
+        if 'train_node' in run_args['run_config']:
+            node_conf = run_args['run_config']['train_node']
+            if type(node_conf) == dict:
+                if not 'url' in node_conf:
+                    if 'port' in node_conf:
+                        train_addr = 'http://127.0.0.1:{}'.format(run_args['run_config']['port'])            
+                        node_conf['url'] = train_addr
+                    else:
+                        raise ValueError("Invalid run configuration!")
+        else:
+            raise ValueError("Invalid run configuration!")
+            return
         run(valid_args)    
     except Exception as ex:
         error(ex)
@@ -234,6 +250,10 @@ if __name__ == "__main__":
     # XXX:below options are for experimental use.  
     parser.add_argument('-rr', '--rerun', default=0, type=int,
                         help='[Experimental] Use to expand the number of trials for the experiment. zero means no rerun. default is {}.'.format(0))
+    parser.add_argument('-tn', '--train_node', default=default_train_node, type=str,
+                        help='Train node script name. Default value is {}.'.format(default_train_node))                        
+    parser.add_argument('-rs', '--run_server', action='store_true',
+                        help='Launch the train node when it starts.'.format(default_train_node))                        
     parser.add_argument('-pkl', '--save_internal', default=False, type=bool,
                         help='[Experimental] Whether to save internal values into a pickle file.\n' + 
                         'CAUTION:this operation requires very large storage space! Default value is {}.'.format(False))                        
@@ -241,28 +261,27 @@ if __name__ == "__main__":
 #                        help='[Experimental] Time penalty strategies for acquistion function.\n'+\
 #                        '{} are available. Default setting is {}'.format(time_penalties_modes, default_time_penalty))
  
-    parser.add_argument('-tn', '--train_node', default=default_train_node, type=str,
-                        help='train node script name. Default value is {}.'.format(default_train_node))                        
+    # Mandatory option
     parser.add_argument('run_config', type=str, default='debug', help='Run configuration name.')
 
     args = parser.parse_args()    
     train_thread = None
-    if os.path.isfile(args.train_node) == True:
-        print("Launching the train node to be served...")
+    if args.run_server and os.path.isfile(args.train_node) == True:
+        print("Launch {} to be served as train node...".format(args.train_node))
         train_thread = threading.Thread(target=spawn_train_node, 
                                         args=(args.train_node, args.run_config,)) 
         train_thread.start()
         time.sleep(5)
-    elif args.train_node.lower() == 'none':
-        print("Assuming that train node has been launched...")
-    else:
-        print("Invalid train node:{}".format(args.train_node))
+    elif os.path.isfile(args.train_node) == False:
+        print("Invalid train node script:{}".format(args.train_node))
         sys.exit(-1)
+    elif args.run_server == False:
+        print("Starts with the assumption that train node already launched properly")
 
     main(args)
 
     if train_thread != None:
-        print("Press control+C to terminate the train node...")
+        print("HPO has been finished. Press control+C to terminate")
         sys.exit(0)
 
 

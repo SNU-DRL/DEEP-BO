@@ -30,36 +30,21 @@ class ResultsRepository(object):
 
         #debug("result initialized")
 
-    def append(self, select_index, test_error, opt_time, exec_time, 
-               metrics=None, est_exec_time=None, 
-               train_epoch=None, 
-               test_acc=None):
+    def append(self, eval_result):
+        if not 'error' in eval_result:
+            warn("Invalid evaluation result: {}".format(eval_result))
+            return
+
+        for k in eval_result.keys():
+            v = eval_result[k]
+            if k in self.result:
+                self.result[k].append(v)
         
-        #if test_acc == None:
-        #    self.curr_acc = 1.0 - test_error
-        #else:
-        #    self.curr_acc = test_acc
-
-        #if metrics is None:
-        #    metrics = -1
-        #self.result['metrics'].append(metrics)
-
-        self.result['model_idx'].append(select_index)
-        self.result['error'].append(test_error)
-        if self.goal_metric == 'accuracy' and test_acc != None:
-            self.result['accuracy'].append(test_acc)
-
-        self.result['exec_time'].append(exec_time)
-        self.result['opt_time'].append(opt_time)
-
-        if train_epoch != None:
-            self.result['train_epoch'].append(train_epoch)
-       
-        #if est_exec_time is None:
-        #   est_exec_time = -1 
-        #self.result['est_exec_time'].append(est_exec_time)
-
-        #debug("result appended")
+        if not 'accuracy' in eval_result:
+            if self.goal_metric == "accuracy":
+                if 'error' in eval_result:
+                    test_acc = 1.0 - eval_result['error'] 
+                    self.result['accuracy'].append(test_acc)                
 
     def count_duplicates(self, shelves):
         selects = []

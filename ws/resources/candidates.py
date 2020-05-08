@@ -16,7 +16,7 @@ class Candidates(Resource):
     def get(self, space_id):
         parser = reqparse.RequestParser()
         parser.add_argument("Authorization", location="headers") # for security reason
-        parser.add_argument("use_interim", type=bool, default=False)
+        
         args = parser.parse_args()
         if not self.sm.authorize(args['Authorization']):
             return "Unauthorized", 401
@@ -27,7 +27,7 @@ class Candidates(Resource):
 
         result = {}
 
-        result["candidates"] = samples.get_candidates(args['use_interim']).tolist()
+        result["candidates"] = samples.get_candidates().tolist() 
         #space["completes"] = samples.get_completes().tolist()
         
 

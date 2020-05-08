@@ -60,8 +60,8 @@ class RemoteParameterSpaceConnector(RemoteConnectorPrototype):
         
         return self.num_samples
 
-    def get_candidates(self, use_interim=True):
-        resp = self.conn.request_get("/candidates/", args={'use_interim': use_interim}, headers=self.headers)
+    def get_candidates(self): 
+        resp = self.conn.request_get("/candidates/", args={}, headers=self.headers)
         status = resp['headers']['status']
 
         if status == '200':
@@ -71,8 +71,8 @@ class RemoteParameterSpaceConnector(RemoteConnectorPrototype):
         else:
             raise ValueError("Connection failed: {}".format(status))
 
-    def get_completions(self, use_interim=True):
-        resp = self.conn.request_get("/completions/", args={"use_interim": use_interim}, headers=self.headers)
+    def get_completions(self): 
+        resp = self.conn.request_get("/completions/", args={}, headers=self.headers)
         status = resp['headers']['status']
 
         if status == '200':
@@ -96,12 +96,12 @@ class RemoteParameterSpaceConnector(RemoteConnectorPrototype):
         else:
             return False
 
-    def get_param_vectors(self, id, use_interim=False):
+    def get_param_vectors(self, id):
 
         if self.validate(id) == False:
             raise ValueError("Invalid id: {}".format(id))
 
-        resp = self.conn.request_get("/grid/{}/".format(id), args={"use_interim": use_interim}, headers=self.headers)
+        resp = self.conn.request_get("/grid/{}/".format(id), args={}, headers=self.headers)
         status = resp['headers']['status']
 
         if status == '200':

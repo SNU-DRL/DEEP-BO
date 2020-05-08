@@ -49,7 +49,6 @@
                 true
             ],
             "default": false
-
         },
         "loss": {
             "type": "str",
@@ -72,13 +71,13 @@
             ],
             "default": "adam"
         },
-        "layer_1_size": {
+        "layer_neurons": {
             "type": "int",
             "value_type": "discrete",
             "range": [2, 100],
             "default": 10
         },
-        "layer_1_activation": {
+        "activation": {
             "type": "str",
             "value_type": "categorical",
             "range": [
@@ -88,7 +87,7 @@
             ],
             "default": "relu"
         },
-        "layer_1_reg": {
+        "regularizer": {
             "type": "str",
             "value_type": "categorical",
             "range": [
@@ -98,144 +97,11 @@
             ],
             "default": "dropout"
         },
-        "dropout_rate_1": {
-            "type": "float",
-            "value_type": "continuous",
-            "range": [0.1, 0.5],
-            "default": 0.2
-        },
-
-        "layer_2_size": {
-            "type": "int",
-            "value_type": "discrete",
-            "range": [2, 100],
-            "default": 20
-        },
-        "layer_2_activation": {
-            "type": "str",
-            "value_type": "categorical",
-            "range": [
-                "relu",
-                "sigmoid",
-                "tanh"
-            ],
-            "default": "relu"
-        },
-        "layer_2_reg": {
-            "type": "str",
-            "value_type": "categorical",
-            "range": [
-                "None",
-                "dropout",
-                "batchnorm"
-            ],
-            "default": "dropout"
-        },
-        "dropout_rate_2": {
-            "type": "float",
-            "value_type": "continuous",
-            "range": [0.1, 0.5],
-            "default": 0.2
-        },
-        
-        "layer_3_size": {
-            "type": "int",
-            "value_type": "discrete",
-            "range": [2, 100],
-            "default": 30
-        },
-        "layer_3_activation": {
-            "type": "str",
-            "value_type": "categorical",
-            "range": [
-                "relu",
-                "sigmoid",
-                "tanh"
-            ],
-            "default": "relu"
-        },
-        "layer_3_reg": {
-            "type": "str",
-            "value_type": "categorical",
-            "range": [
-                "None",
-                "dropout",
-                "batchnorm"
-            ],
-            "default": "dropout"
-        },
-        "dropout_rate_3": {
-            "type": "float",
-            "value_type": "continuous",
-            "range": [0.1, 0.5],
-            "default": 0.2
-        },
-        
-        "layer_4_size": {
-            "type": "int",
-            "value_type": "discrete",
-            "range": [2, 100],
-            "default": 40
-        },
-        "layer_4_activation": {
-            "type": "str",
-            "value_type": "categorical",
-            "range": [
-                "relu",
-                "sigmoid",
-                "tanh"
-            ],
-            "default": "relu"
-        },
-        "layer_4_reg": {
-            "type": "str",
-            "value_type": "categorical",
-            "range": [
-                "None",
-                "dropout",
-                "batchnorm"
-            ],
-            "default": "dropout"
-        },
-        "dropout_rate_4": {
-            "type": "float",
-            "value_type": "continuous",
-            "range": [0.1, 0.5],
-            "default": 0.2
-        },        
-
-        "layer_5_size": {
-            "type": "int",
-            "value_type": "discrete",
-            "range": [2, 100],
-            "default": 50
-        },
-        "layer_5_activation": {
-            "type": "str",
-            "value_type": "categorical",
-            "range": [
-                "relu",
-                "sigmoid",
-                "tanh"
-            ],
-            "default": "relu"
-        },
-        "layer_5_reg": {
-            "type": "str",
-            "value_type": "categorical",
-            "range": [
-                "None",
-                "dropout",
-                "batchnorm"
-            ],
-            "default": "dropout"
-        },
-        "dropout_rate_5": {
+        "dropout_rate": {
             "type": "float",
             "value_type": "continuous",
             "range": [0.1, 0.5],
             "default": 0.2
         }
-
     }
 }

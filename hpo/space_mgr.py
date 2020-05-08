@@ -62,18 +62,19 @@ def create_surrogate_space(hp_cfg_dict, space_setting={}):
     hvg.generate()
     s = HyperParameterSpace(name, hp_cfg_dict, hvg.get_hp_vectors(),
                            space_setting=space_setting)
-    debug("Search space created: {}".format(name))
+    debug("Search space created as {}".format(name))
     return s
 
 
 def append_samples(space, num_samples):
-
-    space.space_setting['num_samples'] = num_samples
+    spec = copy.copy(space.spec)
+    spec['num_samples'] = num_samples
     # Randomizes Sobol sequences  
-    if space.space_setting['sample_method'] == 'Sobol':
-        space.space_setting['seed'] += space.get_size() 
+    cur_size = space.get_size()  
+    if spec['sample_method'] == 'Sobol':        
+        spec['seed'] = random.randint(cur_size, cur_size * 2) 
     
-    hvg = HyperparameterVectorGenerator(space.get_hp_config(), space.space_setting)
+    hvg = HyperparameterVectorGenerator(space.get_hp_config(), spec)
     hvg.generate()    
     hpvs = hvg.get_hp_vectors()
     space.expand(hpvs)
@@ -82,12 +83,13 @@ def append_samples(space, num_samples):
 def intensify_samples(space, num_samples, best_candidate, num_gen):
  
     try:
-        space.space_setting['num_samples'] = num_samples
-        space.space_setting['sample_method'] = 'local'
-        space.space_setting['best_candidate'] = best_candidate # XXX:should be normalized value
-        space.space_setting['generation'] = num_gen 
+        spec = copy.copy(space.spec)
+        spec['num_samples'] = num_samples
+        spec['sample_method'] = 'local'
+        spec['best_candidate'] = best_candidate # XXX:should be normalized value
+        spec['generation'] = num_gen 
 
-        hvg = HyperparameterVectorGenerator(space.get_hp_config(), space.space_setting)
+        hvg = HyperparameterVectorGenerator(space.get_hp_config(), spec)
         hvg.generate()    
         hpvs = hvg.get_hp_vectors()
         schemata = hvg.get_schemata()
@@ -100,13 +102,14 @@ def intensify_samples(space, num_samples, best_candidate, num_gen):
 
 def evolve_samples(space, num_samples, current_best, best_candidate, mutation_ratio=.1):
     try:
-        space.space_setting['num_samples'] = num_samples
-        space.space_setting['sample_method'] = 'genetic'
-        space.space_setting['current_best'] = current_best
-        space.space_setting['best_candidate'] = best_candidate # XXX:should be normalized value
-        space.space_setting['mutation_ratio'] = mutation_ratio
+        spec = copy.copy(space.spec)
+        spec['num_samples'] = num_samples
+        spec['sample_method'] = 'genetic'
+        spec['current_best'] = current_best
+        spec['best_candidate'] = best_candidate # XXX:should be normalized value
+        spec['mutation_ratio'] = mutation_ratio
 
-        hvg = HyperparameterVectorGenerator(space.get_hp_config(), space.space_setting)
+        hvg = HyperparameterVectorGenerator(space.get_hp_config(), spec)
         hvg.generate()    
         hpvs = hvg.get_hp_vectors()
         schemata = hvg.get_schemata()

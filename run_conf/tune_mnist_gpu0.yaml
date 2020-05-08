@@ -14,12 +14,13 @@ max_timeout: 50
 
 
 # Trainer setting
-eval_func: tune_mnist_lenet5 # See the code in train_node
-port: 6100
-resource_type: gpu
-resource_id: 0
+train_node:
+    eval_func: tune_mnist_lenet5 # See the code in train_node
+    port: 6100
+    resource_type: gpu
+    resource_id: 0
 
 
 # Debugging setting
 debug_mode: true # Set true to enable debug messages
-tune_log: tune_mnist_lenet5.log
+log: tune_mnist_lenet5.log

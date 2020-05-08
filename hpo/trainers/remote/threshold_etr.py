@@ -42,9 +42,9 @@ class MultiThresholdingETRTrainer(EarlyTerminateTrainer):
             if np.isnan(cur_mean_acc) == False:
                 mean_accs.append(cur_mean_acc)
 
-        for i in range(len(self.history)):
+        acc_curves = self.get_acc_curves()
+        for prev_curve in acc_curves:
             acc_curve_span = []
-            prev_curve = self.history[i]["curve"]
             
             if len(prev_curve) > eval_end_index:
                 acc_curve_span = prev_curve[eval_start_index:eval_end_index+1]
@@ -62,7 +62,7 @@ class MultiThresholdingETRTrainer(EarlyTerminateTrainer):
         #debug("P:{}%, T:{:.4f}, mean accs:{}".format(percentile, threshold, ["{:.4f}".format(acc) for acc in mean_accs]))
         return threshold
 
-    def stop_check(self, acc_curve, estimates):
+    def stop_check(self, acc_curve):
         cur_epoch = len(acc_curve)
         
         early_drop_epoch = int(self.num_epochs * 0.5)
@@ -77,10 +77,9 @@ class MultiThresholdingETRTrainer(EarlyTerminateTrainer):
                 cur_acc = acc_curve[end_index]
                 
                 acc_thres = self.get_acc_threshold(acc_curve, start_index, end_index, self.early_drop_percentile)
-                debug("Termination check at {} epoch: {:.4f}".format(cur_epoch, cur_acc / acc_thres))
+                debug("Termination check at {} epoch ({:.4f}) ".format(cur_epoch, cur_acc / acc_thres))
                 if cur_acc < acc_thres:
-                    cur_err = 1.0 - cur_acc
-                    debug("Early dropped as {}".format(cur_err))  # XXX:change to error                  
+                    debug("Evaluation is droppted in the early checkpoint.")                  
                     return True
                 else:
                     self.etr_checked = "early"
@@ -91,10 +90,9 @@ class MultiThresholdingETRTrainer(EarlyTerminateTrainer):
                 start_index, end_index = self.get_eval_indices(0.5, eval_end_ratio)
                 cur_acc = acc_curve[end_index]
                 acc_thres = self.get_acc_threshold(acc_curve, start_index, end_index, self.late_drop_percentile)
-                debug("Termination check at {} epoch: {:.4f}".format(cur_epoch, cur_acc / acc_thres))
+                debug("Termination check at {} epoch ({:.4f})".format(cur_epoch, cur_acc / acc_thres))
                 if cur_acc < acc_thres:
-                    cur_err = 1.0 - cur_acc
-                    debug("Late dropped as {}".format(cur_err)) # XXX:change to error
+                    debug("Evaluation is dropped in the late checkpoint.") 
                     return True
                 else:
                     self.etr_checked = True

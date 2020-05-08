@@ -22,7 +22,7 @@ class SequentialStrategy(object):
         self.counts = counts                
         self.epsilon = 0.0
 
-    def next(self, step, use_interim_result=True):
+    def next(self, step):
         idx = step % self.num_arms
         return idx
 
@@ -54,7 +54,7 @@ class SequentialKnockOutStrategy(object):
         self.rank_sums = np.array([ 0.0 for i in range(self.num_arms)])
         self.cur_index = 0            
 
-    def next(self, step, use_interim_result=True):
+    def next(self, step):
         idx = 0
         if step != 0 and step % self.iters_round == 0:
             # remove the worst performed arm            
@@ -105,7 +105,7 @@ class RandomStrategy(object):
         self.counts = counts                
         self.epsilon = 1.0
 
-    def next(self, step, use_interim_result=True):
+    def next(self, step):
         idx = np.random.randint(0, self.num_arms)
         
         return idx
@@ -141,7 +141,7 @@ class ClassicHedgeStrategy(object):
                 return i
         raise ValueError("unrealistic status.")
 
-    def next(self, step, use_interim_result=True):
+    def next(self, step):
         z = sum([math.exp(v * self.temperature) for v in self.values])
         probs = [math.exp(v * self.temperature) / z for v in self.values]
         return self.categorical_draw(probs)
@@ -186,7 +186,7 @@ class BayesianHedgeStrategy(object):
                 return i
         raise ValueError("unrealistic status.")
 
-    def nominate(self, use_interim_result=True):        
+    def nominate(self):       
         all_nominees = []
         
         for arm in self.arms:
@@ -196,7 +196,7 @@ class BayesianHedgeStrategy(object):
             chooser = self.choosers[optimizer]
             mean_value = 0.0 # default mean value.
             
-            next_index = chooser.next(search_space, aquisition_func, use_interim_result)
+            next_index = chooser.next(search_space, aquisition_func) 
             if chooser.mean_value is not None:
                 mean_value = chooser.mean_value
             test_error = search_space.get_errors(next_index)
@@ -210,8 +210,8 @@ class BayesianHedgeStrategy(object):
             })
         return all_nominees
 
-    def next(self, step, use_interim_result=True):
-        self.nominees = self.nominate(use_interim_result)
+    def next(self, step):
+        self.nominees = self.nominate()
         arm_index = 0
         try:       
             z = sum([math.exp(v * self.temperature) for v in self.values])
@@ -287,7 +287,7 @@ class EpsilonGreedyStrategy(object):
         self.log_scale_decay = log_scale_decay
         self.reward_scaling = reward_scaling
 
-    def next(self, step, use_interim_result=True):
+    def next(self, step):
         ran_num = np.random.random_sample()
         idx = None
 
@@ -386,7 +386,7 @@ class GreedyTimeStrategy(object):
             warn('unsupported time unit: {}'.format(self.time_unit))
         return elapsed
     
-    def next(self, step, use_interim_result=True):
+    def next(self, step):
         ran_num = np.random.random_sample()
         idx = None
 

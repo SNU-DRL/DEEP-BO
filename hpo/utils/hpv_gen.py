@@ -44,33 +44,34 @@ class HyperparameterVectorGenerator(object):
     def get_generations(self):
         return self.generations
 
+    def create_generator(self, spec):
+        seed = spec['seed']
+        n_s = spec['num_samples']
+        if 'sample_method' in spec:
+            if spec['sample_method'] == 'uniform':
+                return UniformRandomGenerator(self.config, n_s, seed)
+            elif spec['sample_method'] == 'latin':
+                return LatinHypercubeGenerator(self.config, n_s, seed)
+            elif spec['sample_method'] == 'local':
+                return LocalSearchGenerator(self.config, n_s, 
+                                         spec['best_candidate'], spec['generation'], seed)
+            elif spec['sample_method'] == 'genetic':
+                if not 'mutation_ratio' in spec:
+                    spec['mutation_ratio'] = .1 # default mutation ratio
+                return EvolutionaryGenerator(self.config, n_s, spec['current_best'],
+                                          spec['best_candidate'], seed, spec['mutation_ratio'])                                             
+            elif spec['sample_method'] != 'Sobol':
+                warn("Not supported sampling method: {}. We utilize Sobol sequences as default.".format(spec['sample_method']))
+        if 'num_skips' in spec:
+            seed += spec['num_skips']
+        return SobolSequenceGenerator(self.config, n_s, seed)
     def generate(self):
         #debug("Sampling hyperparameter configurations...")
         s_t = time.time()
         try:
-            spec = self.spec
-            seed = spec['seed']
-            n_s = spec['num_samples']
-            if 'num_skips' in spec:
-                seed += spec['num_skips']
-
-            if not 'mutation_ratio' in spec:
-                spec['mutation_ratio'] = .1 # default mutation ratio
-            g = SobolSequenceGenerator(self.config, spec['num_samples'], seed)
             
-            if 'sample_method' in spec:
-                if spec['sample_method'] == 'uniform':
-                    g = UniformRandomGenerator(self.config, n_s, seed)
-                elif spec['sample_method'] == 'latin':
-                    g = LatinHypercubeGenerator(self.config, n_s, seed)
-                elif spec['sample_method'] == 'local':
-                    g = LocalSearchGenerator(self.config, n_s, 
-                                             spec['best_candidate'], spec['generation'], seed)
-                elif spec['sample_method'] == 'genetic':
-                    g = EvolutionaryGenerator(self.config, n_s, spec['current_best'],
-                                             spec['best_candidate'], seed, spec['mutation_ratio'])                                             
-                elif spec['sample_method'] != 'Sobol':
-                    warn("Not supported sampling method: {}. We utilize Sobol sequences as default.".format(spec['sample_method']))
+            g = self.create_generator(self.spec)
+            debug("Candidates will be generated using {}...".format(g.get_name()))
 
             grid = g.generate()
             schemata = g.get_schemata()
@@ -89,8 +90,5 @@ class HyperparameterVectorGenerator(object):
             
 
         except Exception as ex:
-            warn("Failed to generate space: {}".format(ex))
-        finally:
-            if len(self.grid) > 1:
-                debug("{} samples have been populated. ({:.1f} sec)".format(len(self.grid), time.time() - s_t))
+            warn("Failed to generate candidates: {}".format(ex))
 

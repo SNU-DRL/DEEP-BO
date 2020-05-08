@@ -106,7 +106,7 @@ class RemoteJobConnector(RemoteConnectorPrototype):
             while True:
                 active_job = self.get_job("active")
                 if active_job != None:
-                    debug("Worker is busy. starting job: {}, working item: {}".format(job_id, active_job))
+                    debug("Worker is busy. to start: {}, working: {}".format(job_id, active_job['job_id']))
                     time.sleep(10)
                     stopped = self.stop(active_job['job_id'])
                     retry_count += 1
@@ -218,5 +218,6 @@ class RemoteJobConnector(RemoteConnectorPrototype):
         except Exception as ex:
             # FIXME: When stopping fails, system will be down. 
             warn("Stopping job {} is failed".format(job_id))
+            time.sleep(3)
             return self.stop(job_id)        
 

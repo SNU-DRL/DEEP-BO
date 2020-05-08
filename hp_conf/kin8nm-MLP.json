@@ -2,7 +2,7 @@
     "dataset": "kin8nm",
     "model": "MLP",
     "config": { 
-        "max_epoch": 27 
+        "max_epoch": 50 
     },
     "hyperparams": {
         "scaler": {
@@ -14,12 +14,17 @@
                 "MinMaxScaler",
                 "MaxAbsScaler"
             ]
-        },        
-        "n_layers": {
-            "type": "int",
-            "value_type": "preordered",
-            "range": [1, 2, 3, 4, 5]
         },
+
+        "shuffle": {
+            "type": "bool",
+            "value_type": "categorical",
+            "range": [
+                false,
+                true
+            ]
+        },
+        
         "init": {
             "type": "str",
             "value_type": "categorical",
@@ -31,20 +36,14 @@
                 "he_uniform",
                 "he_normal"
             ]
-        },           
+        },
+
         "batch_size": {
             "type": "int",
             "value_type": "preordered",
             "range": [16, 32, 64, 128, 256]
         },
-        "shuffle": {
-            "type": "bool",
-            "value_type": "categorical",
-            "range": [
-                false,
-                true
-            ]
-        },
+
         "loss": {
             "type": "str",
             "value_type": "categorical",
@@ -64,149 +63,44 @@
                 "adamax"
             ]
         },
-        "layer_1_size": {
-            "type": "int",
-            "value_type": "discrete",
-            "range": [2, 100]
-        },
-        "layer_1_activation": {
-            "type": "str",
-            "value_type": "categorical",
-            "range": [
-                "relu",
-                "sigmoid",
-                "tanh"
-            ]
-        },
-        "layer_1_reg": {
-            "type": "str",
-            "value_type": "categorical",
-            "range": [
-                "None",
-                "dropout",
-                "batchnorm"
-            ]
-        },
-        "dropout_rate_1": {
-            "type": "float",
-            "value_type": "continuous",
-            "range": [0.1, 0.5]
-        },
-
-        "layer_2_size": {
-            "type": "int",
-            "value_type": "discrete",
-            "range": [2, 100]
-        },
-        "layer_2_activation": {
-            "type": "str",
-            "value_type": "categorical",
-            "range": [
-                "relu",
-                "sigmoid",
-                "tanh"
-            ]
-        },
-        "layer_2_reg": {
-            "type": "str",
-            "value_type": "categorical",
-            "range": [
-                "None",
-                "dropout",
-                "batchnorm"
-            ]
-        },
-        "dropout_rate_2": {
-            "type": "float",
-            "value_type": "continuous",
-            "range": [0.1, 0.5]
-        },
         
-        "layer_3_size": {
+        "n_layers": {
             "type": "int",
-            "value_type": "discrete",
-            "range": [2, 100]
-        },
-        "layer_3_activation": {
-            "type": "str",
-            "value_type": "categorical",
-            "range": [
-                "relu",
-                "sigmoid",
-                "tanh"
-            ]
-        },
-        "layer_3_reg": {
-            "type": "str",
-            "value_type": "categorical",
-            "range": [
-                "None",
-                "dropout",
-                "batchnorm"
-            ]
-        },
-        "dropout_rate_3": {
-            "type": "float",
-            "value_type": "continuous",
-            "range": [0.1, 0.5]
-        },
-        
-        "layer_4_size": {
-            "type": "int",
-            "value_type": "discrete",
-            "range": [2, 100]
-        },
-        "layer_4_activation": {
-            "type": "str",
-            "value_type": "categorical",
-            "range": [
-                "relu",
-                "sigmoid",
-                "tanh"
-            ]
-        },
-        "layer_4_reg": {
-            "type": "str",
-            "value_type": "categorical",
-            "range": [
-                "None",
-                "dropout",
-                "batchnorm"
-            ]
-        },
-        "dropout_rate_4": {
-            "type": "float",
-            "value_type": "continuous",
-            "range": [0.1, 0.5]
-        },        
+            "value_type": "preordered",
+            "range": [1, 2, 3, 4, 5]
+        },         
 
-        "layer_5_size": {
+        "layer_neurons": {
             "type": "int",
             "value_type": "discrete",
-            "range": [2, 100]
+            "range": [2, 100],
+            "default": 10
         },
-        "layer_5_activation": {
+        "activation": {
             "type": "str",
             "value_type": "categorical",
             "range": [
                 "relu",
                 "sigmoid",
                 "tanh"
-            ]
+            ],
+            "default": "relu"
         },
-        "layer_5_reg": {
+        "regularizer": {
             "type": "str",
             "value_type": "categorical",
             "range": [
                 "None",
                 "dropout",
                 "batchnorm"
-            ]
+            ],
+            "default": "dropout"
         },
-        "dropout_rate_5": {
+        "dropout_rate": {
             "type": "float",
             "value_type": "continuous",
-            "range": [0.1, 0.5]
+            "range": [0.1, 0.5],
+            "default": 0.2
         }
 
     }

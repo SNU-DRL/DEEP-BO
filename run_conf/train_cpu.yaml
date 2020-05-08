@@ -5,10 +5,12 @@ credential : "********" # Auth password. Set to be same between hpo_runner and t
 hp_config: kin8nm-MLP   # The same hyperparameter configuration should be used between hpo_runner and train_node 
 hp_config_dir: ./hp_conf/
 
-eval_func: tune_kin8nm_mlp # See the code in train_node
-port: 6100
+train_node:
+    eval_func: tune_kin8nm_mlp # See the code in train_node
+    port: 6100
 
-resource_type: cpu  # running on CPU
-resource_id: 0
+    resource_type: cpu  # running on CPU
+    resource_id: 0 
+
 
 debug_mode: true # Set true to show debug messages

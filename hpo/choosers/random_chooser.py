@@ -37,9 +37,9 @@ class RandomChooser:
     def set_eval_time_penalty(self, est_eval_time):
         pass
 
-    def next(self, samples, af, use_interim=True):
+    def next(self, samples, af):
 
-        candidates = samples.get_candidates(use_interim)
+        candidates = samples.get_candidates() 
         errs = samples.get_errors("completions")
         if len(errs) == 0:
             return int(candidates[0]) # return the first candidate         

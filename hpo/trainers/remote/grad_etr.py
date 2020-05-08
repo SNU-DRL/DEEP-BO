@@ -15,6 +15,7 @@ class GradientETRTrainer(EarlyTerminateTrainer):
     def __init__(self, controller, space):
         
         super(GradientETRTrainer, self).__init__(controller, space)
+        self.estimates = None
 
     def get_gradient_average(self, acc_curve, num_step):
 
@@ -31,15 +32,15 @@ class GradientETRTrainer(EarlyTerminateTrainer):
         #debug("delta average: {:.5f}, delta list: {}".format(avg_deltas, [round(d, 5) for d in acc_delta]))         
         return avg_deltas
 
-    def stop_check(self, acc_curve, estimates):
-        if estimates is None:
+    def stop_check(self, acc_curve):
+        if self.estimates is None:
             self.early_terminated_history.append(False)
             return False
         else:
-            candidates = estimates['candidates']
-            acq_funcs = estimates['acq_funcs']
-            means = estimates['means']
-            vars = estimates['vars']        
+            candidates = self.estimates['candidates']
+            acq_funcs = self.estimates['acq_funcs']
+            means = self.estimates['means']
+            vars = self.estimates['vars']        
         
             i_max = np.argmax(acq_funcs)
             v_max = acq_funcs[i_max]

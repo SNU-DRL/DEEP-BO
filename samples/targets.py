@@ -28,14 +28,18 @@ def tune_mnist_lenet5(config, fail_err=0.9, **kwargs):
     if "max_iters" in kwargs:
         if "iter_unit" in kwargs and kwargs["iter_unit"] == "epoch":
             max_epoch = kwargs["max_iters"]    
+    if 'job_id' in kwargs:
+        job_id = kwargs['job_id']
+    else:
+        job_id = get_resource().get_id()    
 
     acc_cb = TestAccuracyCallback()
     log("Training with {}".format(config))
     dataset = load_data('MNIST')
-    worker = KerasClassificationWorker(dataset, run_id='{}'.format(get_resource().get_id()))
+    worker = KerasClassificationWorker(dataset, run_id='{}'.format(job_id))
     res = worker.compute(config=config, 
                          budget=max_epoch, 
-                         working_directory='./{}/'.format(get_resource().get_id()), 
+                         working_directory='./{}/'.format(job_id), 
                          epoch_cb=acc_cb)
     elapsed_time = time.time() - start_time
     report_result(res, elapsed_time)
@@ -53,14 +57,18 @@ def tune_kin8nm_mlp(config, **kwargs):
     if "max_iters" in kwargs:
         if "iter_unit" in kwargs and kwargs["iter_unit"] == "epoch":
             max_epoch = kwargs["max_iters"]    
+    if 'job_id' in kwargs:
+        job_id = kwargs['job_id']
+    else:
+        job_id = get_resource().get_id()  
 
     rmse_cb = RMSELossCallback()
     debug("Training with {}".format(config))
     dataset = load_data('kin8nm')
-    worker = KerasRegressionWorker(dataset, run_id='{}'.format(get_resource().get_id()))
+    worker = KerasRegressionWorker(dataset, run_id='{}'.format(job_id))
     res = worker.compute(config=convert_config(config), 
                          budget=max_epoch, 
-                         working_directory='./{}/'.format(get_resource().get_id()), 
+                         working_directory='./{}/'.format('kin8nm'), 
                          epoch_cb=rmse_cb)
     elapsed_time = time.time() - start_time
     report_result(res, elapsed_time)
@@ -78,13 +86,17 @@ def tune_protein_mlp(config, **kwargs):
         if "iter_unit" in kwargs and kwargs["iter_unit"] == "epoch":
             max_epoch = kwargs["max_iters"]    
 
+    if 'job_id' in kwargs:
+        job_id = kwargs['job_id']
+    else:
+        job_id = get_resource().get_id() 
     rmse_cb = RMSELossCallback()
     debug("Training with {}".format(config))
     dataset = load_data('protein')
-    worker = KerasRegressionWorker(dataset, loss_type='RMSE', run_id='{}'.format(get_resource().get_id()))
+    worker = KerasRegressionWorker(dataset, loss_type='RMSE', run_id='{}'.format(job_id))
     res = worker.compute(config=convert_config(config), 
                          budget=max_epoch, 
-                         working_directory='./{}/'.format(get_resource().get_id()), 
+                         working_directory='./{}/'.format('protein'), 
                          epoch_cb=rmse_cb)
     elapsed_time = time.time() - start_time
     report_result(res, elapsed_time)
@@ -127,6 +139,10 @@ def tune_efficientnet_cifar10(config, fail_err=0.9, **kwargs):
         if "iter_unit" in kwargs and kwargs["iter_unit"] == "epoch":
             max_epoch = kwargs["max_iters"]   
 
+    if 'job_id' in kwargs:
+        job_id = kwargs['job_id']
+    else:
+        job_id = get_resource().get_id() 
     cfg_path = create_yaml_config(run_id, 'cifar10', config, max_epoch)
 
     train(cfg_path, epoch_cb=update_epoch_acc)
@@ -145,6 +161,10 @@ def tune_efficientnet_cifar100(config, fail_err=0.99, **kwargs):
         if "iter_unit" in kwargs and kwargs["iter_unit"] == "epoch":
             max_epoch = kwargs["max_iters"]   
 
+    if 'job_id' in kwargs:
+        job_id = kwargs['job_id']
+    else:
+        job_id = get_resource().get_id() 
     cfg_path = create_yaml_config(run_id, 'cifar100', config, max_epoch)
 
     train(cfg_path, epoch_cb=update_epoch_acc)

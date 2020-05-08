@@ -26,10 +26,10 @@ class Jobs(Resource):
             job_id = self.jm.add(job_req) 
 
             if job_id == None:
-                debug("Job creation request rejected.")  
+                debug("Job creation rejected.")  
                 return "invalid job request: {}".format(job_req), 400
             else:                
-                debug("Job creation request accepted.")                  
+                debug("Job creation accepted.")                  
                 return {"job_id": job_id}, 201
 
         except Exception as ex:

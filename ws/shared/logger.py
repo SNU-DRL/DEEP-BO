@@ -15,7 +15,7 @@ def print_trace(enable=True):
 
 def set_log_file(log_file):
     global __LOGGER__
-    print("Progress logs will be saved in {}".format(log_file))
+    print("Progress can be monitored via {}".format(log_file))
     try:
         __LOGGER__ = FileLogger()
         __LOGGER__.set_log_file(log_file)
@@ -39,23 +39,29 @@ def debug(msg):
 
 def warn(msg):
     global __LOGGER__
+    if __LOGGER__ == None:
+        __LOGGER__ = ConsoleLogger() # default logger    
     __LOGGER__.warn(msg)
 
 def error(msg):
     global __LOGGER__
+    if __LOGGER__ == None:
+        __LOGGER__ = ConsoleLogger() # default logger    
     __LOGGER__.error(msg)
 
 def log(msg):
     global __LOGGER__
+    if __LOGGER__ == None:
+        __LOGGER__ = ConsoleLogger() # default logger    
     __LOGGER__.log(msg)
 
 
 class Singleton(object):
     _instances = {}
-    def __new__(class_, *args, **kwargs):
-        if class_ not in class_._instances:
-            class_._instances[class_] = super(Singleton, class_).__new__(class_, *args, **kwargs)
-        return class_._instances[class_]
+    def __new__(cls, *args, **kwargs):
+        if cls not in cls._instances:
+            cls._instances[cls] = super(Singleton, cls).__new__(cls, *args, **kwargs)
+        return cls._instances[cls]
 
 
 class ConsoleLogger(Singleton):
@@ -139,19 +145,21 @@ class FileLogger(Singleton):
     def debug(self, msg):
         if self.logger == None:
             self.set_log_file('default.log')
-
-        self.logger.debug(msg)
+        if self.levels.index(self.cur_level) <= self.levels.index('debug'):
+            self.logger.debug(msg)
 
     def warn(self, msg):
         if self.logger == None:
             self.set_log_file('default.log')
-
-        self.logger.warn(msg)
+        if self.levels.index(self.cur_level) <= self.levels.index('warn'):
+            self.logger.warn(msg)
 
     def error(self, msg):
+        print(msg) # print message in console
         if self.logger == None:
             self.set_log_file('default.log')        
-        self.logger.error(msg)
+        if self.levels.index(self.cur_level) <= self.levels.index('error'):        
+            self.logger.error(msg)
 
     def print_trace(self):
         if self.logger == None:

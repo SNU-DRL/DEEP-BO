@@ -19,6 +19,11 @@ class GridGenerator(object):
         self.num_dim = len(self.params)
         self.num_samples = num_samples
 
+    def get_name(self):
+        if self.name:
+            return self.name
+        else:
+            return "Undefined"
     def validate(self, candidate):
         # candidate is dict type
         cand = {}
@@ -60,7 +65,7 @@ class GridGenerator(object):
 
 class SobolSequenceGenerator(GridGenerator):
     def __init__(self, config, num_samples, seed):
-        
+        self.name = 'Sobol sequences'
         super(SobolSequenceGenerator, self).__init__(config, num_samples, seed)
 
     def generate(self):
@@ -70,6 +75,7 @@ class SobolSequenceGenerator(GridGenerator):
 
 class UniformRandomGenerator(GridGenerator):
     def __init__(self, config, num_samples, seed):        
+        self.name = 'uniform random sampling'        
         super(UniformRandomGenerator, self).__init__(config, num_samples, seed)
 
     def generate(self):
@@ -81,7 +87,7 @@ class UniformRandomGenerator(GridGenerator):
 
 class LatinHypercubeGenerator(GridGenerator):
     def __init__(self, config, num_samples, seed):
-        
+        self.name = 'Latin Hypercube sampling' 
         super(LatinHypercubeGenerator, self).__init__(config, num_samples, seed)
 
     def generate(self):
@@ -104,6 +110,7 @@ class EvolutionaryGenerator(GridGenerator):
         self.mutation_ratio = m_ratio
         self.schemata = []
         self.generations = []
+        self.name = 'evolutionary sampling'
         super(EvolutionaryGenerator, self).__init__(config, num_samples, seed)
 
     def generate(self):
@@ -216,11 +223,10 @@ class EvolutionaryGenerator(GridGenerator):
             arr.append(a)
         return arr
     def mutate(self, cand):
-        n_i = random.randint(0, self.num_dim - 1) # choose param index
                 # mutate this candidate
         hpv_dict = self.config.convert("arr", "dict", cand['hpv'])
         lsg = LocalSearchGenerator(self.config, 1, hpv_dict, self.generation, self.seed)
-        hp_dict = lsg.perturb(n_i) # return dict type
+        hp_dict, n_i = lsg.perturb(self.num_dim) # return dict type
         r_schema = cand['schema']
                 # XOR operation in n_i
         if r_schema[n_i] == 1:
@@ -237,7 +243,7 @@ class EvolutionaryGenerator(GridGenerator):
 
 class LocalSearchGenerator(GridGenerator):
     def __init__(self, config, num_samples, best_candidate, best_gen, seed, sd=0.2):        
-               
+        self.name = 'Local sampling'       
         super(LocalSearchGenerator, self).__init__(config, num_samples, seed)
         self.candidate = self.validate(best_candidate) # XXX:validate requires __init__ first
         self.sd = sd
@@ -252,9 +258,8 @@ class LocalSearchGenerator(GridGenerator):
         try:
             for i in range(self.num_samples):            
                 schema = np.zeros(self.num_dim)            
-                n_i = random.randint(0, self.num_dim - 1) # choose param index
+                nc, n_i = self.perturb(self.num_dim)
                 schema[n_i] = 1
-                nc = self.perturb(n_i)                            
                 nc2 = self.config.convert("dict", "norm_arr", nc)  
                 nc_list.append(nc2)
                 self.schemata.append(schema)
@@ -268,8 +273,13 @@ class LocalSearchGenerator(GridGenerator):
     def get_generations(self):
         return self.generations
 
-    def perturb(self, i):
-        ''' returns perturbed dictionary ''' 
+    def perturb(self, num_dim, excluded_index=None):
+
+        i = random.randint(0, num_dim - 1) # choose param index
+        if excluded_index != None:
+            while i == excluded_index:
+                i = random.randint(0, num_dim - 1) 
+        ''' returns perturbed value as dictionary type ''' 
         ovt = OneHotVectorTransformer(self.config)
         hp_name = self.params[i] # hyperparameter name
 
@@ -287,8 +297,13 @@ class LocalSearchGenerator(GridGenerator):
                 ot_opts = np.delete(r, n_val.index(1.0), 0)
                 np_val = np.random.choice(ot_opts)
             except Exception as ex:
-                warn("No other options in {} to perturb:{}".format(hp_name, r))
-                np_val = np.random.choice(r)
+                return self.perturb(num_dim, excluded_index=i)
+        elif vt == 'preordered':
+            try:
+                ot_opts = np.delete(r, r.index(p_val), 0)
+                np_val = np.random.choice(ot_opts)
+            except Exception as ex:
+                return self.perturb(num_dim, excluded_index=i)            
         else:
             while True: # force to one exchange neighbourhood
                 r_val = np.random.normal(n_val, self.sd) # random draw from normal
@@ -298,14 +313,9 @@ class LocalSearchGenerator(GridGenerator):
                     r_val = 1.0                
                 un_val = ovt.decode(vt, t, r, r_val)
                 # Value check                        
-                if vt == 'categorical' or vt == 'preordered':
-                    if not un_val in r:
-                        warn("{} is not in {}".format(un_val, r))
-                        continue 
-                else:
-                    if un_val < r[0] or un_val > r[-1]:
-                        warn("{} is not in {}".format(un_val, r))
-                        continue
+                if un_val < r[0] or un_val > r[-1]:
+                    warn("{} is not in {}".format(un_val, r))
+                    continue
 
                 if p_val != un_val: # check parameter changed
                     np_val = un_val
@@ -313,6 +323,6 @@ class LocalSearchGenerator(GridGenerator):
 
         nc = copy.copy(self.candidate)
         nc[hp_name] = np_val
-        return nc
+        return nc, i
 
 

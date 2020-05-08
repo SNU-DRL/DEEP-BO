@@ -209,17 +209,8 @@ def objective_function(eval_func):
     return wrapper_function
 
 
-def progressive_objective_function(eval_func):
-    def wrapper_function():
-        from ws.wot.workers.evaluator import TargetFunctionEvaluator
 
-        argspec = inspect.getargspec(eval_func)
-        fe = TargetFunctionEvaluator(
-            "{}".format(eval_func.__name__), progressive=True)
-        fe.set_exec_func(eval_func, argspec.args)
-        return fe
 
-    return wrapper_function
 
 
 @atexit.register
@@ -233,6 +224,5 @@ def exit():
     if API_SERVER != None:
 
         API_SERVER.stop_service()
-        debug("API server terminated properly.")
 
         API_SERVER = None
