@@ -1,5 +1,5 @@
 # HPO runner configuration
-title: tune_kin8nm_mlp
+title: tune_kin8nm_cpu
 credential : "********" # Auth password. Set to be same between hpo_runner and train_node
 
 
@@ -24,4 +24,4 @@ train_node:
 
 # Debugging setting
 debug_mode: true # Set true to enable debug messages
-log: tune_kin8nm_mlp.log
+log: tune_kin8nm_cpu.log

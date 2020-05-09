@@ -164,35 +164,24 @@ def run(args, save=True):
         space.save() 
     return result
 
-def simulate(args, save=True):
-    from hpo.parallel.p_sim import get_simulator
-    c = get_simulator(args['spec'].upper(), 
-                      args['run_config']['hp_config'],
-                      args['exp_crt'], 
-                      args['exp_goal'], 
-                      args['exp_time'], 
-                      args['run_config'])
-    return c.run(args['num_trials'], save)
 
 def main(args):
     try:
         run_args = validate_args(args)
-        if run_args['mode'].upper() == 'BATCH':
-            simulate(run_args)
-            return
+
         if 'train_node' in run_args['run_config']:
             node_conf = run_args['run_config']['train_node']
             if type(node_conf) == dict:
                 if not 'url' in node_conf:
                     if 'port' in node_conf:
-                        train_addr = 'http://127.0.0.1:{}'.format(run_args['run_config']['port'])            
+                        train_addr = 'http://127.0.0.1:{}'.format(node_conf['port'])            
                         node_conf['url'] = train_addr
                     else:
                         raise ValueError("Invalid run configuration!")
         else:
             raise ValueError("Invalid run configuration!")
             return
-        run(valid_args)    
+        run(run_args)    
     except Exception as ex:
         error(ex)
         traceback.print_exc()        
@@ -262,7 +251,7 @@ if __name__ == "__main__":
 #                        '{} are available. Default setting is {}'.format(time_penalties_modes, default_time_penalty))
  
     # Mandatory option
-    parser.add_argument('run_config', type=str, default='debug', help='Run configuration name.')
+    parser.add_argument('run_config', type=str, default='tune_kin8nm_cpu', help='Run configuration name.')
 
     args = parser.parse_args()    
     train_thread = None
