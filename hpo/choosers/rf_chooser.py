@@ -4,7 +4,7 @@ import numpy        as np
 import numpy.random as npr
 import scipy.stats  as sps
 import sklearn.ensemble
-import sklearn.ensemble.forest
+
 
 from hpo.choosers.util import *
 from hpo.choosers.acq_func import *
@@ -12,7 +12,6 @@ from hpo.choosers.acq_func import *
 from ws.shared.logger import *
 from ws.shared.resp_shape import *
 
-from sklearn.externals.joblib import Parallel, delayed
 
 #Example Config
 #https://github.com/automl/HPOlib/blob/master/optimizers/smac/smac_2_10_00-devDefault.cfg
