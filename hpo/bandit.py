@@ -217,6 +217,7 @@ class HPOBanditMachine(object):
             return r
         except Exception as ex:
             warn("Exception at choose_from_low_fidelity(): {}".format(ex))
+    
     def choose(self, model, acq_func, search_space=None):
         if search_space is None:
             search_space = self.search_space
@@ -239,6 +240,9 @@ class HPOBanditMachine(object):
         
         next_index = chooser.next(search_space, acq_func)
         est_values = chooser.estimates
+
+        # FIXME: warm-up stage is working inproperly
+        '''
         if self.cur_runtime > self.warm_up_time:
             self.search_space.set_min_train_epoch(self.min_train_epoch) 
             if len(self.warm_up_select.keys()) < self.warm_up_revisit:
@@ -258,7 +262,7 @@ class HPOBanditMachine(object):
                     warn("Restoring best candidate from warm-up phase failed.") 
         else:
             self.warm_up_select[next_index] = { "model": model, "acq_func": acq_func, "index": next_index }
-
+        '''
         if num_done > 0 and num_done % ss == 0:
             if 'increment' in self.run_config['search_space'] and \
                 self.run_config['search_space']["increment"]:
@@ -344,11 +348,9 @@ class HPOBanditMachine(object):
             total_opt_time = time.time() - self.eval_end_time 
         
         # evaluate the candidate
-
+        train_epoch = self.max_train_epoch
         if self.cur_runtime < self.warm_up_time:
             train_epoch = self.min_train_epoch
-        else:
-            train_epoch = self.max_train_epoch
                  
         debug("Evaluation will be performed with {} epochs".format(train_epoch))
         chooser = self.bandit.choosers[model]
@@ -393,6 +395,9 @@ class HPOBanditMachine(object):
         
         if start_idx > 0:
             log("Temporary result of the prior execution is restored")
+            if num_runs <= start_idx:
+                start_idx = 0 # reset run index
+
         for i in range(start_idx, num_runs): # loop for multiple runs           
             start_time = time.time()
             self.reset()
