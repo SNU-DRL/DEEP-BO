@@ -62,6 +62,7 @@ DEEP-BO requires the following packages:
   * scipy
   * hyperopt
   * pyDOE
+  * gpustat 
 
 * For visualization (for web viewers)
   * matplotlib
@@ -89,7 +90,8 @@ If you want to optimize hyperparameters in a [sample code](github.com/snu-adsl/D
   * [keras(-gpu)](https://keras.io/#installation)
 * For pytorch implementation
   * [pytorch, torchvision](pytorch.org/get-started/locally/?source=Google&medium=PaidSearch&utm_campaign=1711784041&utm_adgroup=68039908078&utm_keyword=install%20pytorch&utm_offering=AI&utm_Product=PYTorch&gclid=CjwKCAjwvtX0BRAFEiwAGWJyZGmAYDWXuZMLuN-G2qFYvEb428fr3uOh5yaR2WAKgCZEe5nCke1f0BoCm08QAvD_BwE)
-  * mlconfig, tqdm 
+  * mlconfig, tqdm
+
 
 
 See the other details in the [guide](https://github.com/snu-adsl/DEEP-BO/wiki). 

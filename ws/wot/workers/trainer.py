@@ -149,7 +149,7 @@ class Trainer(Worker):
                             return True
                         else:
                             return False
-                debug("No {} device found: {}".format(self.get_device_id(), gpu_dict))
+                error("No {} device found: {}".format(self.get_device_id(), gpu_dict))
                 return False
             except Exception as ex:
                 debug("Checking GPU processes failed: {}".format(ex))

@@ -17,7 +17,7 @@ train_node:
     # if you have many computing devices (e.g., NVIDIA GPU cards) in a machine, 
     # the below options isolate the run environment using CUDA_VISIBLE_DEVICES.
     resource_type: gpu
-    resource_id: 1
+    resource_id: 0
     eval_func: tune_efficientnet_cifar100
     port: 6101 # Set the port number that is not used
 

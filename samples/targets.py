@@ -128,7 +128,7 @@ def update_epoch_acc(num_epoch, valid_acc):
 ''' SOTA classification problems '''
 @objective_function
 def tune_efficientnet_cifar10(config, fail_err=0.9, **kwargs):
-    from .pytorch.trainer import train
+    from .pytorch.efficientnet_clr import train
     
     global START_TIME
     START_TIME = time.time()
@@ -150,7 +150,7 @@ def tune_efficientnet_cifar10(config, fail_err=0.9, **kwargs):
 
 @objective_function
 def tune_efficientnet_cifar100(config, fail_err=0.99, **kwargs):
-    from .pytorch.trainer import train
+    from .pytorch.efficientnet_clr import train
 
     global START_TIME
     START_TIME = time.time()
